@@ -8,8 +8,8 @@ public:
 
     // Is the egg getting incubated or not?
     // @params bool incubated = is an adult sitting on the egg for a day?
-    // returns bool FALSE iff egg has died during the day else TRUE
     void eggDay(bool incubated);
+    
     
     // Return maximum neglect, to determine how long incubation will have to last
     int getMaxNeg() { return maxNegCounter; }
@@ -27,7 +27,7 @@ private:
     // (Boersma and Wheelwright 1979) fit a line for Fork-Tailed storm-petrels.
     // with a slope of .7 for (days incubation) ~ (days neglect) 
     // Thus, each day of neglect should increase the number of days required for hatch by .7
-    // TODO DECREASE COEFFICIENT TO ADJUST FOR SHORTER LHSP INCUBATION TIMES V FTSP?
+    // TODO DECREASE COEFFICIENT TO ADJUST FOR SHORTER LHSP INCUBATION VS FTSP?
     const static double NEGLECT_PENALTY = .7;
     
     // Tiers of neglect (max days continuously neglected) correlating to early chick death in FTSP (Boersma and Wheelwright 1979)
@@ -55,6 +55,6 @@ private:
  
     // what is the maximum neglect streak? (days)
     int maxNegCounter;
-}
+};
     
     

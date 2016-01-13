@@ -23,7 +23,7 @@ void Egg::eggDay(bool incubated)
     
     // if the egg has been incubated to catch up to the number of days required to hatch
     // check the survival based on the neglect patterns, and if it survived, hatch it
-    if (curr >= hatchDays) {
+    if (currDays >= hatchDays) {
         alive = eggSurvival();
         hatched = alive;
     }
