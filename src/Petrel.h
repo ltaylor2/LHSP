@@ -47,6 +47,9 @@ public:
     // sets the energy to the base energy for the beginning of a new breeding year
     void resetEnergy() { energy = BASE_ENERGY; }
     
+    // resets all stats to the start for the start of the breeding season
+    void reset();
+    
     // Getters
     double getPC() { return pc; }
     double getRC() { return rc; }

@@ -10,7 +10,6 @@ public:
     // @params bool incubated = is an adult sitting on the egg for a day?
     void eggDay(bool incubated);
     
-    
     // Return maximum neglect, to determine how long incubation will have to last
     int getMaxNeg() { return maxNegCounter; }
     

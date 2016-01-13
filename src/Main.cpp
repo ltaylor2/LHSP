@@ -30,25 +30,28 @@ int main(int argc, char* argv[])
     
     std::cout << "Starting petrel breeding!" << std::endl;
     
-    for (double p = 0; p <= 1; p += .1) {           // run 0-1 PC by .1, and -1-1 RC by .2
-        for (double r = -1; r <= 1; r += .2) {
-            // mates are inverse to check all combinations
+    for (double p = 0; p <= .25; p += .05) {           // run 0-1 PC by .25, and -1-1 RC by .5
+        std::cout << "Male PC = " << p << std::endl;
+        for (double r = -1; r <= 1; r += .5) {
+            std::cout << "Male RC = " << r << std::endl;
             Petrel mPetrel(p, r, Sex::Male);
-            Petrel fPetrel(1-p, r*-1, Sex::Female);
-            mPetrel.setMate(&fPetrel);
+            for (double fp = 0; fp <= .25; fp += .05) {        // for all combinations of mates
+                for (double fr = -1; fr <= 1; fr += .5) {
+                    Petrel fPetrel(fp, fr, Sex::Female);
+                    mPetrel.setMate(&fPetrel);
 
-            for (int i = 0; i < 500; i++) {      // for 500 replicates
-                Egg egg = Egg();    // TODO not compiling as Egg egg();?? c++ rvalue error to fix
-                bool seasonOutcome = breedingSeason(mPetrel, egg);
-                std::string output;
-                if (seasonOutcome)
-                    output = "1";
-                else
-                    output = "0";
+                    int totalSuccess = 0;
+                    int sampleSize = 5000;
+                    for (int i = 0; i < sampleSize; i++) {      // for 500 replicates
+                        Egg egg = Egg();    // TODO not compiling as Egg egg();?? c++ rvalue error to fix
+                        if (breedingSeason(mPetrel, egg))
+                            totalSuccess++;
+                    }
 
-                File << mPetrel.getPC() << "," << mPetrel.getRC() << ","
-                     << fPetrel.getPC() << "," << fPetrel.getRC() << ","
-                     << output << std::endl;
+                    File << mPetrel.getPC() << "," << mPetrel.getRC() << ","
+                         << fPetrel.getPC() << "," << fPetrel.getRC() << ","
+                         << static_cast<double>(totalSuccess) / sampleSize << std::endl;
+                }
             }
         }
     }
@@ -62,8 +65,8 @@ int main(int argc, char* argv[])
 bool breedingSeason(Petrel &petrel, Egg egg)
 {
     // start afresh
-    petrel.resetEnergy();
-    petrel.getMate()->resetEnergy();
+    petrel.reset();
+    petrel.getMate()->reset();
     
     // apply initial egg-laying cost
     if (petrel.getSex() == Sex::Female)

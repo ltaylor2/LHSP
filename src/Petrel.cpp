@@ -6,12 +6,9 @@
 #include "Petrel.h"
 
 Petrel::Petrel(double pc_, double rc_, Sex sex_):
-    pc(pc_), rc(rc_),
-    energy(BASE_ENERGY),
-    sex(sex_),
-    alive(true),
-    incubationDays(0), lastIncubationBout(0),
-    incubationBouts(0), meanIncubationBout(0),
+    pc(pc_), rc(rc_), energy(BASE_ENERGY),
+    sex(sex_), alive(true),
+    incubationDays(0), lastIncubationBout(0), meanIncubationBout(0),
     foragingDistribution(FORAGING_MEAN, FORAGING_SD)
 {
     // TODO how to start incubation of mates?
@@ -67,6 +64,10 @@ void Petrel::changeState()
             state = DayState::Foraging;
             lastIncubationBout = incubationDays;
             incubationBouts.push_back(lastIncubationBout);
+
+            // calculates the new mean
+            int cumLengths = std::accumulate(incubationBouts.begin(), incubationBouts.end(), 0);
+            meanIncubationBout = static_cast<double>(cumLengths) / incubationBouts.size();
             resetDays();
         }
     }
@@ -192,4 +193,13 @@ double Petrel::stopIncubatingProb()
 void Petrel::resetDays()
 {
     incubationDays = 0;
+}
+
+void Petrel::reset()
+{
+    resetDays();
+    resetEnergy();
+    incubationBouts.clear();
+    lastIncubationBout = 0;
+    alive = true;
 }
