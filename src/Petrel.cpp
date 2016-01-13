@@ -1,11 +1,11 @@
-#include <stdlib>
+#include <cstdlib>
 #include <random>
 #include <chrono>
 #include <math.h>
     
 #include "Petrel.h"
 
-Petrel::Petrel(double pc_, double rc_, Sex sex_, bool cohort_):
+Petrel::Petrel(double pc_, double rc_, Sex sex_):
     pc(pc_), rc(rc_),
     energy(BASE_ENERGY),
     sex(sex_),
@@ -56,27 +56,19 @@ void Petrel::petrelDay()
 
 void Petrel::changeState()
 {
-    switch (state) {
-        // decide if you're going to stop foraging
-        case DayState::Foraging :
-            double chance = static_cast<double>(rand()) / RAND_MAX;
-            if (chance <= stopForagingProb()) {
-                state = DayState::Incubating;
-                resetDays();
-            }
-            break;
-        
-        // decide if you're going to stop incubating
-        case DayState::Incubating :
-            double chance = static_cast<double>(rand()) / RAND_MAX;
-            if (chance <= stopIncubatingProb()) {
-                state = DayState::Foraging;
-                lastIncubationBout = incubationDays;
-                incubationBouts.push_back(lastIncubationBout);
-
-                resetDays();
-            }
-            break;
+    double chance = static_cast<double>(rand()) / RAND_MAX;
+    if (state == DayState::Foraging) {
+        if (chance <= stopForagingProb()) {
+            state = DayState::Incubating;
+            resetDays();
+        }
+    } else if (state == DayState::Incubating) {
+        if (chance <= stopIncubatingProb()) {
+            state = DayState::Foraging;
+            lastIncubationBout = incubationDays;
+            incubationBouts.push_back(lastIncubationBout);
+            resetDays();
+        }
     }
 }
 
@@ -85,16 +77,16 @@ void Petrel::checkOverlap()
     // if both the petrels are incubating, make sure the appropriate one switches
     if (state == DayState::Incubating && mate->getState() == DayState::Incubating) {
         // switch whichever has been incubating longer back to foraging
-        if (incubatingDays > mate->getIncubatingDays())
-            state == DayState::Foraging;
-        else if (incubatingDays < mate->getIncubatingDays())
+        if (incubationDays > mate->getIncubationDays())
+            state = DayState::Foraging;
+        else if (incubationDays < mate->getIncubationDays())
             mate->setState(DayState::Foraging);
         
         // if they both just arrived, pick randomly
-        else if (incubatingDays == mate->getIncubatingDays()) {
+        else if (incubationDays == mate->getIncubationDays()) {
             double chance = static_cast<double>(rand()) / RAND_MAX;
             if (chance < .5)
-                state == DayState::Foraging;
+                state = DayState::Foraging;
             else
                 mate->setState(DayState::Foraging);
         }
@@ -104,14 +96,11 @@ void Petrel::checkOverlap()
 void Petrel::actState()
 {
     // act according to your state
-    switch (state) {
-        case DayState::Foraging :
-            forage();
-            break;
-        case DayState::Incubating :
-            incubate();
-            break;
-    }
+    if (state == DayState::Foraging) 
+        forage();
+    else if (state == DayState::Incubating)
+        incubate();
+
     // dead bird
     if (energy <= DEATH_ENERGY_THRESHOLD)
         alive = false;
@@ -142,7 +131,7 @@ void Petrel::incubate()
     // exceedingly trivial
     // TODO need to add any complexity to this behavior?
     energy -= INCUBATING_LOSS;
-    incubatingDays++;
+    incubationDays++;
 }
 
 // TODO MAKE SURE THIS BEHAVIOR IS ON POINT, definitely should look for revisions
@@ -169,12 +158,12 @@ double Petrel::stopForagingProb()
         rcEffect = (lastIncubationBout - meanIncubationBout) / meanIncubationBout * rc * (BASE_ENERGY * -1);
 
     // PC contribution
-    double pcEffect = BASE_ENERGY * PC;
+    double pcEffect = BASE_ENERGY * pc;
 
     if (energy > (pcEffect + rcEffect))
         return 1.0;
     else
-        return 0.0
+        return 0.0;
 }
 
 // TODO DITTO
@@ -192,7 +181,7 @@ double Petrel::stopIncubatingProb()
         rcEffect = (lastIncubationBout - meanIncubationBout) / meanIncubationBout * rc * (BASE_ENERGY * -1);
 
     // PC contribution
-    double pcEffect = BASE_ENERGY * PC;
+    double pcEffect = BASE_ENERGY * pc;
 
     if (energy > (pcEffect + rcEffect))
         return 0;
@@ -202,6 +191,5 @@ double Petrel::stopIncubatingProb()
 
 void Petrel::resetDays()
 {
-    foragingDays = 0;
-    incubatingDays = 0;
+    incubationDays = 0;
 }

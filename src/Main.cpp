@@ -1,6 +1,6 @@
-#include <stdio>
-#include <stdlib>
-#include <time>
+#include <cstdio>
+#include <cstdlib>
+#include <ctime>
 #include <iostream>
 #include <fstream>
 
@@ -8,7 +8,7 @@
 #include "Egg.h"
 
 // breeds a focal petrel with its mate and an egg for an incubation season
-void breedingSeason(Petrel &petrel, Egg &egg);
+bool breedingSeason(Petrel &petrel, Egg egg);
 
 // 71% of failed hatches switch burrows (Mauck 1997)
 // 74% of switched burrows switch mates (Blackmer et al 2004)
@@ -38,17 +38,19 @@ int main(int argc, char* argv[])
             mPetrel.setMate(&fPetrel);
 
             for (int i = 0; i < 500; i++) {      // for 500 replicates
-                Egg egg();
-                bool seasonOutcome = breedingSeason(mPetrel, &egg);
+                Egg egg = Egg();    // TODO not compiling as Egg egg();?? c++ rvalue error to fix
+                bool seasonOutcome = breedingSeason(mPetrel, egg);
                 std::string output;
-                output += mPetrel.getPC() + "," + mPetrel.getRC() + ","
-                          + fPetrel.getPC() + "," + fPetrel.getRC() + ",";
                 if (seasonOutcome)
-                    output += "1";
+                    output = "1";
                 else
-                    output += "0";
+                    output = "0";
 
-                File << output << std::endl;
+                File << mPetrel.getPC() << "," << mPetrel.getRC() << ","
+                     << fPetrel.getPC() << "," << fPetrel.getRC() << ","
+                     << output << std::endl;
+            }
+        }
     }
     
     std::cout << "Breeding Done!" << std::endl; 
@@ -57,7 +59,7 @@ int main(int argc, char* argv[])
     return 0;
 }
               
-bool breedingSeason(Petrel &petrel, Egg &egg)
+bool breedingSeason(Petrel &petrel, Egg egg)
 {
     // start afresh
     petrel.resetEnergy();
@@ -69,9 +71,6 @@ bool breedingSeason(Petrel &petrel, Egg &egg)
     else
         petrel.getMate()->setEnergy(petrel.getMate()->getEnergy() * (1 - EGG_ENERGY_COST));
         
-    // run through the season
-    bool breedSuccess = false;
-
     // Ends on four conditions:
     //  1. egg hatches alive (success)
     //  2. egg dies at hatch (failure)

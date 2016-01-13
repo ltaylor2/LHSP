@@ -1,21 +1,19 @@
-OBJS = Main.o Petrel.o Egg.o
 CC = g++
-DEBUG = -g
-CFLAGS = -Wall -c $(DEBUG)
-LFLAGS = -WALL $(DEBUG)
+CXXFLAGS = -g -Wall -std=c++11
 
-lhsp : $(OBJS)
-    $(CC) $(LFLAGS) $(OBJS) -o lhsp
+default: compile
+
+compile: Main.o Petrel.o Egg.o
+	$(CC) -o lhsp
 
 Main.o : Main.cpp
-    $(CC) $(CFLAGS) Main.cpp
+	$(CC) $(CXXFLAGS) -c Main.cpp
 
 Petrel.o : Petrel.cpp Petrel.h
-	$(CC) $(CFLAGS) Petrel.cpp
+	$(CC) $(CXXFLAGS) -c Petrel.cpp
 
 Egg.o : Egg.cpp Egg.h
-	$(CC) $(CFLAGS) Egg.cpp
+	$(CC) $(CXXFLAGS) -c Egg.cpp
 
 clean:
-    \rm *.o *~ lhsp
-
+	$(RM) *.o *~ lhsp

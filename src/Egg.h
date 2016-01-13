@@ -19,26 +19,26 @@ public:
     
 private:
     // Minimum observed incubation period (Huntington et al 1996)
-    const static double START_HATCH_DAYS = 37.0;
+    constexpr static double START_HATCH_DAYS = 37.0;
     
     // a very high number, for when you know the egg would not hatch
-    const static double HATCH_DAYS_MAX = 80;
+    constexpr static double HATCH_DAYS_MAX = 80;
         
     // (Boersma and Wheelwright 1979) fit a line for Fork-Tailed storm-petrels.
     // with a slope of .7 for (days incubation) ~ (days neglect) 
     // Thus, each day of neglect should increase the number of days required for hatch by .7
     // TODO DECREASE COEFFICIENT TO ADJUST FOR SHORTER LHSP INCUBATION VS FTSP?
-    const static double NEGLECT_PENALTY = .7;
+    constexpr static double NEGLECT_PENALTY = .7;
     
     // Tiers of neglect (max days continuously neglected) correlating to early chick death in FTSP (Boersma and Wheelwright 1979)
     // TODO get better data on this! check the database??
-    const static double T0_NEGLECT = 8;
-    const static double T0_MORTALITY = 0;
+    constexpr static double T0_NEGLECT = 8;
+    constexpr static double T0_MORTALITY = 0;
     
-    const static double T1_NEGLECT = 11;
-    const static double T1_MORTALITY = .26;
+    constexpr static double T1_NEGLECT = 11;
+    constexpr static double T1_MORTALITY = .26;
     
-    const static double T2_MORTALITY = .43;
+    constexpr static double T2_MORTALITY = .43;
     
     // determine if an egg has survived with the given level of neglect
     bool eggSurvival();

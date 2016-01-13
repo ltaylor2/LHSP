@@ -1,4 +1,4 @@
-#include <stdlib>
+#include <cstdlib>
 
 #include "Egg.h"
 
@@ -30,7 +30,7 @@ void Egg::eggDay(bool incubated)
     
     // if the egg has been incubating for a very long time building
     // up neglect days, it's dead in any case
-    if (currDays >= HATCH_DAY_MAX)
+    if (currDays >= HATCH_DAYS_MAX)
         alive = false;
     
     // next day!
