@@ -176,10 +176,12 @@ double Petrel::stopIncubatingProb()
 
     // RC contribution
     double rcEffect = 0;
-    if (lastIncubationBout >  meanIncubationBout && rc < 0) // retaliatory conditions
-        rcEffect = (lastIncubationBout - meanIncubationBout) / meanIncubationBout * abs(rc) * BASE_ENERGY;
-    else if (lastIncubationBout < meanIncubationBout && rc > 0) // compensatory conditions
-        rcEffect = (lastIncubationBout - meanIncubationBout) / meanIncubationBout * rc * (BASE_ENERGY * -1);
+    if (lastIncubationBout >  meanIncubationBout) {
+        if (rc < 0) // retaliatory behavior
+            rcEffect = (lastIncubationBout - meanIncubationBout) / meanIncubationBout * abs(rc) * BASE_ENERGY;
+        else if (rc > 0) // compensatory behavior
+            rcEffect = (lastIncubationBout - meanIncubationBout) / meanIncubationBout * rc * (BASE_ENERGY * -1);
+    }
 
     // PC contribution
     double pcEffect = BASE_ENERGY * pc;
