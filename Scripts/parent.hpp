@@ -3,8 +3,8 @@
 #include <vector>
 #include <random>
 
-enum class Sex { Male, Female };
-enum class State { Incubating, Foraging };
+enum class Sex { male, female };
+enum class State { incubating, foraging };
 
 class Parent {
 
@@ -15,21 +15,17 @@ public:
 	//		Sex sex_ = Biological sex of the adult
 	Parent(Sex sex_);
 
-	// Parent behavior, including incubating, foraging,
-	// and/or state changes
+	// Parent behavior
 	void parentDay();
-
-	// Check if parents are both in the burrow incubating
-	void checkIncubationOverlap();
-
 
 	// Setters
 	void setState(State state_) { state = state_ ; }
 	void setEnergy(double energy_) { energy = energy_; }
 
-
 	// Getters
 	State getState() { return state; }
+	State getPreviousDayState() { return previousDayState; }
+
 	double getEnergy() { return energy; }
 
 	int getIncubationDays() { return incubationDays; }
@@ -40,8 +36,8 @@ private:
 		// Initial petrel energy, 766 kJ at the beggining of an incubation season (Ricklefs et al. 1986)
 		constexpr static double BASE_ENERGY = 766;
 
-		// When you're a dead petrel
-		constexpr static double DEATH_ENERGY_THRESHOLD = 0.0;
+		// When you have to move
+		constexpr static double MIN_ENERGY_THRESHOLD = 0.0;
 
 		// Basal metabolic rate, energy loss from incubation, 51.5 kJ/day (Ricklefs et al. 1986).
 		// Blackmer et al. (2005) closely agrees.
@@ -61,6 +57,7 @@ private:
 
 	    // use the above foraging values to construct a normal distribution for foraging values;
 	   	std::normal_distribution<double> foragingDistribution;
+  		std::default_random_engine rand;
 
 	    // behavior based on the current state
 	    void forage();
@@ -76,9 +73,12 @@ private:
 	   	Sex sex;	
 	   	Parent* mate;
 	   	State state;
+	   	State previousDayState;
 	   	double energy;
-	   	
-	   	bool alive;
+
 	   	int incubationDays;
 	   	std::vector<int> incubationBouts;
+
+	   	int foragingDays;
+	   	std::vector<int> foragingBouts;
 };

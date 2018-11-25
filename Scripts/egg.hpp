@@ -41,4 +41,5 @@ private:
 	int negCounter;
 
 	// what is the maximum neglect streak (days)
+	int maxNegCounter;
 };
