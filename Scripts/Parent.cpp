@@ -3,6 +3,7 @@
 Parent::Parent(Sex sex_):
 	sex(sex_),
 	energy(BASE_ENERGY),
+	energyRecord(std::vector<double>()),
 	incubationDays(0),
 	incubationBouts(std::vector<int>()),
 	foragingDays(0),
@@ -12,63 +13,88 @@ Parent::Parent(Sex sex_):
 {
 	// males begin the breeding season foraging
 	// females (who have just laid the egg), begin by incubating
-	state = State::foraging;
-	previousDayState = State::foraging;
+	this->state = State::foraging;
+	this->previousDayState = State::foraging;
 
 	if (sex == Sex::female) {
-		state = State::incubating;
-		previousDayState = State::incubating;
+		this->state = State::incubating;
+		this->previousDayState = State::incubating;
 	}		
 }
 
-void parentDay()
+void Parent::parentDay()
 {
-	if (this.state == State::incubate) {
+	energyRecord.push_back(this->energy);
+	
+	if (this->state == State::incubating) {
 		incubate();
-	} else if (this.state == State::foraging) {
+	} else if (this->state == State::foraging) {
 		forage();
 	}
 }
 
-void incubate()
+void Parent::incubate()
 {
-	energy -= BMR;
-	incubationDays++;
+	this->energy -= INCUBATING_METABOLISM;
+	this->incubationDays++;
 
-	if (energy <= MIN_ENERGY_THRESHOLD) {
+	if (stopIncubating()) {
 		changeState();
 	}
+
+	this->previousDayState = State::incubating;
 }
 
-void forage()
+void Parent::forage()
 {
 	// draw from the normal distribution of foraging calorie values
 	double foragingEnergy = foragingDistribution(rand);
 
-	// concatenate distribution at known min/max values
+	// Metabolic intake, contactinated at min/max values
 	if (foragingEnergy < FORAGING_MIN) {
 		foragingEnergy = FORAGING_MIN;
 	} else if (foragingEnergy > FORAGING_MAX) {
 		foragingEnergy = FORAGING_MAX;
 	}
 
-	// remember, this can still be a negative change!
-	energy += foragingEnergy;
+	this->energy += foragingEnergy;
 
-	foragingDays++;
 
-	// TODO NEXT STOP FORAGING PROBABILITIES
+	// subtract at-sea metabolic rate
+	this->energy -= FORAGING_METABOLISM;
+
+	this->foragingDays++;
+
+	if (stopForaging()) {
+		changeState();
+	}
+
+	this->previousDayState = State::foraging;
 }
 
-void changeState()
+bool Parent::stopIncubating() {
+	if (this->energy <= MIN_ENERGY_THRESHOLD) {
+		return true;
+	}
+	return false;
+}
+
+bool Parent::stopForaging() {
+	if (this->energy >= BASE_ENERGY) {
+		return true;
+	}
+	return false;
+}
+
+void Parent::changeState()
 {
-	if (state == State::incubating) {
-		incubationBouts.push(incubationDays);
-		incubationDays = 0;
-		state = State::foraging;
-	} else if (state == State::foraging) {
-		foragingBouts.push(foragingDays);
-		foraginDays = 0;
-		state = State::incubating;
+	if (this->state == State::incubating) {
+		this->incubationBouts.push_back(this->incubationDays);
+		this->incubationDays = 0;
+		this->state = State::foraging;
+	} else if (this->state == State::foraging) {
+		this->foragingBouts.push_back(this->foragingDays);
+		this->foragingDays = 0;
+		this->state = State::incubating;
 	}
 }

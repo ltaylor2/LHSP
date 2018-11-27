@@ -18,42 +18,44 @@ public:
 	// Parent behavior
 	void parentDay();
 
+	void changeState();
+	
 	// Setters
-	void setState(State state_) { state = state_ ; }
-	void setEnergy(double energy_) { energy = energy_; }
+	void setState(State state_) { this->state = state_ ; }
+	void setEnergy(double energy_) { this->energy = energy_; }
 
 	// Getters
-	State getState() { return state; }
-	State getPreviousDayState() { return previousDayState; }
+	State getState() { return this->state; }
+	State getPreviousDayState() { return this->previousDayState; }
 
-	double getEnergy() { return energy; }
+	double getEnergy() { return this->energy; }
+	std::vector<double> getEnergyRecord() { return this->energyRecord; }
 
-	int getIncubationDays() { return incubationDays; }
-	Sex getSex() { return sex; }
+	int getIncubationDays() { return this->incubationDays; }
+	Sex getSex() { return this->sex; }
+
+	std::vector<int> getIncubationBouts() { return this->incubationBouts; }
+	std::vector<int> getForagingBouts() { return this->foragingBouts; }
 
 private:
 
-		// Initial petrel energy, 766 kJ at the beggining of an incubation season (Ricklefs et al. 1986)
+		// Initial petrel energy, 766 kJ at the beginning of an incubation bout (Ricklefs et al. 1986, Montevecchi et al 1992)
 		constexpr static double BASE_ENERGY = 766;
 
-		// When you have to move
-		constexpr static double MIN_ENERGY_THRESHOLD = 0.0;
+		// When you have to move (Ricklefs et al. 1986, Montevecci et al. 1992)
+		constexpr static double MIN_ENERGY_THRESHOLD = 123;
 
-		// Basal metabolic rate, energy loss from incubation, 51.5 kJ/day (Ricklefs et al. 1986).
+		// Basal metabolic rate, energy loss from incubation, 52 kJ/day (Ricklefs et al. 1986, Montevecchi et al 1992).
 		// Blackmer et al. (2005) closely agrees.
-		constexpr static double BMR = 51.1;
+		constexpr static double INCUBATING_METABOLISM = 52;
+		constexpr static double FORAGING_METABOLISM = -123;
 
-	    // using the equations from (Montevecchi et al 1992) for FMR and ME
-	    // where ME(+) kJ/day = (48.8 +- 48.0) + (6.62 +- 2.73) * x hrs/day
-	    // and where FMR(-) kJ/day = (85.8 +- 6.5) + (3.13 +- 0.48) * x hrs/day 
-	    // thus max = max(ME) - min(FMR) using SD's and 24 hrs = 321.2 - 142.9 = 178.3
-	    // and  min = min(ME) - max(FMR) using SD's and 24 hrs = 94.16 - 178.94 = -84.94
-	    // to convert to a normal distribution, the mean = 46.68 and the sd = 131.62
+		// From Montevvechi et al 1992 Table 3
 	    // TODO reconsider normal methods
-	    constexpr static double FORAGING_MIN = -84.94;
-	    constexpr static double FORAGING_MAX = 178.3;
-	    constexpr static double FORAGING_MEAN = 46.68;
-	    constexpr static double FORAGING_SD = 131.62;
+	    constexpr static double FORAGING_MIN = 74;
+	    constexpr static double FORAGING_MAX = 221;
+	    constexpr static double FORAGING_MEAN = 162;
+	    constexpr static double FORAGING_SD = 47;
 
 	    // use the above foraging values to construct a normal distribution for foraging values;
 	   	std::normal_distribution<double> foragingDistribution;
@@ -67,14 +69,17 @@ private:
 	    void resetDays();
 
 	   	// state change functions
-	   	double stopForagingProb();
-	   	double stopIncubatingProb();
+	   	// returns TRUE if the bird should change state
+	   	bool stopIncubating();
+	   	bool stopForaging();
 
 	   	Sex sex;	
 	   	Parent* mate;
 	   	State state;
 	   	State previousDayState;
 	   	double energy;
+
+	   	std::vector<double> energyRecord;
 
 	   	int incubationDays;
 	   	std::vector<int> incubationBouts;
