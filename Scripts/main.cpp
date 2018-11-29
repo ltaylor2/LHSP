@@ -1,6 +1,7 @@
 #include <iostream>
 #include <vector>
 #include <ctime>
+#include "Rcpp.h"
 
 #include "Egg.hpp"
 #include "Parent.hpp"
@@ -9,6 +10,7 @@ constexpr static int ITERATIONS = 100000;
 
 void breedingSeason(Parent&, Parent&, Egg&);
 
+// [[Rcpp::export]]"
 int main(int argc, char* argv[])
 {
 	srand(time(NULL));
