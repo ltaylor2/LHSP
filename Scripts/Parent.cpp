@@ -8,9 +8,10 @@ Parent::Parent(Sex sex_):
 	incubationBouts(std::vector<int>()),
 	foragingDays(0),
 	foragingBouts(std::vector<int>()),
-	foragingDistribution(std::normal_distribution<double>(FORAGING_MEAN, FORAGING_SD)),
-	rand(std::default_random_engine())
+	foragingDistribution(std::normal_distribution<double>(FORAGING_MEAN, FORAGING_SD))
 {
+	auto seed = std::chrono::high_resolution_clock::now().time_since_epoch().count();
+	rand = std::mt19937(seed);
 	// males begin the breeding season foraging
 	// females (who have just laid the egg), begin by incubating
 	this->state = State::foraging;
@@ -50,7 +51,7 @@ void Parent::forage()
 	// draw from the normal distribution of foraging calorie values
 	double foragingEnergy = foragingDistribution(rand);
 
-	// Metabolic intake, contactinated at min/max values
+	// Metabolic intake, concatenated at min/max values
 	if (foragingEnergy < FORAGING_MIN) {
 		foragingEnergy = FORAGING_MIN;
 	} else if (foragingEnergy > FORAGING_MAX) {
