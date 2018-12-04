@@ -2,7 +2,7 @@
 library(Rcpp)
 library(tidyverse)
 
-setwd("~/Desktop/LHSP")
+setwd("~/LHSP")
 Sys.setenv("PKG_CXXFLAGS"="-std=c++11")
 
 Rcpp::sourceCpp("Scripts/main.cpp")

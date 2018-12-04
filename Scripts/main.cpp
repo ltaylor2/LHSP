@@ -8,7 +8,7 @@
 #include "Egg.hpp"
 #include "Parent.hpp"
 
-constexpr static int ITERATIONS = 100000;
+constexpr static int ITERATIONS = 1000000;
 
 void breedingSeason(Parent&, Parent&, Egg&);
 
@@ -29,6 +29,11 @@ int main()
 	std::vector<std::vector<int> > foragingBouts_F = std::vector<std::vector<int> >();
 
 	for (int i = 0; i < ITERATIONS; i++) {
+
+		if (i % 100000 == 0) {
+			Rcpp::Rcout << "LHSP Model on Iteration: " << i << "\n";
+		}
+
 		// initialize individuals for this simulation iteration
 		Parent pm = Parent(Sex::male);
 		Parent pf = Parent(Sex::female);
@@ -36,8 +41,6 @@ int main()
 
 		// run breeding season
 		breedingSeason(pm, pf, egg);
-
-		Rcpp::Rcout << egg.isHatched();
 
 		// save results
 		hatchSuccess.push_back(egg.isHatched());
