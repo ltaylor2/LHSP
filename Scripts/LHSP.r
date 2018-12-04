@@ -7,7 +7,7 @@ Sys.setenv("PKG_CXXFLAGS"="-std=c++11")
 
 # Src C++ functions and call models. 
 # See hpp and main.cpp files for details
-scriptFiles <- list.files("Scripts/")
+scriptFiles <- list.files("Scripts/", full.names=TRUE)
 file.remove(scriptFiles[grep(".o", scriptFiles)])
 
 Rcpp::sourceCpp("Scripts/main.cpp")

@@ -52,7 +52,7 @@ private:
 		// Basal metabolic rate, energy loss from incubation, 52 kJ/day (Ricklefs et al. 1986, Montevecchi et al 1992).
 		// Blackmer et al. (2005) closely agrees.
 		constexpr static double INCUBATING_METABOLISM = 52;
-		constexpr static double FORAGING_METABOLISM = 500;
+		constexpr static double FORAGING_METABOLISM = 123;
 
 		// From Montevvechi et al 1992 Table 3
 	    // TODO reconsider normal methods
