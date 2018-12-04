@@ -51,7 +51,7 @@ void Parent::forage()
 	// draw from the normal distribution of foraging calorie values
 	double foragingEnergy = foragingDistribution(rand);
 
-	// // Metabolic intake, concatenated at min/max values
+	// Metabolic intake, concatenated at min/max values
 	if (foragingEnergy < FORAGING_MIN) {
 		foragingEnergy = FORAGING_MIN;
 	} else if (foragingEnergy > FORAGING_MAX) {
@@ -81,7 +81,10 @@ bool Parent::stopIncubating() {
 }
 
 bool Parent::stopForaging() {
-	if (this->energy >= BASE_ENERGY) {
+	// must pass energetics rules AND ALSO BE FORAGING FOR > 1 DAY!
+	// prevents same day energy fliparound (not geographically possible)
+	if (this->energy >= BASE_ENERGY &&
+		this->previousDayState == State::foraging) {
 		return true;
 	}
 	return false;

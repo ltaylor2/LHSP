@@ -1,37 +1,73 @@
 #include <iostream>
 #include <fstream>
-
 #include <string>
 #include <vector>
+#include <chrono>
+
 #include "Rcpp.h"
 
 #include "Egg.hpp"
 #include "Parent.hpp"
 
-constexpr static int ITERATIONS = 1000000;
+constexpr static int ITERATIONS = 100000;
+constexpr static char NULL_FNAME[] = "null_output.txt";
+constexpr static char OVERLAP_FNAME[] = "overlap_output.txt";
 
-void breedingSeason(Parent&, Parent&, Egg&);
+void breedingSeason_NULL(Parent&, Parent&, Egg&);
+void breedingSeason_OVERLAP(Parent&, Parent&, Egg&);
+
+void runModel(int, void(*)(Parent&, Parent&, Egg&), std::string);
 
 // [[Rcpp::export]]
 int main()
 {
+	auto startTime = std::chrono::system_clock::now();
+
+	Rcpp::Rcout << "\n\n\n" << "Beginning model runs" << "\n\n\n";
+
+	runModel(ITERATIONS, *breedingSeason_NULL, NULL_FNAME);
+	runModel(ITERATIONS, *breedingSeason_OVERLAP, OVERLAP_FNAME);
+	
+	auto endTime = std::chrono::system_clock::now();
+
+	std::chrono::duration<double> runTime = endTime - startTime;
+
+	Rcpp::Rcout << "All model output written" << "\n"
+				<< "Runtime in "
+				<< runTime.count() << " s."
+				<< "\n";
+	return 0;
+}
+
+void runModel(int iterations, 
+			  void (*modelFunc)(Parent&, Parent&, Egg&), 
+			  std::string outfileName) {
 	// initialize output results objects
 	std::vector<bool> hatchSuccess = std::vector<bool>();
 	std::vector<double> hatchDays = std::vector<double>();
 	std::vector<int> maxNeglect = std::vector<int>();
 
-	std::vector<std::vector<double> > energy_M = std::vector<std::vector<double> >();
-	std::vector<std::vector<int> > incubationBouts_M = std::vector<std::vector<int> >();
-	std::vector<std::vector<int> > foragingBouts_M = std::vector<std::vector<int> >();
+	std::vector<std::vector<double> > energy_M = 
+									  std::vector<std::vector<double> >();
+	std::vector<std::vector<int> > incubationBouts_M = 
+								   std::vector<std::vector<int> >();
+	std::vector<std::vector<int> > foragingBouts_M = 
+								   std::vector<std::vector<int> >();
 
-	std::vector<std::vector<double> > energy_F = std::vector<std::vector<double> >();
-	std::vector<std::vector<int> > incubationBouts_F = std::vector<std::vector<int> >();
-	std::vector<std::vector<int> > foragingBouts_F = std::vector<std::vector<int> >();
+	std::vector<std::vector<double> > energy_F = 
+									  std::vector<std::vector<double> >();
+	std::vector<std::vector<int> > incubationBouts_F = 
+								   std::vector<std::vector<int> >();
+	std::vector<std::vector<int> > foragingBouts_F = 
+								   std::vector<std::vector<int> >();
 
-	for (int i = 0; i < ITERATIONS; i++) {
+	for (int i = 0; i < iterations; i++) {
 
-		if (i % 100000 == 0) {
-			Rcpp::Rcout << "LHSP Model on Iteration: " << i << "\n";
+		if (iterations >= 10) {
+			if (i % (iterations/10) == 0) {
+				Rcpp::Rcout << "LHSP Model for " + outfileName + " on Iteration: " 
+							<< i << "\n";
+			}
 		}
 
 		// initialize individuals for this simulation iteration
@@ -40,7 +76,7 @@ int main()
 		Egg egg = Egg();
 
 		// run breeding season
-		breedingSeason(pm, pf, egg);
+		modelFunc(pm, pf, egg);
 
 		// save results
 		hatchSuccess.push_back(egg.isHatched());
@@ -56,25 +92,28 @@ int main()
 		foragingBouts_F.push_back(pf.getForagingBouts());
 	}
 
-	std::ofstream test;
-	test.open("Output/test.txt");
+	std::ofstream outfile;
+	outfile.open("Output/" + outfileName, std::ofstream::trunc);
 
-	test << "iteration,hatchSuccess,hatchDays,maxNeglect,energy_M,energy_F\n";
-	for (int i = 0; i < ITERATIONS; i++) {
-		test << i << ",";
-		test << hatchSuccess[i] << ",";
-		test << hatchDays[i] << ",";
-		test << maxNeglect[i] << ",";
-		test << energy_M[i][energy_M[i].size()-1] << ",";
-		test << energy_F[i][energy_F[i].size()-1] << "\n";
+	outfile << "iteration,hatchSuccess,hatchDays,maxNeglect,energy_M,energy_F"
+		    << "\n";
+
+	for (int i = 0; i < iterations; i++) {
+		outfile << i << ","
+		        << hatchSuccess[i] << ","
+			    << hatchDays[i] << ","
+			    << maxNeglect[i] << ","
+			    << energy_M[i][energy_M[i].size()-1] << ","
+			    << energy_F[i][energy_F[i].size()-1] << "\n";
 	}
 
-	return 0;
+	Rcpp::Rcout << "Final output written to " << outfileName << "\n\n";
 }
 
-void breedingSeason(Parent& pm, Parent& pf, Egg& egg) {
+void breedingSeason_NULL(Parent& pm, Parent& pf, Egg& egg) {
 	
-	while (!egg.isHatched() && (egg.getIncubationDays() <= Egg::HATCH_DAYS_MAX)) {		
+	while (!egg.isHatched() && 
+		   (egg.getIncubationDays() <= Egg::HATCH_DAYS_MAX)) {		
 		pm.parentDay();
 		pf.parentDay();
 
@@ -83,6 +122,51 @@ void breedingSeason(Parent& pm, Parent& pf, Egg& egg) {
 		if (pm.getState() == State::incubating ||
 			pf.getState() == State::incubating) {
 			incubated = true;
+		}
+		egg.eggDay(incubated);
+	}
+}
+
+void breedingSeason_OVERLAP(Parent& pm, Parent& pf, Egg& egg) {
+	
+	while (!egg.isHatched() && 
+		   (egg.getIncubationDays() <= Egg::HATCH_DAYS_MAX)) {		
+		pm.parentDay();
+		pf.parentDay();
+
+		// Rcpp::Rcout << egg.getIncubationDays()
+		// 			<< "  ///  "
+		// 			<< pm.getStrState()
+		// 			<< "_"
+		// 			<< pm.getEnergy()
+		// 			<< " // "
+		// 		    << pf.getStrState() 
+		// 		    << "_"
+		// 		    << pf.getEnergy()
+		// 		    << "\n";
+
+		bool incubated = false;
+		if (pm.getState() == State::incubating ||
+			pf.getState() == State::incubating) {
+			incubated = true;
+
+			// in this model, we don't allow both parents to incubate.
+			// if both parents are incubating, we send the one that has
+			// been incubating longer away.
+			if (pm.getState() == State::incubating &&
+				pf.getState() == State::incubating) {
+				State previousMaleState = pm.getPreviousDayState();
+				State previousFemaleState = pf.getPreviousDayState();
+
+				// Rcpp::Rcout << "SWITCHING FROM OVERLAP" << "\n";
+
+				// if the male was previously incubating, allow him to forage
+				if (previousMaleState == State::incubating) {
+					pm.setState(State::foraging);
+				} else if (previousFemaleState == State::incubating) {
+					pf.setState(State::foraging);
+				}
+			}
 		}
 		egg.eggDay(incubated);
 	}

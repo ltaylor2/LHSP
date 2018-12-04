@@ -20,6 +20,7 @@ public:
 	// Parent behavior
 	void parentDay();
 
+	// Changes state based on normal energetic behavior
 	void changeState();
 	
 	// Setters
@@ -45,13 +46,13 @@ private:
 		// Initial petrel energy, 766 kJ at the beginning of an incubation bout (Ricklefs et al. 1986, Montevecchi et al 1992)
 		constexpr static double BASE_ENERGY = 766;
 
-		// When you have to move (Ricklefs et al. 1986, Montevecci et al. 1992)
+		// TODO CHECK
 		constexpr static double MIN_ENERGY_THRESHOLD = 123;
 
 		// Basal metabolic rate, energy loss from incubation, 52 kJ/day (Ricklefs et al. 1986, Montevecchi et al 1992).
 		// Blackmer et al. (2005) closely agrees.
 		constexpr static double INCUBATING_METABOLISM = 52;
-		constexpr static double FORAGING_METABOLISM = 123;
+		constexpr static double FORAGING_METABOLISM = 500;
 
 		// From Montevvechi et al 1992 Table 3
 	    // TODO reconsider normal methods
