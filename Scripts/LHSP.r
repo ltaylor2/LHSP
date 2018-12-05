@@ -1,3 +1,13 @@
+# TODO
+# Confirm energetics values (esp. minimum energy threshold and BMR)
+# Send iterations through R
+# Sex-specific differences
+# Confirm longest egg threshold
+# Look at neglect parameters
+# Verify initial behavior
+
+
+
 # logistics
 library(Rcpp)
 library(tidyverse)
