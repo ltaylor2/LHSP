@@ -9,12 +9,14 @@
 #include "Egg.hpp"
 #include "Parent.hpp"
 
-constexpr static int ITERATIONS = 100000;
+constexpr static int ITERATIONS = 1000000;
 constexpr static char NULL_FNAME[] = "null_output.txt";
 constexpr static char OVERLAP_FNAME[] = "overlap_output.txt";
+constexpr static char SEXDIFF_FNAME[] = "sexdiff_output.txt";
 
 void breedingSeason_NULL(Parent&, Parent&, Egg&);
 void breedingSeason_OVERLAP(Parent&, Parent&, Egg&);
+void breedingSeason_SEXDIFF(Parent&, Parent&, Egg&);
 
 void runModel(int, void(*)(Parent&, Parent&, Egg&), std::string);
 
@@ -27,7 +29,8 @@ int main()
 
 	runModel(ITERATIONS, *breedingSeason_NULL, NULL_FNAME);
 	runModel(ITERATIONS, *breedingSeason_OVERLAP, OVERLAP_FNAME);
-	
+	runModel(ITERATIONS, *breedingSeason_SEXDIFF, SEXDIFF_FNAME);
+
 	auto endTime = std::chrono::system_clock::now();
 
 	std::chrono::duration<double> runTime = endTime - startTime;
@@ -129,6 +132,42 @@ void breedingSeason_NULL(Parent& pm, Parent& pf, Egg& egg) {
 
 void breedingSeason_OVERLAP(Parent& pm, Parent& pf, Egg& egg) {
 	
+	while (!egg.isHatched() && 
+		   (egg.getIncubationDays() <= Egg::HATCH_DAYS_MAX)) {		
+		pm.parentDay();
+		pf.parentDay();
+
+		bool incubated = false;
+		if (pm.getState() == State::incubating ||
+			pf.getState() == State::incubating) {
+			incubated = true;
+
+			// in this model, we don't allow both parents to incubate.
+			// if both parents are incubating, we send the one that has
+			// been incubating longer away.
+			if (pm.getState() == State::incubating &&
+				pf.getState() == State::incubating) {
+				State previousMaleState = pm.getPreviousDayState();
+				State previousFemaleState = pf.getPreviousDayState();
+
+				// if the male was previously incubating, allow him to forage
+				if (previousMaleState == State::incubating) {
+					pm.setState(State::foraging);
+				} else if (previousFemaleState == State::incubating) {
+					pf.setState(State::foraging);
+				}
+			}
+		}
+		egg.eggDay(incubated);
+	}
+}
+
+
+void breedingSeason_SEXDIFF(Parent& pm, Parent& pf, Egg& egg) {
+	
+	// Female pays initial cost of egg. 
+	pf.setEnergy(pf.getEnergy() * .75);
+
 	while (!egg.isHatched() && 
 		   (egg.getIncubationDays() <= Egg::HATCH_DAYS_MAX)) {		
 		pm.parentDay();
