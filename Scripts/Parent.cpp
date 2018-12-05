@@ -1,14 +1,14 @@
 #include "Parent.hpp"
 
 Parent::Parent(Sex sex_):
+	foragingDistribution(std::normal_distribution<double>(FORAGING_MEAN, FORAGING_SD)),
 	sex(sex_),
 	energy(BASE_ENERGY),
 	energyRecord(std::vector<double>()),
 	incubationDays(0),
 	incubationBouts(std::vector<int>()),
 	foragingDays(0),
-	foragingBouts(std::vector<int>()),
-	foragingDistribution(std::normal_distribution<double>(FORAGING_MEAN, FORAGING_SD))
+	foragingBouts(std::vector<int>())
 {
 	auto seed = std::chrono::high_resolution_clock::now().time_since_epoch().count();
 	rand = std::mt19937(seed);

@@ -30,8 +30,11 @@ null <- read_csv("Output/null_output.txt") %>%
 overlap <- read_csv("Output/overlap_output.txt") %>%
 		    	mutate(model = "overlap")
 
+sexdiff <- read_csv("Output/sexdiff_output.txt") %>%
+				mutate(model = "sexdiff")
+
 # Summarize and prelim analysis
-d <- bind_rows(null, overlap) 
+d <- bind_rows(null, overlap, sexdiff)
 
 counts <- d %>%
 			group_by(model, hatchSuccess) %>%
