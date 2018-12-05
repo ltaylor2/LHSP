@@ -27,19 +27,27 @@ public:
 	void setState(State state_) { this->state = state_ ; }
 	void setEnergy(double energy_) { this->energy = energy_; }
 
+	void setReturnEnergyThreshold(double thresh_) { this->returnEnergyThreshold = thresh_; }
+	void setForagingDistribution(double mean, double sd) {this->foragingDistribution = std::normal_distribution<double>(mean, sd); }
+	
 	// Getters
+	Sex getSex() { return this->sex; }
+
 	State getState() { return this->state; }
 	std::string getStrState();
 	State getPreviousDayState() { return this->previousDayState; }
 
 	double getEnergy() { return this->energy; }
-	std::vector<double> getEnergyRecord() { return this->energyRecord; }
+	double getReturnEnergyThreshold() {return this->returnEnergyThreshold; }
 
+	std::vector<double> getEnergyRecord() { return this->energyRecord; }
 	int getIncubationDays() { return this->incubationDays; }
-	Sex getSex() { return this->sex; }
 
 	std::vector<int> getIncubationBouts() { return this->incubationBouts; }
 	std::vector<int> getForagingBouts() { return this->foragingBouts; }
+
+    constexpr static double FORAGING_MEAN = 162;
+    constexpr static double FORAGING_SD = 47;
 
 private:
 
@@ -58,8 +66,6 @@ private:
 	    // TODO reconsider normal methods
 	    constexpr static double FORAGING_MIN = 74;
 	    constexpr static double FORAGING_MAX = 221;
-	    constexpr static double FORAGING_MEAN = 162;
-	    constexpr static double FORAGING_SD = 47;
 
 	    // use the above foraging values to construct a normal distribution for foraging values;
 	   	std::normal_distribution<double> foragingDistribution;
@@ -82,6 +88,7 @@ private:
 	   	State state;
 	   	State previousDayState;
 	   	double energy;
+	   	double returnEnergyThreshold;
 
 	   	std::vector<double> energyRecord;
 
