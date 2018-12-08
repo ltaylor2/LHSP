@@ -2,14 +2,17 @@
 #include <fstream>
 #include <string>
 #include <vector>
+#include <random>
 #include <chrono>
-
 #include "Rcpp.h"
 
+#include <unistd.h>
+
+#include "Util.hpp"
 #include "Egg.hpp"
 #include "Parent.hpp"
 
-constexpr static int ITERATIONS = 1000000;
+constexpr static int ITERATIONS = 100;
 
 constexpr static double SEXDIFF_COEFFS[10] = {0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9};
 constexpr static double FORAGINGDIFF_COEFFS[10] = {1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0};
@@ -19,6 +22,8 @@ constexpr static char OVERLAP_FNAME[] = "overlap_output.txt";
 constexpr static char SEXDIFF_FNAME[] = "sexdiff_output.txt";
 constexpr static char SEXDIFFCOMP_FNAME[] = "sexdiffcomp_output.txt";
 constexpr static char FORAGINGDIFF_FNAME[] = "foragingdiff_output.txt";
+
+static std::mt19937* randGen;
 
 void breedingSeason_NULL(Parent&, Parent&, Egg&, int);
 void breedingSeason_OVERLAP(Parent&, Parent&, Egg&, int);
@@ -33,13 +38,18 @@ int main()
 {
 	auto startTime = std::chrono::system_clock::now();
 
+	// seed original random generator to pass to all Parent instances
+	auto seed = std::chrono::high_resolution_clock::now().time_since_epoch().count();
+	std::mt19937 r = std::mt19937(seed);
+	randGen = &r;
+
 	Rcpp::Rcout << "\n\n\n" << "Beginning model runs" << "\n\n\n";
 
 	runModel(ITERATIONS, *breedingSeason_NULL, NULL_FNAME);
-	runModel(ITERATIONS, *breedingSeason_OVERLAP, OVERLAP_FNAME);
-	runModel(ITERATIONS*10, *breedingSeason_SEXDIFF, SEXDIFF_FNAME);
-	runModel(ITERATIONS*10, *breedingSeason_SEXDIFFCOMP, SEXDIFFCOMP_FNAME);
-	runModel(ITERATIONS*10, *breedingSeason_FORAGINGDIFF, FORAGINGDIFF_FNAME);
+	// runModel(ITERATIONS, *breedingSeason_OVERLAP, OVERLAP_FNAME);
+	// runModel(ITERATIONS*10, *breedingSeason_SEXDIFF, SEXDIFF_FNAME);
+	// runModel(ITERATIONS*10, *breedingSeason_SEXDIFFCOMP, SEXDIFFCOMP_FNAME);
+	// runModel(ITERATIONS*10, *breedingSeason_FORAGINGDIFF, FORAGINGDIFF_FNAME);
 
 	auto endTime = std::chrono::system_clock::now();
 
@@ -54,38 +64,46 @@ int main()
 
 void runModel(int iterations, 
 			  void (*modelFunc)(Parent&, Parent&, Egg&, int iter), 
-			  std::string outfileName) {
+			  std::string outfileName) 
+{
+
+
+	std::ofstream outfile;
+	outfile.open("Output/" + outfileName, std::ofstream::trunc);
+
+	outfile << "iteration,hatchSuccess,hatchDays,maxNeglect,"
+			<< "endEnergy_M,meanEnergy_M,varEnergy_M,"
+			<< "endEnergy_F,meanEnergy_F,varEnergy_F,"
+			<< "meanIncubation_M,varIncubation_M,numIncubation_M,"
+			<< "meanForaging_M,varForaging_M,numForaging_M,"
+			<< "meanIncubation_F,varIncubation_F,numIncubation_F,"
+			<< "meanForaging_F,varForaging_F,numForaging_F"
+		    << "\n";
+
 	// initialize output results objects
 	std::vector<bool> hatchSuccess = std::vector<bool>();
 	std::vector<double> hatchDays = std::vector<double>();
 	std::vector<int> maxNeglect = std::vector<int>();
 
-	std::vector<std::vector<double> > energy_M = 
-									  std::vector<std::vector<double> >();
-	std::vector<std::vector<int> > incubationBouts_M = 
-								   std::vector<std::vector<int> >();
-	std::vector<std::vector<int> > foragingBouts_M = 
-								   std::vector<std::vector<int> >();
+	std::vector<double> energy_M = std::vector<double>();
 
-	std::vector<std::vector<double> > energy_F = 
-									  std::vector<std::vector<double> >();
-	std::vector<std::vector<int> > incubationBouts_F = 
-								   std::vector<std::vector<int> >();
-	std::vector<std::vector<int> > foragingBouts_F = 
-								   std::vector<std::vector<int> >();
+	std::vector<double> energy_F = std::vector<double>();
+
+	std::vector<int> incubationBouts_M = std::vector<int>();
+	std::vector<int> foragingBouts_M = std::vector<int>();
+	std::vector<int> incubationBouts_F = std::vector<int>();
+	std::vector<int> foragingBouts_F = std::vector<int>();
 
 	for (int i = 0; i < iterations; i++) {
 
-		if (iterations >= 10) {
-			if (i % (iterations/10) == 0) {
+		if (iterations >= 10 && i % (iterations/10) == 0) {
 				Rcpp::Rcout << "LHSP Model for " + outfileName + " on Iteration: " 
 							<< i << "\n";
-			}
 		}
 
 		// initialize individuals for this simulation iteration
-		Parent pm = Parent(Sex::male);
-		Parent pf = Parent(Sex::female);
+		Parent pm = Parent(Sex::male, randGen);
+		Parent pf = Parent(Sex::female, randGen);
 		Egg egg = Egg();
 
 		// run breeding season
@@ -96,30 +114,63 @@ void runModel(int iterations,
 		hatchDays.push_back(egg.getIncubationDays());
 		maxNeglect.push_back(egg.getMaxNeg());
 
-		energy_M.push_back(pm.getEnergyRecord());
-		incubationBouts_M.push_back(pm.getIncubationBouts());
-		foragingBouts_M.push_back(pm.getForagingBouts());
+		energy_M = pm.getEnergyRecord();
+		energy_F = pf.getEnergyRecord();
 
-		energy_F.push_back(pf.getEnergyRecord());
-		incubationBouts_F.push_back(pf.getIncubationBouts());
-		foragingBouts_F.push_back(pf.getForagingBouts());
-	}
+		incubationBouts_M = pm.getIncubationBouts();
+		foragingBouts_M = pm.getForagingBouts();
+		incubationBouts_F = pf.getIncubationBouts();
+		foragingBouts_F = pf.getForagingBouts();
 
-	std::ofstream outfile;
-	outfile.open("Output/" + outfileName, std::ofstream::trunc);
+		double endEnergy_M = energy_M[energy_M.size()-1];
+		double meanEnergy_M = vectorMean(energy_M);
+		double varEnergy_M = vectorVar(energy_M);
 
-	outfile << "iteration,hatchSuccess,hatchDays,maxNeglect,energy_M,energy_F"
-		    << "\n";
+		double endEnergy_F = energy_F[energy_F.size()-1];
+		double meanEnergy_F = vectorMean(energy_F);
+		double varEnergy_F = vectorVar(energy_F);
 
-	for (int i = 0; i < iterations; i++) {
+		double meanIncubation_M = vectorMean(incubationBouts_M);
+		double varIncubation_M = vectorVar(incubationBouts_M);
+		double numIncubation_M = incubationBouts_M.size();
+
+		double meanForaging_M = vectorMean(foragingBouts_M);
+		double varForaging_M = vectorVar(foragingBouts_M);
+		double numForaging_M = foragingBouts_M.size();
+
+		double meanIncubation_F = vectorMean(incubationBouts_F);
+		double varIncubation_F = vectorVar(incubationBouts_F);
+		double numIncubation_F = incubationBouts_F.size();
+
+		double meanForaging_F = vectorMean(foragingBouts_F);
+		double varForaging_F = vectorVar(foragingBouts_F);
+		double numForaging_F = foragingBouts_F.size();
+
 		outfile << i << ","
 		        << hatchSuccess[i] << ","
 			    << hatchDays[i] << ","
 			    << maxNeglect[i] << ","
-			    << energy_M[i][energy_M[i].size()-1] << ","
-			    << energy_F[i][energy_F[i].size()-1] << "\n";
+			    << endEnergy_M << ","
+			    << meanEnergy_M << ","
+			    << varEnergy_M << ","
+			    << endEnergy_F << ","
+			    << meanEnergy_F << ","
+			    << varEnergy_F << ","
+			    << meanIncubation_M << ","
+			    << varIncubation_M << ","
+			    << numIncubation_M << ","
+			    << meanForaging_M << ","
+			    << varForaging_M << ","
+			    << numForaging_M << ","
+			    << meanIncubation_F << ","
+			    << varIncubation_F << ","
+			    << numIncubation_F << ","
+			    << meanForaging_F << ","
+			    << varForaging_F << ","
+			    << numForaging_F << "\n";
 	}
 
+	outfile.close();
 	Rcpp::Rcout << "Final output written to " << outfileName << "\n\n";
 }
 
@@ -172,7 +223,6 @@ void breedingSeason_OVERLAP(Parent& pm, Parent& pf, Egg& egg, int iter) {
 	}
 }
 
-
 void breedingSeason_SEXDIFF(Parent& pm, Parent& pf, Egg& egg, int iter) {
 	// Calculate energy coefficient using the 10x iteration %
 	double sexdiffCoeff = SEXDIFF_COEFFS[iter % 10];
@@ -182,7 +232,6 @@ void breedingSeason_SEXDIFF(Parent& pm, Parent& pf, Egg& egg, int iter) {
 
 	breedingSeason_OVERLAP(pm, pf, egg, iter);
 }
-
 
 void breedingSeason_SEXDIFFCOMP(Parent& pm, Parent& pf, Egg& egg, int iter) {
 	// in addition to sex differences, see if male behavior can compensate by lowering return energy threshold

@@ -1,19 +1,19 @@
 #include "Parent.hpp"
 
-Parent::Parent(Sex sex_):
+Parent::Parent(Sex sex_, std::mt19937* randGen_):
 	foragingDistribution(std::normal_distribution<double>(FORAGING_MEAN, FORAGING_SD)),
 	sex(sex_),
 	energy(BASE_ENERGY),
 	returnEnergyThreshold(BASE_ENERGY),
+	randGen(randGen_),
 	energyRecord(std::vector<double>()),
 	incubationDays(0),
 	incubationBouts(std::vector<int>()),
 	foragingDays(0)
 {
-	auto seed = std::chrono::high_resolution_clock::now().time_since_epoch().count();
-	rand = std::mt19937(seed);
 	// males begin the breeding season foraging
 	// females (who have just laid the egg), begin by incubating
+
 	this->state = State::foraging;
 	this->previousDayState = State::foraging;
 
@@ -49,7 +49,7 @@ void Parent::incubate()
 void Parent::forage()
 {
 	// draw from the normal distribution of foraging calorie values
-	double foragingEnergy = foragingDistribution(rand);
+	double foragingEnergy = foragingDistribution(*randGen);
 
 	// Metabolic intake concatenated at min and max values
 	if (foragingEnergy < FORAGING_MIN) {
@@ -59,7 +59,6 @@ void Parent::forage()
 	}
 
 	this->energy += foragingEnergy;
-
 
 	// subtract at-sea metabolic rate
 	this->energy -= FORAGING_METABOLISM;

@@ -4,7 +4,6 @@
 #include <random>
 #include <chrono>
 
-
 enum class Sex { male, female };
 enum class State { incubating, foraging };
 
@@ -15,7 +14,7 @@ public:
 	// Constructor
 	// Parameters:
 	//		Sex sex_ = Biological sex of the adult
-	Parent(Sex sex_);
+	Parent(Sex sex_, std::mt19937* randGen_);
 
 	// Parent behavior
 	void parentDay();
@@ -69,7 +68,6 @@ private:
 
 	    // use the above foraging values to construct a normal distribution for foraging values;
 	   	std::normal_distribution<double> foragingDistribution;
-  		std::mt19937 rand;
 
 	    // behavior based on the current state
 	    void forage();
@@ -89,6 +87,7 @@ private:
 	   	State previousDayState;
 	   	double energy;
 	   	double returnEnergyThreshold;
+		std::mt19937* randGen;
 
 	   	std::vector<double> energyRecord;
 
