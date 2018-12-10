@@ -28,19 +28,41 @@ main()
 null <- read_csv("Output/null_output.txt") %>%
 			mutate(model = "null")
 
-# overlap <- read_csv("Output/overlap_output.txt") %>%
-# 		    	mutate(model = "overlap")
+overlap <- read_csv("Output/overlap_output.txt") %>%
+		    	mutate(model = "overlap")
 
-# sexdiff <- read_csv("Output/sexdiff_output.txt") %>%
-# 				mutate(model = "sexdiff")
+overlaprand <- read_csv("Output/overlaprand_output.txt") %>%
+		    	mutate(model = "overlaprand")
 
-# sexdiffcomp <- read_csv("Output/sexdiffcomp_output.txt") %>%
-# 					mutate(model = "sexdiffcomp")
+sexdiff <- read_csv("Output/sexdiff_output.txt") %>%
+				mutate(model = "sexdiff") %>%
+				mutate(coeff = (iteration%%10)/10)
 
-# foragingdiff <- read_csv("Output/foragingdiff_output.txt") %>%
-# 					mutate(model = "foragingdiff")
+sexdiffcomp_1 <- read_csv("Output/sexdiffcomp_1_output.txt") %>%
+					mutate(model = "sexdiffcomp_1") %>%
+					mutate(coeff = (iteration%%10)/10)
+
+sexdiffcomp_2 <- read_csv("Output/sexdiffcomp_2_output.txt") %>%
+					mutate(model = "sexdiffcomp_2") %>%
+					mutate(coeff = (iteration%%10)/10)
+
+foragingdiff <- read_csv("Output/foragingdiff_output.txt") %>%
+					mutate(model = "foragingdiff") %>%
+					mutate(coeff = (iteration%%10)/10 + 1.1)
 
 # # Summarize and prelim analysis
+
+sdcs <- bind_rows(sexdiff, sexdiffcomp_1, sexdiffcomp_2) %>%
+			group_by(model, coeff, hatchSuccess) %>%
+			filter(hatchSuccess == 1) %>%
+			select(model, coeff, meanForaging_M, meanForaging_F, numForaging_M, numForaging_F) %>%
+			
+
+
+ggplot(sdcs) +
+	geom_line(aes(x=coeff, y=mean(numForaging_M), colour=model)) +
+	geom_line(aes(x=coeff, y=mean(numForaging_M), colour=model, linetype="dashed")) +
+	theme_bw()
 
 # od <- overlap %>%
 # 		group_by(hatchSuccess) %>%

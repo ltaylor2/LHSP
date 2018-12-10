@@ -26,6 +26,7 @@ double vectorVar(std::vector<double>& v)
 		sqSum += pow(v[i]-mean, 2);
 	}
 
+
 	return sqSum / items;
 }
 

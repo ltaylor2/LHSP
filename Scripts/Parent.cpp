@@ -9,7 +9,8 @@ Parent::Parent(Sex sex_, std::mt19937* randGen_):
 	energyRecord(std::vector<double>()),
 	incubationDays(0),
 	incubationBouts(std::vector<int>()),
-	foragingDays(0)
+	foragingDays(0),
+	foragingBouts(std::vector<int>())
 {
 	// males begin the breeding season foraging
 	// females (who have just laid the egg), begin by incubating

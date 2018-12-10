@@ -12,23 +12,27 @@
 #include "Egg.hpp"
 #include "Parent.hpp"
 
-constexpr static int ITERATIONS = 100;
+constexpr static int ITERATIONS = 10000;
 
 constexpr static double SEXDIFF_COEFFS[10] = {0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9};
 constexpr static double FORAGINGDIFF_COEFFS[10] = {1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0};
 
 constexpr static char NULL_FNAME[] = "null_output.txt";
 constexpr static char OVERLAP_FNAME[] = "overlap_output.txt";
+constexpr static char OVERLAPRAND_FNAME[] = "overlaprand_output.txt";
 constexpr static char SEXDIFF_FNAME[] = "sexdiff_output.txt";
-constexpr static char SEXDIFFCOMP_FNAME[] = "sexdiffcomp_output.txt";
+constexpr static char SEXDIFFCOMP_1_FNAME[] = "sexdiffcomp_1_output.txt";
+constexpr static char SEXDIFFCOMP_2_FNAME[] = "sexdiffcomp_2_output.txt";
 constexpr static char FORAGINGDIFF_FNAME[] = "foragingdiff_output.txt";
 
 static std::mt19937* randGen;
 
 void breedingSeason_NULL(Parent&, Parent&, Egg&, int);
 void breedingSeason_OVERLAP(Parent&, Parent&, Egg&, int);
+void breedingSeason_OVERLAPRAND(Parent&, Parent&, Egg&, int);
 void breedingSeason_SEXDIFF(Parent&, Parent&, Egg&, int);
-void breedingSeason_SEXDIFFCOMP(Parent&, Parent&, Egg&, int);
+void breedingSeason_SEXDIFFCOMP_1(Parent&, Parent&, Egg&, int);
+void breedingSeason_SEXDIFFCOMP_2(Parent&, Parent&, Egg&, int);
 void breedingSeason_FORAGINGDIFF(Parent&, Parent&, Egg&, int);
 
 void runModel(int, void(*)(Parent&, Parent&, Egg&, int), std::string);
@@ -46,10 +50,12 @@ int main()
 	Rcpp::Rcout << "\n\n\n" << "Beginning model runs" << "\n\n\n";
 
 	runModel(ITERATIONS, *breedingSeason_NULL, NULL_FNAME);
-	// runModel(ITERATIONS, *breedingSeason_OVERLAP, OVERLAP_FNAME);
-	// runModel(ITERATIONS*10, *breedingSeason_SEXDIFF, SEXDIFF_FNAME);
-	// runModel(ITERATIONS*10, *breedingSeason_SEXDIFFCOMP, SEXDIFFCOMP_FNAME);
-	// runModel(ITERATIONS*10, *breedingSeason_FORAGINGDIFF, FORAGINGDIFF_FNAME);
+	runModel(ITERATIONS, *breedingSeason_OVERLAP, OVERLAP_FNAME);
+	runModel(ITERATIONS, *breedingSeason_OVERLAPRAND, OVERLAPRAND_FNAME);
+	runModel(ITERATIONS*10, *breedingSeason_SEXDIFF, SEXDIFF_FNAME);
+	runModel(ITERATIONS*10, *breedingSeason_SEXDIFFCOMP_1, SEXDIFFCOMP_1_FNAME);
+	runModel(ITERATIONS*10, *breedingSeason_SEXDIFFCOMP_2, SEXDIFFCOMP_2_FNAME);
+	runModel(ITERATIONS*10, *breedingSeason_FORAGINGDIFF, FORAGINGDIFF_FNAME);
 
 	auto endTime = std::chrono::system_clock::now();
 
@@ -213,9 +219,36 @@ void breedingSeason_OVERLAP(Parent& pm, Parent& pf, Egg& egg, int iter) {
 
 				// allow the previously incubating bird to forage
 				if (previousMaleState == State::incubating) {
-					pm.setState(State::foraging);
+					pm.changeState();
 				} else if (previousFemaleState == State::incubating) {
-					pf.setState(State::foraging);
+					pf.changeState();
+				}
+			}
+		}
+		egg.eggDay(incubated);
+	}
+}
+
+void breedingSeason_OVERLAPRAND(Parent& pm, Parent& pf, Egg& egg, int iter) {
+	while (!egg.isHatched() && 
+	   (egg.getIncubationDays() <= Egg::HATCH_DAYS_MAX)) {		
+		pm.parentDay();
+		pf.parentDay();
+
+		bool incubated = false;
+		if (pm.getState() == State::incubating ||
+			pf.getState() == State::incubating) {
+			incubated = true;
+
+			// in this model, we don't allow both parents to incubate.
+			// rather than optimally switching based on who's been there longer, we switch randomly
+			if (pm.getState() == State::incubating &&
+				pf.getState() == State::incubating) {
+
+				if ((double)rand() / RAND_MAX <= 0.5) {
+					pm.changeState();
+				} else {
+					pf.changeState();
 				}
 			}
 		}
@@ -233,7 +266,40 @@ void breedingSeason_SEXDIFF(Parent& pm, Parent& pf, Egg& egg, int iter) {
 	breedingSeason_OVERLAP(pm, pf, egg, iter);
 }
 
-void breedingSeason_SEXDIFFCOMP(Parent& pm, Parent& pf, Egg& egg, int iter) {
+void breedingSeason_SEXDIFFCOMP_1(Parent& pm, Parent& pf, Egg& egg, int iter) {
+	double sexdiffCoeff = SEXDIFF_COEFFS[iter % 10];
+
+	pf.setEnergy(pf.getEnergy() * sexdiffCoeff);
+
+	// in addition to sex differences, see if male behavior can compensate by lowering return energy threshold
+	// (i.e., more selfless males)
+	while (!egg.isHatched() && 
+	   (egg.getIncubationDays() <= Egg::HATCH_DAYS_MAX)) {		
+		pm.parentDay();
+		pf.parentDay();
+
+		bool incubated = false;
+		if (pm.getState() == State::incubating ||
+			pf.getState() == State::incubating) {
+			incubated = true;
+
+			// in this model, we don't allow both parents to incubate.
+			// rather than optimally switching based on who's been there longer, we switch randomly
+			if (pm.getState() == State::incubating &&
+				pf.getState() == State::incubating) {
+
+				if ((double)rand() / RAND_MAX <= (2.0/3)) {
+					pm.changeState();
+				} else {
+					pf.changeState();
+				}
+			}
+		}
+		egg.eggDay(incubated);
+	}
+}
+
+void breedingSeason_SEXDIFFCOMP_2(Parent& pm, Parent& pf, Egg& egg, int iter) {
 	// in addition to sex differences, see if male behavior can compensate by lowering return energy threshold
 	// (i.e., more selfless males)
 	pm.setReturnEnergyThreshold(pm.getReturnEnergyThreshold()*0.5);
