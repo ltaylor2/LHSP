@@ -52,13 +52,6 @@ void Parent::forage()
 	// draw from the normal distribution of foraging calorie values
 	double foragingEnergy = foragingDistribution(*randGen);
 
-	// Metabolic intake concatenated at min and max values
-	if (foragingEnergy < FORAGING_MIN) {
-		foragingEnergy = FORAGING_MIN;
-	} else if (foragingEnergy > FORAGING_MAX) {
-		foragingEnergy = FORAGING_MAX;
-	}
-
 	this->energy += foragingEnergy;
 
 	// subtract at-sea metabolic rate
@@ -89,15 +82,18 @@ bool Parent::stopForaging() {
 
 void Parent::changeState()
 {
-	if (this->state == State::incubating) {
-		this->incubationBouts.push_back(this->incubationDays);
-		this->incubationDays = 0;
-		this->state = State::foraging;
-	} else if (this->state == State::foraging) {
-		this->foragingBouts.push_back(this->foragingDays);
-		this->foragingDays = 0;
-		this->state = State::incubating;
+	if (!firstBout) {
+		if (this->state == State::incubating) {
+			this->incubationBouts.push_back(this->incubationDays);
+			this->incubationDays = 0;
+			this->state = State::foraging;
+		} else if (this->state == State::foraging) {
+			this->foragingBouts.push_back(this->foragingDays);
+			this->foragingDays = 0;
+			this->state = State::incubating;
+		}
 	}
+	firstBout = false;
 }
 
 std::string Parent::getStrState() {

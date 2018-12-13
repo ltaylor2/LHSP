@@ -48,6 +48,9 @@ public:
     constexpr static double FORAGING_MEAN = 162;
     constexpr static double FORAGING_SD = 47;
 
+    // from Montevecchi et al. 1983
+    constexpr static double EGG_COST = 69.7;
+
 private:
 
 		// Initial petrel energy, 766 kJ at the beginning of an incubation bout (Ricklefs et al. 1986, Montevecchi et al 1992)
@@ -60,11 +63,6 @@ private:
 		// Blackmer et al. (2005) closely agrees.
 		constexpr static double INCUBATING_METABOLISM = 52;
 		constexpr static double FORAGING_METABOLISM = 123;
-
-		// From Montevvechi et al 1992 Table 3
-	    // TODO reconsider normal methods
-	    constexpr static double FORAGING_MIN = 74;
-	    constexpr static double FORAGING_MAX = 221;
 
 	    // use the above foraging values to construct a normal distribution for foraging values;
 	   	std::normal_distribution<double> foragingDistribution;

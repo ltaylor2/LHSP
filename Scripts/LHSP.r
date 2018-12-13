@@ -1,3 +1,4 @@
+
 # TODO
 # Confirm energetics values (esp. minimum energy threshold and BMR)
 # Send iterations through R
@@ -10,9 +11,9 @@
 library(Rcpp)
 library(tidyverse)
 
-# setwd("~/Desktop/LHSP")
+setwd("~/Desktop/LHSP")
 
-setwd("C://Users//Liam//Documents//LHSP")
+# setwd("C://Users//Liam//Documents//LHSP")
 
 Sys.setenv("PKG_CXXFLAGS"="-std=c++11")
 
@@ -28,81 +29,94 @@ main()
 null <- read_csv("Output/null_output.txt") %>%
 			mutate(model = "null")
 
-overlap <- read_csv("Output/overlap_output.txt") %>%
-		    	mutate(model = "overlap")
+overlap_swap <- read_csv("Output/overlap_swap_output.txt") %>%
+		    	mutate(model = "overlap_swap")
 
-overlaprand <- read_csv("Output/overlaprand_output.txt") %>%
-		    	mutate(model = "overlaprand")
+overlap_rand <- read_csv("Output/overlap_rand_output.txt") %>%
+		    	mutate(model = "overlap_rand")
 
 sexdiff <- read_csv("Output/sexdiff_output.txt") %>%
 				mutate(model = "sexdiff") %>%
-				mutate(coeff = (iteration%%10)/10)
+				mutate(coeff = (iteration%%5)+1)
 
-sexdiffcomp_1 <- read_csv("Output/sexdiffcomp_1_output.txt") %>%
-					mutate(model = "sexdiffcomp_1") %>%
-					mutate(coeff = (iteration%%10)/10)
+foragingVar <- read_csv("Output/foragingvar_output.txt") %>%
+						mutate(model = "foragingvar") %>%
+						mutate(coeff = (iteration%%10)/10 + 1.1)
 
-sexdiffcomp_2 <- read_csv("Output/sexdiffcomp_2_output.txt") %>%
-					mutate(model = "sexdiffcomp_2") %>%
-					mutate(coeff = (iteration%%10)/10)
+foragingMean <- read_csv("Output/foragingmean_output.txt") %>%
+					mutate(model = "foragingmean") %>%
+					mutate(coeff = (iteration%%10)/100 * 2 + 0.8)
 
-foragingdiff <- read_csv("Output/foragingdiff_output.txt") %>%
-					mutate(model = "foragingdiff") %>%
-					mutate(coeff = (iteration%%10)/10 + 1.1)
+# sexdiffcomp_1 <- read_csv("Output/sexdiffcomp_1_output.txt") %>%
+# 					mutate(model="sexdiffcomp_1")
 
-# # Summarize and prelim analysis
+# sexdiffcomp_2 <- read_csv("Output/sexdiffcomp_2_output.txt") %>%
+# 					mutate(model="sexdiffcomp_2")
 
-sdcs <- bind_rows(sexdiff, sexdiffcomp_1, sexdiffcomp_2) %>%
-			group_by(model, coeff, hatchSuccess) %>%
-			filter(hatchSuccess == 1) %>%
-			select(model, coeff, meanForaging_M, meanForaging_F, numForaging_M, numForaging_F) %>%
-			
+sdf <- sexdiff %>%
+		group_by(coeff, hatchSuccess) %>%
+		count() %>%
+		mutate(p = n / max(null$iteration)) %>%
+		filter(hatchSuccess==1) %>%
+		ungroup()
+
+ms <- sexdiff %>%
+		select(model, iteration, hatchSuccess, coeff, contains("_M")) %>%
+		rename_at(.vars=vars(ends_with("_M")),
+				  .funs=funs(sub("_M","",.))) %>%
+		mutate(sex="m")
+
+fs <- sexdiff %>%
+		select(model, iteration, hatchSuccess, coeff, contains("_F")) %>%
+		rename_at(.vars=vars(ends_with("_F")),
+				  .funs=funs(sub("_F","",.))) %>%
+		mutate(sex="f")
+
+allSD <- bind_rows(ms, fs)
+
+ggplot(sexdiff) +
+	geom_freqpoly(aes(x=meanForaging_M, y=stat(density)), binwidth=1)
+
+ggplot(allSD) +
+	geom_freqpoly(aes(x=mean))
+ggplot(allSD) +
+	geom_boxplot(aes(x=factor(coeff), y=meanForaging, fill=sex))
 
 
-ggplot(sdcs) +
-	geom_line(aes(x=coeff, y=mean(numForaging_M), colour=model)) +
-	geom_line(aes(x=coeff, y=mean(numForaging_M), colour=model, linetype="dashed")) +
-	theme_bw()
+ggplot(sdf) +
+	geom_line(aes(x=coeff, y=p))
 
-# od <- overlap %>%
-# 		group_by(hatchSuccess) %>%
-# 		count() %>%
-# 		filter(hatchSuccess == 1) %>%
-# 		mutate(p = n / max(overlap$iteration))
+hs <- bind_rows(null, overlap_swap, overlap_rand) %>%
+		group_by(model, hatchSuccess) %>%
+		count() %>%
+		filter(hatchSuccess == 1) %>%
+		mutate(p = n / max(null$iteration)) %>%
+		ungroup() %>%
+		select(model, p)
 
-# sd <- bind_rows(sexdiff, sexdiffcomp) %>%
-# 		group_by(model, coeff = iteration%%10, hatchSuccess) %>%
-# 		count() %>%
-# 		ungroup() %>%
-# 		mutate(coeff = coeff / 10) %>%
-# 		filter(hatchSuccess == 1) %>%
-# 		mutate(p = n / max(sexdiff$iteration / 10)) %>%
-# 		bind_rows(mutate(od, coeff=1.0))
+all <- bind_rows(null, overlap_swap, overlap_rand)
 
-# sdPlot <- ggplot(sd) +
-# 			geom_line(aes(x=coeff, y=p, color=model)) +
-# 			theme_bw()
+ms <- all %>%
+		select(model, iteration, hatchSuccess, contains("_M")) %>%
+		rename_at(.vars=vars(ends_with("_M")),
+				  .funs=funs(sub("_M","",.))) %>%
+		mutate(sex="m")
 
-# fd <- foragingdiff %>%
-# 		group_by(coeff = iteration%%10, hatchSuccess) %>%
-# 		count() %>%
-# 		ungroup() %>%
-# 		mutate(coeff = (coeff / 10) + 1.1) %>%
-# 		filter(hatchSuccess == 1) %>%
-# 		mutate(p = n / max(foragingdiff$iteration / 10)) %>%
-# 		bind_rows(mutate(od, coeff=1))
+fs <- all %>%
+		select(model, iteration, hatchSuccess, contains("_F")) %>%
+		rename_at(.vars=vars(ends_with("_F")),
+				  .funs=funs(sub("_F","",.))) %>%
+		mutate(sex="f")
 
-# fdPlot <- ggplot(fd) +
-# 				geom_line(aes(x=coeff, y=p)) +
-# 				theme_bw()
+energies <- bind_rows(ms, fs)
 
-# energyComp <- bind_rows(null, overlap, subset(sexdiff, iteration%%10==5), subset(foragingdiff, iteration%%10==5))
+M_COLOR = "#ff6961"
+F_COLOR = "#61a8ff"
 
-# ggplot(energyComp) +
-# 	geom_boxplot(aes(x=model, y=energy_M, group=hatchSuccess))
+ggplot(subset(energies, hatchSuccess==1)) +
+	geom_boxplot(aes(x=model, y=meanForaging, fill=sex))
 
-# count <- bind_rows(null, overlap) %>%
-# 			group_by(model, hatchSuccess) %>%
-# 			count() %>%
-# 			mutate(p = n / max(null$iteration)) %>%
-# 			filter(hatchSuccess == 1)
+ggplot(subset(counts, hatchSuccess==1)) +
+	geom_boxplot(aes(x=levels(model)-.25, y=endEnergy_M), fill=M_COLOR) +
+	geom_boxplot(aes(x=levels(model)+.25, y=endEnergy_F), fill=F_COLOR)
+

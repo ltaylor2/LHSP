@@ -12,28 +12,33 @@
 #include "Egg.hpp"
 #include "Parent.hpp"
 
-constexpr static int ITERATIONS = 10000;
+constexpr static int ITERATIONS = 100000;
 
-constexpr static double SEXDIFF_COEFFS[10] = {0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9};
-constexpr static double FORAGINGDIFF_COEFFS[10] = {1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0};
+constexpr static double SEXDIFF_COEFFS[5] = {1, 2, 3, 4, 5};
+constexpr static double FORAGINGVAR_COEFFS[10] = {1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0};
+constexpr static double FORAGINGMEAN_COEFFS[10] = {0.80, 0.82, 0.84, 0.86, 0.88, 0.90, 0.92, 0.94, 0.96, 0.98};
 
 constexpr static char NULL_FNAME[] = "null_output.txt";
-constexpr static char OVERLAP_FNAME[] = "overlap_output.txt";
-constexpr static char OVERLAPRAND_FNAME[] = "overlaprand_output.txt";
+constexpr static char OVERLAP_SWAP_FNAME[] = "overlap_swap_output.txt";
+constexpr static char OVERLAP_RAND_FNAME[] = "overlap_rand_output.txt";
 constexpr static char SEXDIFF_FNAME[] = "sexdiff_output.txt";
-constexpr static char SEXDIFFCOMP_1_FNAME[] = "sexdiffcomp_1_output.txt";
-constexpr static char SEXDIFFCOMP_2_FNAME[] = "sexdiffcomp_2_output.txt";
-constexpr static char FORAGINGDIFF_FNAME[] = "foragingdiff_output.txt";
+constexpr static char FORAGINGVAR_FNAME[] = "foragingvar_output.txt";
+constexpr static char FORAGINGMEAN_FNAME[] = "foragingmean_output.txt";
+
+// constexpr static char SEXDIFFCOMP_1_FNAME[] = "sexdiffcomp_1_output.txt";
+// constexpr static char SEXDIFFCOMP_2_FNAME[] = "sexdiffcomp_2_output.txt";
 
 static std::mt19937* randGen;
 
 void breedingSeason_NULL(Parent&, Parent&, Egg&, int);
-void breedingSeason_OVERLAP(Parent&, Parent&, Egg&, int);
-void breedingSeason_OVERLAPRAND(Parent&, Parent&, Egg&, int);
+void breedingSeason_OVERLAP_SWAP(Parent&, Parent&, Egg&, int);
+void breedingSeason_OVERLAP_RAND(Parent&, Parent&, Egg&, int);
 void breedingSeason_SEXDIFF(Parent&, Parent&, Egg&, int);
-void breedingSeason_SEXDIFFCOMP_1(Parent&, Parent&, Egg&, int);
-void breedingSeason_SEXDIFFCOMP_2(Parent&, Parent&, Egg&, int);
-void breedingSeason_FORAGINGDIFF(Parent&, Parent&, Egg&, int);
+void breedingSeason_FORAGINGVAR(Parent&, Parent&, Egg&, int);
+void breedingSeason_FORAGINGMEAN(Parent&, Parent&, Egg&, int);
+
+// void breedingSeason_SEXDIFFCOMP_1(Parent&, Parent&, Egg&, int);
+// void breedingSeason_SEXDIFFCOMP_2(Parent&, Parent&, Egg&, int);
 
 void runModel(int, void(*)(Parent&, Parent&, Egg&, int), std::string);
 
@@ -50,12 +55,14 @@ int main()
 	Rcpp::Rcout << "\n\n\n" << "Beginning model runs" << "\n\n\n";
 
 	runModel(ITERATIONS, *breedingSeason_NULL, NULL_FNAME);
-	runModel(ITERATIONS, *breedingSeason_OVERLAP, OVERLAP_FNAME);
-	runModel(ITERATIONS, *breedingSeason_OVERLAPRAND, OVERLAPRAND_FNAME);
-	runModel(ITERATIONS*10, *breedingSeason_SEXDIFF, SEXDIFF_FNAME);
-	runModel(ITERATIONS*10, *breedingSeason_SEXDIFFCOMP_1, SEXDIFFCOMP_1_FNAME);
-	runModel(ITERATIONS*10, *breedingSeason_SEXDIFFCOMP_2, SEXDIFFCOMP_2_FNAME);
-	runModel(ITERATIONS*10, *breedingSeason_FORAGINGDIFF, FORAGINGDIFF_FNAME);
+	runModel(ITERATIONS, *breedingSeason_OVERLAP_SWAP, OVERLAP_SWAP_FNAME);
+	runModel(ITERATIONS, *breedingSeason_OVERLAP_RAND, OVERLAP_RAND_FNAME);
+	runModel(ITERATIONS*5, *breedingSeason_SEXDIFF, SEXDIFF_FNAME);
+	runModel(ITERATIONS*10, *breedingSeason_FORAGINGVAR, FORAGINGVAR_FNAME);
+	runModel(ITERATIONS*10, *breedingSeason_FORAGINGMEAN, FORAGINGMEAN_FNAME);
+
+	// runModel(ITERATIONS, *breedingSeason_SEXDIFFCOMP_1, SEXDIFFCOMP_1_FNAME);
+	// runModel(ITERATIONS, *breedingSeason_SEXDIFFCOMP_2, SEXDIFFCOMP_2_FNAME);
 
 	auto endTime = std::chrono::system_clock::now();
 
@@ -77,7 +84,7 @@ void runModel(int iterations,
 	std::ofstream outfile;
 	outfile.open("Output/" + outfileName, std::ofstream::trunc);
 
-	outfile << "iteration,hatchSuccess,hatchDays,maxNeglect,"
+	outfile << "iteration,hatchSuccess,hatchDays,neglect,maxNeglect,"
 			<< "endEnergy_M,meanEnergy_M,varEnergy_M,"
 			<< "endEnergy_F,meanEnergy_F,varEnergy_F,"
 			<< "meanIncubation_M,varIncubation_M,numIncubation_M,"
@@ -89,10 +96,10 @@ void runModel(int iterations,
 	// initialize output results objects
 	std::vector<bool> hatchSuccess = std::vector<bool>();
 	std::vector<double> hatchDays = std::vector<double>();
+	std::vector<int> totNeglect = std::vector<int>();
 	std::vector<int> maxNeglect = std::vector<int>();
 
 	std::vector<double> energy_M = std::vector<double>();
-
 	std::vector<double> energy_F = std::vector<double>();
 
 	std::vector<int> incubationBouts_M = std::vector<int>();
@@ -118,6 +125,8 @@ void runModel(int iterations,
 		// save results
 		hatchSuccess.push_back(egg.isHatched());
 		hatchDays.push_back(egg.getIncubationDays());
+
+		totNeglect.push_back(egg.getTotNeg());
 		maxNeglect.push_back(egg.getMaxNeg());
 
 		energy_M = pm.getEnergyRecord();
@@ -155,6 +164,7 @@ void runModel(int iterations,
 		outfile << i << ","
 		        << hatchSuccess[i] << ","
 			    << hatchDays[i] << ","
+			    << totNeglect[i] << ","
 			    << maxNeglect[i] << ","
 			    << endEnergy_M << ","
 			    << meanEnergy_M << ","
@@ -184,31 +194,37 @@ void breedingSeason_NULL(Parent& pm, Parent& pf, Egg& egg, int iter) {
 	
 	while (!egg.isHatched() && 
 		   (egg.getIncubationDays() <= Egg::HATCH_DAYS_MAX)) {		
-		pm.parentDay();
-		pf.parentDay();
 
-		// Rcpp::Rcout << pm.getEnergy() << "////" << pf.getEnergy() << "\n";
 		bool incubated = false;
 		if (pm.getState() == State::incubating ||
 			pf.getState() == State::incubating) {
 			incubated = true;
 		}
 		egg.eggDay(incubated);
+
+		pm.parentDay();
+		pf.parentDay();
+
+		// Rcpp::Rcout << pm.getEnergy() << "////" << pf.getEnergy() << "\n";
 	}
 }
 
-void breedingSeason_OVERLAP(Parent& pm, Parent& pf, Egg& egg, int iter) {
+void breedingSeason_OVERLAP_SWAP(Parent& pm, Parent& pf, Egg& egg, int iter) {
 	
 	while (!egg.isHatched() && 
 		   (egg.getIncubationDays() <= Egg::HATCH_DAYS_MAX)) {		
-		pm.parentDay();
-		pf.parentDay();
 
 		bool incubated = false;
 		if (pm.getState() == State::incubating ||
 			pf.getState() == State::incubating) {
 			incubated = true;
+		}
+		egg.eggDay(incubated);
 
+		pm.parentDay();
+		pf.parentDay();
+
+		if (incubated) {
 			// in this model, we don't allow both parents to incubate.
 			// if both parents are incubating, we send the one that has
 			// been incubating longer away.
@@ -225,23 +241,24 @@ void breedingSeason_OVERLAP(Parent& pm, Parent& pf, Egg& egg, int iter) {
 				}
 			}
 		}
-		egg.eggDay(incubated);
 	}
 }
 
-void breedingSeason_OVERLAPRAND(Parent& pm, Parent& pf, Egg& egg, int iter) {
+void breedingSeason_OVERLAP_RAND(Parent& pm, Parent& pf, Egg& egg, int iter) {
 	while (!egg.isHatched() && 
-	   (egg.getIncubationDays() <= Egg::HATCH_DAYS_MAX)) {		
-		pm.parentDay();
-		pf.parentDay();
+		   (egg.getIncubationDays() <= Egg::HATCH_DAYS_MAX)) {		
 
 		bool incubated = false;
 		if (pm.getState() == State::incubating ||
 			pf.getState() == State::incubating) {
 			incubated = true;
+		}
+		egg.eggDay(incubated);
 
-			// in this model, we don't allow both parents to incubate.
-			// rather than optimally switching based on who's been there longer, we switch randomly
+		pm.parentDay();
+		pf.parentDay();
+
+		if (incubated) {
 			if (pm.getState() == State::incubating &&
 				pf.getState() == State::incubating) {
 
@@ -252,66 +269,71 @@ void breedingSeason_OVERLAPRAND(Parent& pm, Parent& pf, Egg& egg, int iter) {
 				}
 			}
 		}
-		egg.eggDay(incubated);
 	}
 }
 
 void breedingSeason_SEXDIFF(Parent& pm, Parent& pf, Egg& egg, int iter) {
-	// Calculate energy coefficient using the 10x iteration %
-	double sexdiffCoeff = SEXDIFF_COEFFS[iter % 10];
+	// Female pays initial cost of egg(s) at the beginning of each breeding season.
+	double sexdiffCoeff = SEXDIFF_COEFFS[iter%5];
 
-	// Female pays initial cost of egg at the beginning of each breeding season.
-	pf.setEnergy(pf.getEnergy() * sexdiffCoeff);
+	pf.setEnergy(pf.getEnergy() - Parent::EGG_COST * sexdiffCoeff);
 
-	breedingSeason_OVERLAP(pm, pf, egg, iter);
+	breedingSeason_OVERLAP_SWAP(pm, pf, egg, iter);
 }
 
-void breedingSeason_SEXDIFFCOMP_1(Parent& pm, Parent& pf, Egg& egg, int iter) {
-	double sexdiffCoeff = SEXDIFF_COEFFS[iter % 10];
-
-	pf.setEnergy(pf.getEnergy() * sexdiffCoeff);
-
-	// in addition to sex differences, see if male behavior can compensate by lowering return energy threshold
-	// (i.e., more selfless males)
-	while (!egg.isHatched() && 
-	   (egg.getIncubationDays() <= Egg::HATCH_DAYS_MAX)) {		
-		pm.parentDay();
-		pf.parentDay();
-
-		bool incubated = false;
-		if (pm.getState() == State::incubating ||
-			pf.getState() == State::incubating) {
-			incubated = true;
-
-			// in this model, we don't allow both parents to incubate.
-			// rather than optimally switching based on who's been there longer, we switch randomly
-			if (pm.getState() == State::incubating &&
-				pf.getState() == State::incubating) {
-
-				if ((double)rand() / RAND_MAX <= (2.0/3)) {
-					pm.changeState();
-				} else {
-					pf.changeState();
-				}
-			}
-		}
-		egg.eggDay(incubated);
-	}
-}
-
-void breedingSeason_SEXDIFFCOMP_2(Parent& pm, Parent& pf, Egg& egg, int iter) {
-	// in addition to sex differences, see if male behavior can compensate by lowering return energy threshold
-	// (i.e., more selfless males)
-	pm.setReturnEnergyThreshold(pm.getReturnEnergyThreshold()*0.5);
-
-	breedingSeason_SEXDIFF(pm, pf, egg, iter);
-}
-
-void breedingSeason_FORAGINGDIFF(Parent& pm, Parent&pf, Egg& egg, int iter) {
-	double foragingdiffCoeff = FORAGINGDIFF_COEFFS[iter % 10];
+void breedingSeason_FORAGINGVAR(Parent& pm, Parent&pf, Egg& egg, int iter) {
+	double foragingdiffCoeff = FORAGINGVAR_COEFFS[iter % 10];
 
 	pm.setForagingDistribution(Parent::FORAGING_MEAN, Parent::FORAGING_SD * foragingdiffCoeff);
 	pf.setForagingDistribution(Parent::FORAGING_MEAN, Parent::FORAGING_SD * foragingdiffCoeff);
 
-	breedingSeason_OVERLAP(pm, pf, egg, iter);
+	breedingSeason_SEXDIFF(pm, pf, egg, iter);
 }
+
+
+void breedingSeason_FORAGINGMEAN(Parent& pm, Parent&pf, Egg& egg, int iter) {
+	double foragingdiffCoeff = FORAGINGMEAN_COEFFS[iter % 10];
+
+	pm.setForagingDistribution(Parent::FORAGING_MEAN * foragingdiffCoeff, Parent::FORAGING_SD);
+	pf.setForagingDistribution(Parent::FORAGING_MEAN * foragingdiffCoeff, Parent::FORAGING_SD);
+
+	breedingSeason_SEXDIFF(pm, pf, egg, iter);
+}
+
+// void breedingSeason_SEXDIFFCOMP_1(Parent& pm, Parent& pf, Egg& egg, int iter) {
+// 	pf.setEnergy(pf.getEnergy() - Parent::EGG_COST);
+
+// 	while (!egg.isHatched() && 
+// 		   (egg.getIncubationDays() <= Egg::HATCH_DAYS_MAX)) {		
+
+// 		bool incubated = false;
+// 		if (pm.getState() == State::incubating ||
+// 			pf.getState() == State::incubating) {
+// 			incubated = true;
+// 		}
+// 		egg.eggDay(incubated);
+
+// 		pm.parentDay();
+// 		pf.parentDay();
+
+// 		if (incubated) {
+// 			if (pm.getState() == State::incubating &&
+// 				pf.getState() == State::incubating) {
+
+// 				if ((double)rand() / RAND_MAX <= (2.0/3)) {
+// 					pm.changeState();
+// 				} else {
+// 					pf.changeState();
+// 				}
+// 			}
+// 		}
+// 	}
+// }
+
+// void breedingSeason_SEXDIFFCOMP_2(Parent& pm, Parent& pf, Egg& egg, int iter) {
+// 	// in addition to sex differences, see if male behavior can compensate by lowering return energy threshold
+// 	// (i.e., more selfless males)
+// 	pm.setReturnEnergyThreshold(pm.getReturnEnergyThreshold()*0.5);
+
+// 	breedingSeason_SEXDIFF(pm, pf, egg, iter);
+// }

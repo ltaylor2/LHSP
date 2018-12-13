@@ -6,7 +6,8 @@ Egg::Egg():
 	hatched(false),
 	currDays(0),
 	hatchDays(START_HATCH_DAYS),
-	negCounter(0),
+	currNegCounter(0),
+	totNegCounter(0),
 	maxNegCounter(0)
 {}
 
@@ -15,14 +16,15 @@ void Egg::eggDay(bool incubated)
 
 	// incubated eggs reset the neglect counter
 	if (incubated) {
-		this->negCounter = 0;
+		this->currNegCounter = 0;
 	} 
 
 	// neglected eggs suffer an incubation penalty
 	else {
-		negCounter++;
-		if (negCounter > maxNegCounter) {
-			this->maxNegCounter = negCounter;
+		currNegCounter++;
+		totNegCounter++;
+		if (currNegCounter > maxNegCounter) {
+			this->maxNegCounter = currNegCounter;
 		}
 
 		hatchDays += NEGLECT_PENALTY;

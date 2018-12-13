@@ -16,6 +16,8 @@ public:
 	bool isHatched() { return this->hatched; }
 
 	int getIncubationDays() { return this->currDays; }
+
+	int getTotNeg() { return this->totNegCounter; }
 	int getMaxNeg() { return this->maxNegCounter; }
 
 	// Very high number as an upper limit on egg hatching
@@ -39,7 +41,10 @@ private:
 	double hatchDays;
 
 	// what is the current neglect streak (days)
-	int negCounter;
+	int currNegCounter;
+
+	// how many days of total neglect?
+	int totNegCounter;
 
 	// what is the maximum neglect streak (days)
 	int maxNegCounter;
