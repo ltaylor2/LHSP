@@ -81,8 +81,10 @@ private:
 
 	   	Sex sex;	
 	   	Parent* mate;
+
 	   	State state;
 	   	State previousDayState;
+
 	   	double energy;
 	   	double returnEnergyThreshold;
 		std::mt19937* randGen;
@@ -94,4 +96,6 @@ private:
 
 	   	int foragingDays;
 	   	std::vector<int> foragingBouts;
+
+	   	bool firstBout;
 };

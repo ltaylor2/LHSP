@@ -1,6 +1,5 @@
 #include "Egg.hpp"
 
-// Constructor
 Egg::Egg():
 	alive(true),
 	hatched(false),
@@ -14,12 +13,12 @@ Egg::Egg():
 void Egg::eggDay(bool incubated)
 {
 
-	// incubated eggs reset the neglect counter
+	// Incubation resets the neglect counter
 	if (incubated) {
 		this->currNegCounter = 0;
 	} 
 
-	// neglected eggs suffer an incubation penalty
+	// Neglected eggs suffer an incubation penalty
 	else {
 		currNegCounter++;
 		totNegCounter++;
@@ -30,10 +29,10 @@ void Egg::eggDay(bool incubated)
 		hatchDays += NEGLECT_PENALTY;
 	}
 
+	// Egg hatches when it catches up with the required hatching time
 	if (currDays >= hatchDays) {
 		this->hatched = true;
 	}
 
-	// move onto the next day (from the perspective of the egg) 
 	currDays++;
 }

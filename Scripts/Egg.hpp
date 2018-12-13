@@ -1,14 +1,21 @@
 #pragma once
 
+/*
+	A Leach's Storm-petrel egg, sitting in a comfy burrow
+*/ 
 class Egg {
 	
 public:
+
 	// Constructor
 	Egg();					
 
-	// egg behavior
-	// Parameters:
-	//		bool incubated = is a parent incubating the egg?
+	/*
+		Egg Behavior, where the egg aquires incubation or suffers neglect, 
+		altering the distance to hatch date
+
+		@param incubated is at least one parent incubating the egg?
+	*/
 	void eggDay(bool incubated);							
 
 	// Getters
@@ -25,27 +32,27 @@ public:
 
 private:
 
-	// Minimum observed incubation period (Hunting et al. 1996)
+	// Minimum observed incubation period (Huntington et al. 1996)
 	constexpr static double START_HATCH_DAYS = 37.0;
 
-	// Boersma and Wheelwright (1979) fit a line for Fork-Tailed Storm-petrels,
-	// with a slope of 0.7 for (days fully incubated) ~ (days neglect).
-	// Each day of neglect is thus expected to add (1 / 0.7) = 1.43 days of required incubation.
+	/*
+		Neglect comes with a developmental cost, increases the necessary
+		length of incubation.
+
+		Boersma and Wheelwright (1979) fit a line for Fork-Tailed Storm-petrels,
+		with a slope of 0.7 for (days fully incubated) ~ (days neglect).
+		Each day of neglect is thus expected to add (1/0.7)=1.43 days
+		to required incubation time.
+	*/
 	constexpr static double NEGLECT_PENALTY = 1.43;
 
-	bool alive;			// is egg alive?
-	bool hatched;			// is egg hatched?
+	// bool alive;		// is egg alive? (not used in this build)
+	bool hatched;		// is egg hatched?
 
-	// counters for current and required incubation periods (days)
-	double currDays;
-	double hatchDays;
+	double currDays;	// days record
+	double hatchDays; 	// incubation days required
 
-	// what is the current neglect streak (days)
-	int currNegCounter;
-
-	// how many days of total neglect?
-	int totNegCounter;
-
-	// what is the maximum neglect streak (days)
-	int maxNegCounter;
+	int currNegCounter;	// current consecutive days of neglect
+	int totNegCounter;	// totals days of neglect
+	int maxNegCounter;	// maximum consecutive days of neglect
 };

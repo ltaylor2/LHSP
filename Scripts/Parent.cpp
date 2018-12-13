@@ -10,7 +10,8 @@ Parent::Parent(Sex sex_, std::mt19937* randGen_):
 	incubationDays(0),
 	incubationBouts(std::vector<int>()),
 	foragingDays(0),
-	foragingBouts(std::vector<int>())
+	foragingBouts(std::vector<int>()),
+	firstBout(true)
 {
 	// males begin the breeding season foraging
 	// females (who have just laid the egg), begin by incubating
@@ -82,16 +83,18 @@ bool Parent::stopForaging() {
 
 void Parent::changeState()
 {
-	if (!firstBout) {
-		if (this->state == State::incubating) {
-			this->incubationBouts.push_back(this->incubationDays);
-			this->incubationDays = 0;
-			this->state = State::foraging;
-		} else if (this->state == State::foraging) {
+	if (this->state == State::incubating) {
+		this->incubationBouts.push_back(this->incubationDays);
+		this->incubationDays = 0;
+		this->state = State::foraging;
+	} else if (this->state == State::foraging) {
+		// NOTE when an adult begins in the foraging state with BASE energy
+		// (like males in the current build), we want to drop this first errant 1-day record
+		if (!firstBout) {
 			this->foragingBouts.push_back(this->foragingDays);
-			this->foragingDays = 0;
-			this->state = State::incubating;
 		}
+		this->foragingDays = 0;
+		this->state = State::incubating;
 	}
 	firstBout = false;
 }
