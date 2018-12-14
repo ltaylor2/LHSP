@@ -1,31 +1,45 @@
 
 # TODO
-# Confirm energetics values (esp. minimum energy threshold and BMR)
-# Send iterations through R
-# Sex-specific differences
-# Confirm longest egg threshold
-# Look at neglect parameters
-# Verify initial behavior
+# Verify parameter sources
+# Tidy + Analysis
+# Figures
+# Report
+# README + final push
 
-# logistics
+####################
+#### Logistics #####
+####################
+
 library(Rcpp)
 library(tidyverse)
 
 setwd("~/LHSP")
-
 # setwd("C://Users//Liam//Documents//LHSP")
 
-Sys.setenv("PKG_CXXFLAGS"="-std=c++11")
+# Set C++11 for Rcpp compilation
+Sys.setenv("PKG_CXXFLAGS"="-std=c++11") 
 
-# Src C++ functions and call models. 
-# See hpp and main.cpp files for details
+# NOTE UNCOMMENTING WILL WIPE .o FILES FROM SCRIPTS FOLDER IN WD
+# BE CAREFUL
 scriptFiles <- list.files("Scripts/", full.names=TRUE)
 invisible(file.remove(scriptFiles[grep(".o", scriptFiles)]))
 
+####################
+####   Model   #####
+####################
+
+# Calls the model through Rcpp
+# All terminal output will write through Rcout onto the R terminal
+# But all objects should be cleaned from memory by the time the model ends
+# The C++ program is self-sufficient and writes output to file
 Rcpp::sourceCpp("Scripts/main.cpp")
 main()
 
-# Read in output data
+####################
+####    DATA   #####
+####################
+
+# All data tidyed, combined, and broken up into male/female for energy values
 null <- read_csv("Output/null_output.txt") %>%
 			mutate(model = "null")
 
@@ -46,12 +60,6 @@ foragingVar <- read_csv("Output/foragingvar_output.txt") %>%
 foragingMean <- read_csv("Output/foragingmean_output.txt") %>%
 					mutate(model = "foragingmean") %>%
 					mutate(coeff = (iteration%%10)/100 * 2 + 0.8)
-
-# sexdiffcomp_1 <- read_csv("Output/sexdiffcomp_1_output.txt") %>%
-# 					mutate(model="sexdiffcomp_1")
-
-# sexdiffcomp_2 <- read_csv("Output/sexdiffcomp_2_output.txt") %>%
-# 					mutate(model="sexdiffcomp_2")
 
 sdf <- sexdiff %>%
 		group_by(coeff, hatchSuccess) %>%
@@ -110,6 +118,15 @@ fs <- all %>%
 
 energies <- bind_rows(ms, fs)
 
+
+####################
+####  Analysis #####
+####################
+
+
+####################
+## Visualization ###
+####################
 M_COLOR = "#ff6961"
 F_COLOR = "#61a8ff"
 

@@ -49,7 +49,7 @@ private:
 	*/
 	constexpr static double NEGLECT_PENALTY = 1.43;
 
-	bool alive;		// is egg alive? (not used in this build)
+	bool alive;			// is egg alive? (not used in this build)
 	bool hatched;		// is egg hatched?
 
 	double currDays;	// days record
