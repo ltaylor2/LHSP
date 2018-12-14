@@ -30,6 +30,9 @@ public:
 	// Very high number as an upper limit on egg hatching
 	constexpr static double HATCH_DAYS_MAX = 60;
 
+    // Mean energetic contents of a single egg from Montevecchi et al. 1983
+    constexpr static double EGG_COST = 69.7;
+
 private:
 
 	// Minimum observed incubation period (Huntington et al. 1996)
@@ -46,7 +49,7 @@ private:
 	*/
 	constexpr static double NEGLECT_PENALTY = 1.43;
 
-	// bool alive;		// is egg alive? (not used in this build)
+	bool alive;		// is egg alive? (not used in this build)
 	bool hatched;		// is egg hatched?
 
 	double currDays;	// days record

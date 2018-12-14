@@ -1,7 +1,8 @@
 #include "Parent.hpp"
 
 Parent::Parent(Sex sex_, std::mt19937* randGen_):
-	foragingDistribution(std::normal_distribution<double>(FORAGING_MEAN, FORAGING_SD)),
+	foragingDistribution(std::normal_distribution<double>(FORAGING_MEAN, 
+														  FORAGING_SD)),
 	sex(sex_),
 	energy(BASE_ENERGY),
 	returnEnergyThreshold(BASE_ENERGY),
@@ -13,9 +14,10 @@ Parent::Parent(Sex sex_, std::mt19937* randGen_):
 	foragingBouts(std::vector<int>()),
 	firstBout(true)
 {
-	// males begin the breeding season foraging
-	// females (who have just laid the egg), begin by incubating
-
+	/*
+		Males begin the breeding season in the foraging state,
+		while females begin the breeding season in the incubating state
+	*/
 	this->state = State::foraging;
 	this->previousDayState = State::foraging;
 
@@ -27,8 +29,10 @@ Parent::Parent(Sex sex_, std::mt19937* randGen_):
 
 void Parent::parentDay()
 {
+
 	energyRecord.push_back(this->energy);
 	
+	// Act out state behavior
 	if (this->state == State::incubating) {
 		incubate();
 	} else if (this->state == State::foraging) {
@@ -36,11 +40,37 @@ void Parent::parentDay()
 	}
 }
 
+
+void Parent::changeState()
+{
+	if (this->state == State::incubating) {
+		this->incubationBouts.push_back(this->incubationDays);
+		this->incubationDays = 0;
+		this->state = State::foraging;
+	} else if (this->state == State::foraging) {
+		/* 
+			NOTE when an adult begins in the foraging state with BASE energy
+		 		(like males in the current build), we want to drop this first 
+		 		errant 1-day record
+		*/
+		if (!firstBout) {
+			this->foragingBouts.push_back(this->foragingDays);
+		}
+		this->foragingDays = 0;
+		this->state = State::incubating;
+	}
+
+	firstBout = false;
+}
+
 void Parent::incubate()
 {
-	this->energy -= INCUBATING_METABOLISM;
 	this->incubationDays++;
 
+	// Lose energy to metabolism
+	this->energy -= INCUBATING_METABOLISM;
+
+	// Incubating -> Foraging depending on energy
 	if (stopIncubating()) {
 		changeState();
 	}
@@ -50,16 +80,16 @@ void Parent::incubate()
 
 void Parent::forage()
 {
-	// draw from the normal distribution of foraging calorie values
-	double foragingEnergy = foragingDistribution(*randGen);
-
-	this->energy += foragingEnergy;
-
-	// subtract at-sea metabolic rate
-	this->energy -= FORAGING_METABOLISM;
-
 	this->foragingDays++;
 
+	// Gain metabolic intake given normal distribution of energy outcomes
+	double foragingEnergy = foragingDistribution(*randGen);
+	this->energy += foragingEnergy;
+
+	// Lose energy to metabolism
+	this->energy -= FORAGING_METABOLISM;
+
+	// Foraging -> Incubating depending on energy
 	if (stopForaging()) {
 		changeState();
 	}
@@ -67,45 +97,32 @@ void Parent::forage()
 	this->previousDayState = State::foraging;
 }
 
-bool Parent::stopIncubating() {
-	if (this->energy <= MIN_ENERGY_THRESHOLD) {
-		return true;
-	}
-	return false;
-}
-
-bool Parent::stopForaging() {
-	if (this->energy >= returnEnergyThreshold) {
-		return true;
-	}
-	return false;
-}
-
-void Parent::changeState()
+bool Parent::stopIncubating() 
 {
-	if (this->state == State::incubating) {
-		this->incubationBouts.push_back(this->incubationDays);
-		this->incubationDays = 0;
-		this->state = State::foraging;
-	} else if (this->state == State::foraging) {
-		// NOTE when an adult begins in the foraging state with BASE energy
-		// (like males in the current build), we want to drop this first errant 1-day record
-		if (!firstBout) {
-			this->foragingBouts.push_back(this->foragingDays);
-		}
-		this->foragingDays = 0;
-		this->state = State::incubating;
+	// Deterministic binary minimum threshold
+	if (this->energy < MIN_ENERGY_THRESHOLD) {
+		return true;
 	}
-	firstBout = false;
+	return false;
 }
 
-std::string Parent::getStrState() {
-	std::string s = "";
-	if (this->state == State::incubating) {
-		s = "Incubating";
-	} else if (this->state == State::foraging) {
-		s = "Foraging";
+bool Parent::stopForaging() 
+{
+	// Deterministic binary maximum threshold
+	if (this->energy > returnEnergyThreshold) {
+		return true;
 	}
-
-	return s;
+	return false;
 }
+
+// std::string Parent::getStrState() {
+// 	// Why oh why do I not know an easier way to convert enums to strings?
+// 	std::string s = "";
+// 	if (this->state == State::incubating) {
+// 		s = "Incubating";
+// 	} else if (this->state == State::foraging) {
+// 		s = "Foraging";
+// 	}
+
+// 	return s;
+// }

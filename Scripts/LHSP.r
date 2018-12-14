@@ -11,7 +11,7 @@
 library(Rcpp)
 library(tidyverse)
 
-setwd("~/Desktop/LHSP")
+setwd("~/LHSP")
 
 # setwd("C://Users//Liam//Documents//LHSP")
 

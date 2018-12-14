@@ -7,33 +7,51 @@
 enum class Sex { male, female };
 enum class State { incubating, foraging };
 
+/*
+	A breeding adult Leach's Storm-petrel parent, flying back and forth from
+	the foraging ground to the breeding ground
+*/
 class Parent {
 
 public:
 
-	// Constructor
-	// Parameters:
-	//		Sex sex_ = Biological sex of the adult
+	/* 
+		Constructor
+	
+		@param sex_ sex of the bird (enum, male or female)
+	   		   randGen_ ptr to a single-seeded random number device
+	*/
 	Parent(Sex sex_, std::mt19937* randGen_);
 
-	// Parent behavior
+	// Parent behavior, including incubating, foraging, and/or changing states
 	void parentDay();
 
-	// Changes state based on normal energetic behavior
+	/*
+		Changes state incubating<->foraging
+	 	NOTE this guarantees a state change, and is called after
+	 		thresholds are checked 
+	*/
 	void changeState();
 	
 	// Setters
 	void setState(State state_) { this->state = state_ ; }
 	void setEnergy(double energy_) { this->energy = energy_; }
 
-	void setReturnEnergyThreshold(double thresh_) { this->returnEnergyThreshold = thresh_; }
-	void setForagingDistribution(double mean, double sd) {this->foragingDistribution = std::normal_distribution<double>(mean, sd); }
+	void setReturnEnergyThreshold(double thresh_)
+	{ 
+		this->returnEnergyThreshold = thresh_; 
+	}
+
+	void setForagingDistribution(double mean, double sd)
+	{ 
+		this->foragingDistribution = std::normal_distribution<double>(mean, sd); 
+	}
 	
 	// Getters
 	Sex getSex() { return this->sex; }
 
 	State getState() { return this->state; }
-	std::string getStrState();
+	// std::string getStrState(); // str printable form
 	State getPreviousDayState() { return this->previousDayState; }
 
 	double getEnergy() { return this->energy; }
@@ -45,57 +63,93 @@ public:
 	std::vector<int> getIncubationBouts() { return this->incubationBouts; }
 	std::vector<int> getForagingBouts() { return this->foragingBouts; }
 
+	/*
+		Parameters for the mean and standard deviation for foraging,
+		in kJ of metabolic intake. Modeled as a normal distribution.
+		TODO RICKLEFS CHECK SOURCE
+	*/
     constexpr static double FORAGING_MEAN = 162;
     constexpr static double FORAGING_SD = 47;
 
-    // from Montevecchi et al. 1983
-    constexpr static double EGG_COST = 69.7;
-
 private:
 
-		// Initial petrel energy, 766 kJ at the beginning of an incubation bout (Ricklefs et al. 1986, Montevecchi et al 1992)
+		/*
+			Initial energy buffer at the beginning of the incubation season (kJ)
+			Derived from the mean energy adults had at the beginning of observed
+			incubation bouts in Ricklefs et al. (1986)
+			TODO CHECK SOURCE
+		*/ 
 		constexpr static double BASE_ENERGY = 766;
 
-		// TODO CHECK
-		constexpr static double MIN_ENERGY_THRESHOLD = 123;
 
-		// Basal metabolic rate, energy loss from incubation, 52 kJ/day (Ricklefs et al. 1986, Montevecchi et al 1992).
-		// Blackmer et al. (2005) closely agrees.
+		/*
+			Metabolic rate requirements while incubating and foraging (kJ/day)
+			From Ricklefs et al. (1986) 
+			and further discussion in Montevecchi et al. (1992)
+
+			TODO CHECK SOURCES AND BLACKMER ET AL. 2005
+		*/
 		constexpr static double INCUBATING_METABOLISM = 52;
 		constexpr static double FORAGING_METABOLISM = 123;
 
-	    // use the above foraging values to construct a normal distribution for foraging values;
+		/* 
+			The deterministic threshold above which foraging ceases 
+			(at the end of the day), here equaling the mean amount of energy at
+			which parents were found to start incubating (BASE_ENERGY)
+		*/
+		constexpr static double MAX_ENERGY_THRESHOLD = BASE_ENERGY;
+
+		/*
+			The deterministc threshold below which incubation ceases
+			(at the end of the day), here equaling the metabolic cost of
+			foraging for a day.
+		*/
+		constexpr static double MIN_ENERGY_THRESHOLD = FORAGING_METABOLISM;
+		
+		// Normal distribution to draw stochastic foraging energy intakes
 	   	std::normal_distribution<double> foragingDistribution;
 
-	    // behavior based on the current state
-	    void forage();
+
+	   	/*
+	   		A day of incubation behavior while in the incubating state.
+	   		While in the nesting burrow, the adult loses a set amount of energy
+	   		to metabolism, and can gain no energy.
+	   		Incubation deterministically stops when the energy of the 
+	   		adult passes below a strict threshold
+	   	*/
 	    void incubate();
 
-	    // reset the day counter
-	    void resetDays();
+	   	/*
+	   		A day of foraging behavior while in the foraging state.
+	   		On the foraging grounds, the adult loses a set amount
+	   		of energy to metabolism, but gains a stochastic amount of energy
+	   		from a normal distribution of metabolic intake values.
+	   		Foraging deterministically stops when the energy of the adult
+	   		passes above strict threshold.
+	   	*/
+	    void forage();
 
-	   	// state change functions
-	   	// returns TRUE if the bird should change state
+	    // State change functions.
+	    // @ret TRUE 
 	   	bool stopIncubating();
 	   	bool stopForaging();
 
-	   	Sex sex;	
-	   	Parent* mate;
+	   	Sex sex;							// individual's sex
 
-	   	State state;
-	   	State previousDayState;
+	   	State state;						// current state
+	   	State previousDayState;				// state during the previous day
 
-	   	double energy;
-	   	double returnEnergyThreshold;
-		std::mt19937* randGen;
+	   	double energy;						// current energy value (kJ)
+	   	double returnEnergyThreshold;		// energy threshold (kJ), can reset
+		std::mt19937* randGen;				// ptr to random device
 
-	   	std::vector<double> energyRecord;
+	   	std::vector<double> energyRecord;	// energy values across all days
 
-	   	int incubationDays;
-	   	std::vector<int> incubationBouts;
+	   	int incubationDays;					// current consecutive inc. days
+	   	std::vector<int> incubationBouts;	// incubation bout record
 
-	   	int foragingDays;
-	   	std::vector<int> foragingBouts;
+	   	int foragingDays;					// current consecutive forg. days
+	   	std::vector<int> foragingBouts;		// foraging bout record
 
-	   	bool firstBout;
+	   	bool firstBout;						// is it the adult's first bout?
 };
