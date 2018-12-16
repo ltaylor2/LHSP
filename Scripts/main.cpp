@@ -12,26 +12,28 @@
 #include "Parent.hpp"
 
 // The number of iterations for each model or parameter set of a given model
-constexpr static int ITERATIONS = 100;
+constexpr static int ITERATIONS = 100000;
 
 // Multiplicative coefficients of egg cost (i.e., 1, 2, 3, eggs laid as cost)
 constexpr static double SEXDIFF_COEFFS[5] = {1, 2, 3, 4, 5};
 
 // Multiplicative coefficents for variance of foraging dist. (+variance) 
-constexpr static double FORAGINGVAR_COEFFS[10] = {1.1, 1.2, 1.3, 1.4, 1.5, 
-												  1.6, 1.7, 1.8, 1.9, 2.0};
+constexpr static double FORAGING_VAR_COEFFS[10] = {0.5, 1.5, 2.5, 3.5, 4.5, 
+												   5.5, 6.5, 7.5, 8.5, 9.5};
 
 // Multiplicative coefficients for mean of foraging dist (-mean)
-constexpr static double FORAGINGMEAN_COEFFS[10] = {0.80, 0.82, 0.84, 0.86, 0.88,
-												   0.90, 0.92, 0.94, 0.96, 0.98};
+constexpr static double FORAGING_MEAN_COEFFS[10] = {0.80, 0.82, 0.84, 0.86, 0.88,
+												    0.90, 0.92, 0.94, 0.96, 0.98};
 
 // All output in from the model is written directly to file
 constexpr static char NULL_FNAME[]         = "null_output.txt";
 constexpr static char OVERLAP_SWAP_FNAME[] = "overlap_swap_output.txt";
 constexpr static char OVERLAP_RAND_FNAME[] = "overlap_rand_output.txt";
 constexpr static char SEXDIFF_FNAME[] 	   = "sexdiff_output.txt";
-constexpr static char FORAGINGVAR_FNAME[]  = "foragingvar_output.txt";
-constexpr static char FORAGINGMEAN_FNAME[] = "foragingmean_output.txt";
+constexpr static char FORAGING_VAR_FNAME[]  = "foraging_var_output.txt";
+constexpr static char FORAGING_MEAN_FNAME[] = "foraging_mean_output.txt";
+
+constexpr static char BOUTS_FNAME[] = "bouts.txt";
 
 // constexpr static char SEXDIFFCOMP_1_FNAME[] = "sexdiffcomp_1_output.txt";
 // constexpr static char SEXDIFFCOMP_2_FNAME[] = "sexdiffcomp_2_output.txt";
@@ -44,9 +46,10 @@ void breedingSeason_NULL(Parent&, Parent&, Egg&, int);
 void breedingSeason_OVERLAP_SWAP(Parent&, Parent&, Egg&, int);
 void breedingSeason_OVERLAP_RAND(Parent&, Parent&, Egg&, int);
 void breedingSeason_SEXDIFF(Parent&, Parent&, Egg&, int);
-void breedingSeason_FORAGINGVAR(Parent&, Parent&, Egg&, int);
-void breedingSeason_FORAGINGMEAN(Parent&, Parent&, Egg&, int);
+void breedingSeason_FORAGING_VAR(Parent&, Parent&, Egg&, int);
+void breedingSeason_FORAGING_MEAN(Parent&, Parent&, Egg&, int);
 void runModel(int, void(*)(Parent&, Parent&, Egg&, int), std::string);
+void printBoutInfo(std::string, std::string, std::string, std::vector<int>);
 
 // Sex-specific difference compensation. Not in current build.
 
@@ -68,19 +71,27 @@ int main()
 	// All output to R terminals has to be with Rcout
 	Rcpp::Rcout << "\n\n\n" << "Beginning model runs" << "\n\n\n";
 
+	// Format header for all bouts record for NULL and OVERLAP_SWAP models
+	std::ofstream outfile;
+	std::string s(BOUTS_FNAME);
+	outfile.open("Output/" + s, std::ofstream::trunc);
+	outfile << "model,state,boutLength\n";
+	outfile.close();
+
 	/*
 		Call each model by passing model info (including the *function itself),
 		to the runModel function, which runs the model and writes output to 
 		file. Models with parameter coefficient sets are multiplied by the number
 		of coefficients, so all sets run for ITERATIONS iteration.
 	*/  
+
 	runModel(ITERATIONS, *breedingSeason_NULL, NULL_FNAME);
 	runModel(ITERATIONS, *breedingSeason_OVERLAP_SWAP, OVERLAP_SWAP_FNAME);
 	runModel(ITERATIONS, *breedingSeason_OVERLAP_RAND, OVERLAP_RAND_FNAME);
 
 	runModel(ITERATIONS*5, *breedingSeason_SEXDIFF, SEXDIFF_FNAME);
-	runModel(ITERATIONS*10, *breedingSeason_FORAGINGVAR, FORAGINGVAR_FNAME);
-	runModel(ITERATIONS*10, *breedingSeason_FORAGINGMEAN, FORAGINGMEAN_FNAME);
+	runModel(ITERATIONS*10, *breedingSeason_FORAGING_VAR, FORAGING_VAR_FNAME);
+	runModel(ITERATIONS*10, *breedingSeason_FORAGING_MEAN, FORAGING_MEAN_FNAME);
 
 	// runModel(ITERATIONS, *breedingSeason_SEXDIFFCOMP_1, SEXDIFFCOMP_1_FNAME);
 	// runModel(ITERATIONS, *breedingSeason_SEXDIFFCOMP_2, SEXDIFFCOMP_2_FNAME);
@@ -149,6 +160,25 @@ void runModel(int iterations,
 
 		// Run the given breeding season model funciton
 		modelFunc(pm, pf, egg, i);
+
+		// Store individual bout output from simplest models
+		bool printBouts = false;
+		std::string model = "";
+
+		if (outfileName.compare("null_output.txt") == 0) {
+			printBouts = true;
+			model = "null";
+		} else if (outfileName.compare("overlap_swap_output.txt") == 0) {
+			printBouts = true;
+			model = "overlap_swap";
+		}
+
+		if (printBouts) {
+			printBoutInfo(BOUTS_FNAME, model, "incubating", pm.getIncubationBouts());
+			printBoutInfo(BOUTS_FNAME, model, "incubating", pf.getIncubationBouts());
+			printBoutInfo(BOUTS_FNAME, model, "foraging", pm.getForagingBouts());
+			printBoutInfo(BOUTS_FNAME, model, "foraging", pf.getForagingBouts());
+		}
 
 		// Save results of each season
 		hatchSuccess.push_back(egg.isHatched());	   // successful season?
@@ -405,21 +435,21 @@ void breedingSeason_SEXDIFF(Parent& pm, Parent& pf, Egg& egg, int iter) {
 }
 
 /*
-	FORAGINGVAR model breeding season
+	FORAGING_VAR model breeding season
 	@param pm male adult parent
 		   pf female adult parent
 		   egg and egg, if it was unclear
 		   iter current iteration of breeding season 
 
-	The FORAGINGVAR model inherits all the behavior of the SEXDIFF model
+	The FORAGING_VAR model inherits all the behavior of the SEXDIFF model
 	(with a single egg cost), with additional parameter settings that steps
 	through increases to the standard deviation of the normal distribution
 	that defines foraging outcomes. 
 */
-void breedingSeason_FORAGINGVAR(Parent& pm, Parent&pf, Egg& egg, int iter) {
+void breedingSeason_FORAGING_VAR(Parent& pm, Parent&pf, Egg& egg, int iter) {
 
 	// Again relying on mod math to easily step through parameters
-	double foragingdiffCoeff = FORAGINGVAR_COEFFS[iter % 10];
+	double foragingdiffCoeff = FORAGING_VAR_COEFFS[iter % 10];
 
 	// Both parents get a new foraging distribution SD for the season
 	pm.setForagingDistribution(Parent::FORAGING_MEAN, 
@@ -435,21 +465,21 @@ void breedingSeason_FORAGINGVAR(Parent& pm, Parent&pf, Egg& egg, int iter) {
 }
 
 /*
-	FORAGINGMEAN model breeding season
+	FORAGING_MEAN model breeding season
 	@param pm male adult parent
 		   pf female adult parent
 		   egg and egg, if it was unclear
 		   iter current iteration of breeding season 
 
-	The FORAGINGMEAN model inherits all the behavior of the SEXDIFF model
+	The FORAGING_MEAN model inherits all the behavior of the SEXDIFF model
 	(with a single egg cost), with additional parameter settings that steps
 	through decreases to the mean of the normal distribution
 	that defines foraging outcomes. 
 */
-void breedingSeason_FORAGINGMEAN(Parent& pm, Parent&pf, Egg& egg, int iter) {
+void breedingSeason_FORAGING_MEAN(Parent& pm, Parent&pf, Egg& egg, int iter) {
 
 	// Mod math, again
-	double foragingdiffCoeff = FORAGINGMEAN_COEFFS[iter % 10];
+	double foragingdiffCoeff = FORAGING_MEAN_COEFFS[iter % 10];
 
 	// Both parents get a new foraging distribution mean for the season
 	pm.setForagingDistribution(Parent::FORAGING_MEAN * foragingdiffCoeff, 
@@ -539,3 +569,14 @@ void breedingSeason_FORAGINGMEAN(Parent& pm, Parent&pf, Egg& egg, int iter) {
 // 	// Then begin all behavior from OVERLAP_SWAP
 // 	breedingSeason_OVERLAP_SWAP(pm, pf, egg, iter);
 // }
+
+void printBoutInfo(std::string fname, std::string model, std::string tag, std::vector<int> v) {
+	std::ofstream of;
+	of.open("Output/" + fname, std::ofstream::app);
+
+	for (int i = 0; i < v.size(); i++) {
+		of << model << "," << tag << "," << v[i] << "\n";
+	}
+
+	of.close();
+}
