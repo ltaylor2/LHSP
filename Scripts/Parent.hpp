@@ -66,7 +66,7 @@ public:
 	/*
 		Parameters for the mean and standard deviation for foraging,
 		in kJ of metabolic intake. Modeled as a normal distribution.
-		TODO RICKLEFS CHECK SOURCE
+		Montevecchi et al. (1992) for Newfoundland parameters
 	*/
     constexpr static double FORAGING_MEAN = 162;
     constexpr static double FORAGING_SD = 47;
@@ -77,7 +77,6 @@ private:
 			Initial energy buffer at the beginning of the incubation season (kJ)
 			Derived from the mean energy adults had at the beginning of observed
 			incubation bouts in Ricklefs et al. (1986)
-			TODO CHECK SOURCE
 		*/ 
 		constexpr static double BASE_ENERGY = 766;
 
@@ -86,8 +85,6 @@ private:
 			Metabolic rate requirements while incubating and foraging (kJ/day)
 			From Ricklefs et al. (1986) 
 			and further discussion in Montevecchi et al. (1992)
-
-			TODO CHECK SOURCES AND BLACKMER ET AL. 2005
 		*/
 		constexpr static double INCUBATING_METABOLISM = 52;
 		constexpr static double FORAGING_METABOLISM = 123;
