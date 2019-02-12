@@ -104,17 +104,26 @@ record <- record %>%
             filter(oneState != 0 & twoState != 0) %>%
             mutate(eggState = map2_chr(oneState, twoState, eggState))
 
-ggplot(record) +
-  geom_line(aes(x=m, y=oneState)) +
-  geom_line(aes(x=m, y=twoState)) +
-  geom_point(aes(x=m, y=0, colour=eggState), size=0.1, alpha=0.4) +
-  scale_colour_manual(values=c("both"="gray", warm="red", cold="blue")) +
-  guides(colour=FALSE) +
-  xlab("Time") +
-  ylab("") +
-  scale_y_continuous(breaks=c(-1, -0.1, 0.1, 1),
-                     labels=c("")) +
-  theme_bw() +
-  theme(panel.grid.major=element_blank(),
-        panel.grid.minor=element_blank())
+g <- ggplot(record) +
+      geom_line(aes(x=m, y=oneState), size=1) +
+      geom_line(aes(x=m, y=twoState), size=1) +
+      geom_point(data=subset(record, eggState=="warm" | eggState=="cold"),
+                 aes(x=m, y=0, colour=eggState), size=2, shape=1) +
+      geom_point(data=subset(record, eggState=="both"), 
+                 aes(x=m, y=0, colour=eggState), size=0.8, shape=4) +
+      scale_colour_manual(values=c("both"="gray", warm="#BB7784", cold="#7D87B9")) +
+      guides(colour=FALSE) +
+      xlab("Time") +
+      ylab("") +
+      scale_y_continuous(breaks=c(-1, -0.1, 0.1, 1),
+                         labels=c("Female foraging", "Female incubating",
+                                  "Male incubating", "Male foraging")) +
+      theme_classic() +
+      theme(panel.grid.major=element_blank(),
+            panel.grid.minor=element_blank(),
+            axis.title.x=element_text(size=10),
+            axis.text.y=element_text(size=10),
+            axis.text.x=element_blank(),
+            axis.ticks.x=element_blank())
 
+ggsave(g, filename="examplePlot.png", width=6, height=3)
