@@ -41,7 +41,11 @@ int main(int argc, char* argv[])
                     mPetrel.setMate(&fPetrel);
 
                     int totalSuccess = 0;
+<<<<<<< HEAD:Scripts/Old_src/Main.cpp
                     int sampleSize = 500;
+=======
+                    int sampleSize = 200;
+>>>>>>> b65ee33af3ec14608266dc6b31bf9573ef5c4435:src/Main.cpp
                     for (int i = 0; i < sampleSize; i++) {      // for 500 replicates
                         Egg egg = Egg();    // TODO not compiling as Egg egg();?? c++ rvalue error to fix
                         if (breedingSeason(mPetrel, egg))

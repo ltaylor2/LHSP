@@ -2,6 +2,7 @@
 #include <random>
 #include <chrono>
 #include <math.h>
+#include <iostream>
     
 #include "Petrel.h"
 
@@ -21,12 +22,18 @@ Petrel::Petrel(double pc_, double rc_, Sex sex_):
 void Petrel::petrelDay()
 {    
     // decide if you're going to change state
+    std::cout << "Mate 1 Behavior     ";
     changeState();
+
+    std::cout << "Mate 2 Behavior     ";
     mate->changeState();
     
     checkOverlap();
     
+    std::cout << "Mate 1 Behavior     ";
     actState();
+
+    std::cout << "Mate 2 Behavior     ";
     mate->actState();
 }
 
@@ -78,18 +85,27 @@ void Petrel::checkOverlap()
     // if both the petrels are incubating, make sure the appropriate one switches
     if (state == DayState::Incubating && mate->getState() == DayState::Incubating) {
         // switch whichever has been incubating longer back to foraging
-        if (incubationDays > mate->getIncubationDays())
+        if (incubationDays > mate->getIncubationDays()) {
             state = DayState::Foraging;
-        else if (incubationDays < mate->getIncubationDays())
+            std::cout << "Mate 1 is switching back to foraging" << std::endl;
+        }
+        else if (incubationDays < mate->getIncubationDays()) {
             mate->setState(DayState::Foraging);
+            std::cout << "Mate 2 is switching back to foraging" << std::endl;
+
+        }
         
         // if they both just arrived, pick randomly
         else if (incubationDays == mate->getIncubationDays()) {
             double chance = static_cast<double>(rand()) / RAND_MAX;
-            if (chance < .5)
+            if (chance < .5) {
                 state = DayState::Foraging;
-            else
+                std::cout << "Same incubation lengths, Mate 1 is switching back to foraging" << std::endl;
+            }
+            else {
                 mate->setState(DayState::Foraging);
+                std::cout << "Same incubation lengths, Mate 2 is switching back to foraging" << std::endl;
+            }
         }
     }
 }
@@ -124,6 +140,7 @@ void Petrel::forage()
     else if (foragingChange > FORAGING_MAX)
         foragingChange = FORAGING_MAX;
 
+    std::cout << "I'm foraging! My energy change is: " << foragingChange << std::endl;
     energy += foragingChange;
 }
 
@@ -131,6 +148,7 @@ void Petrel::incubate()
 {
     // exceedingly trivial
     // TODO need to add any complexity to this behavior?
+    std::cout << "I'm incubating" << std::endl;
     energy -= INCUBATING_LOSS;
     incubationDays++;
 }
@@ -161,6 +179,7 @@ double Petrel::stopForagingProb()
     // PC contribution
     double pcEffect = BASE_ENERGY * pc;
 
+    std::cout << "I'm deciding to stop foraging! My pcEffect is " << pcEffect << " and my rcEffect is " << rcEffect << std::endl;
     if (energy > (pcEffect + rcEffect))
         return 1.0;
     else
@@ -186,9 +205,10 @@ double Petrel::stopIncubatingProb()
     // PC contribution
     double pcEffect = BASE_ENERGY * pc;
 
+    std::cout << "I'm deciding to stop incubation! My pcEffect is " << pcEffect << " and my rcEffect is " << rcEffect << std::endl;
     if (energy > (pcEffect + rcEffect))
-        return 0;
-    else
+        return 0.0;
+    else 
         return 1.0;
 }
 
