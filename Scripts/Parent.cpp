@@ -3,8 +3,6 @@
 Parent::Parent(Sex sex_, std::mt19937* randGen_):
 	foragingDistribution(std::normal_distribution<double>(FORAGING_MEAN, FORAGING_SD)),
 	sex(sex_),
-	energy(BASE_ENERGY),
-	returnEnergyThreshold(BASE_ENERGY),
 	randGen(randGen_),
 	energyRecord(std::vector<double>()),
 	incubationDays(0),
@@ -12,7 +10,7 @@ Parent::Parent(Sex sex_, std::mt19937* randGen_):
 	foragingDays(0),
 	foragingBouts(std::vector<int>()),
 	firstBout(true),
-	baseEnergy(BASE_ENERGY),
+	energy(BASE_ENERGY),
 	incubationMetabolism(INCUBATION_METABOLISM),
 	foragingMetabolism(FORAGING_METABOLISM),
 	minEnergyThreshold(MIN_ENERGY_THRESHOLD),

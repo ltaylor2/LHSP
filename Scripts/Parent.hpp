@@ -37,11 +37,10 @@ public:
 	void setState(State state_) { this->state = state_; }
 	void setEnergy(double energy_) { this->energy = energy_; }
 
-	double setBaseEnergy(double baseEnergy_) { this->baseEnergy = baseEnergy_; } 
-	double setIncubationMetabolism(double incubationMetabolism_) { this->incubationMetabolism = incubationMetabolism_; }
-	double setForagingMetabolism(double foragingMetabolism_) { this->foragingMetabolism = foragingMetabolism_; }
-	double setMinEnergyThreshold(double minEnergyThreshold_) { this->minEnergyThreshold = minEnergyThreshold_; }
-	double setMaxEnergyThreshold(double maxEnergyThreshold_) { this->maxEnergyThreshold = maxEnergyThreshold_; }
+	void setIncubationMetabolism(double incubationMetabolism_) { this->incubationMetabolism = incubationMetabolism_; }
+	void setForagingMetabolism(double foragingMetabolism_) { this->foragingMetabolism = foragingMetabolism_; }
+	void setMinEnergyThreshold(double minEnergyThreshold_) { this->minEnergyThreshold = minEnergyThreshold_; }
+	void setMaxEnergyThreshold(double maxEnergyThreshold_) { this->maxEnergyThreshold = maxEnergyThreshold_; }
 
 	void setForagingDistribution(double mean, double sd)
 	{ 
@@ -56,7 +55,6 @@ public:
 	State getPreviousDayState() { return this->previousDayState; }
 
 	double getEnergy() { return this->energy; }
-	double getReturnEnergyThreshold() {return this->returnEnergyThreshold; }
 
 	std::vector<double> getEnergyRecord() { return this->energyRecord; }
 	int getIncubationDays() { return this->incubationDays; }
@@ -64,22 +62,20 @@ public:
 	std::vector<int> getIncubationBouts() { return this->incubationBouts; }
 	std::vector<int> getForagingBouts() { return this->foragingBouts; }
 
-	double getBaseEnergy() {return this->baseEnergy; }
 	double getIncubationMetabolism() {return this->incubationMetabolism; }
 	double getForagingMetabolism() { return this->foragingMetabolism; }
 	double getMinEnergyThreshold() { return this->minEnergyThreshold; }
 	double getMaxEnergyThreshold() { return this->maxEnergyThreshold; }
-	
+
 	// Defaults for param initialization
 	constexpr static double BASE_ENERGY 	      = 100;
-	constexpr static double INCUBATION_METABOLISM = BASE_ENERGY * .1;
-	constexpr static double ALPHA 		      = 1.5
-	constexpr static double FORAGING_METABOLISM   = INCUBATING_METABOLISM * ALPHA;
-	constexpr static double MIN_ENERGY_THRESHOLD  = FORAGING_METABOLISM;
-	constexpr static double MAX_ENERGY_THRESHOLD  = BASE_ENERGY;
+	constexpr static double INCUBATION_METABOLISM = 10;
+	constexpr static double FORAGING_METABOLISM   = 15;
+	constexpr static double MIN_ENERGY_THRESHOLD  = 15;
+	constexpr static double MAX_ENERGY_THRESHOLD  = 100;
 
     	constexpr static double FORAGING_MEAN = 20;
-    	constexpr static double FORAGING_SD   = 5;		
+    	constexpr static double FORAGING_SD   = 10;		
 
 private:
 
@@ -110,19 +106,11 @@ private:
 	bool stopIncubating();
 	bool stopForaging();
 
-	// All dynamic for life history course report
-	double baseEnergy;
-	double incubationMetabolism;
-	double foragingMetabolism;
-	double maxEnergyThreshold;
-	double minEnergyThreshold;
-
 	Sex sex;				// individual's sex
 
 	State state;				// current state
 	State previousDayState;			// state during the previous day
 
-	double energy;				// current energy value (kJ)
 	std::mt19937* randGen;			// ptr to random device
 
 	std::vector<double> energyRecord;	// energy values across all days
@@ -134,4 +122,12 @@ private:
 	std::vector<int> foragingBouts;		// foraging bout record
 
 	bool firstBout;				// is it the adult's first bout?
+
+	// All dynamic for life history course report
+	double energy;				// current energy value (kJ)
+	double incubationMetabolism;
+	double foragingMetabolism;
+	double minEnergyThreshold;
+	double maxEnergyThreshold;
+
 };

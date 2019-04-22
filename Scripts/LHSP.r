@@ -12,11 +12,6 @@ library(cowplot)
 # Set C++11 for Rcpp compilation
 Sys.setenv("PKG_CXXFLAGS"="-std=c++11") 
 
-# NOTE UNCOMMENTING WILL WIPE .o FILES FROM SCRIPTS FOLDER IN WD
-# 		BE CAREFUL
-# scriptFiles <- list.files("Scripts/", full.names=TRUE)
-# invisible(file.remove(scriptFiles[grep(".o", scriptFiles)]))
-
 ####################
 ####   Model   #####
 ####################
@@ -25,6 +20,13 @@ Sys.setenv("PKG_CXXFLAGS"="-std=c++11")
 # All terminal output will write through Rcout onto the R terminal
 # But all objects should be cleaned from memory by the time the model ends
 # The C++ program is self-sufficient and writes output to file
+
+
+# NOTE UNCOMMENTING WILL WIPE .o FILES FROM SCRIPTS FOLDER IN WD/SCRIPT
+# 		BE CAREFUL
+scriptFiles <- list.files("Scripts/", full.names=TRUE)
+invisible(file.remove(scriptFiles[grep(".o", scriptFiles)]))
+
 Rcpp::sourceCpp("Scripts/main.cpp")
 main()
 
@@ -32,63 +34,21 @@ main()
 ####    DATA   #####
 ####################
 
-# All data tidyed, combined, and broken up into male/female for energy values
-null <- read_csv("Output/null_output.txt") %>%
-			mutate(model = "null",
-				   coeff = 1)
-
-overlap_swap <- read_csv("Output/overlap_swap_output.txt") %>%
-		    	mutate(model = "overlap_swap",
-		    		   coeff = 1)
-
-overlap_rand <- read_csv("Output/overlap_rand_output.txt") %>%
-		    	mutate(model = "overlap_rand",
-		    		   coeff = 1)
-
-sexdiff <- read_csv("Output/sexdiff_output.txt") %>%
-				mutate(model = "sexdiff") %>%
-				mutate(coeff = (iteration%%5)+1)
-
-foraging_var <- read_csv("Output/foraging_var_output.txt") %>%
-						mutate(model = "foraging_var") %>%
-						mutate(coeff = (iteration%%10) + 0.5)
 
 foraging_mean <- read_csv("Output/foraging_mean_output.txt") %>%
-					mutate(model = "foraging_mean") %>%
-					mutate(coeff = (iteration%%10)/100 * 2 + 0.8)
+			  mutate(model = "foraging_mean") %>%
+			  mutate(coeff = (iteration%%10) * 10)
 
-ms <- all %>%
-		select(model, iteration, hatchSuccess, coeff, contains("_M")) %>%
-		rename_at(.vars=vars(ends_with("_M")),
-				  .funs=funs(sub("_M","",.))) %>%
-		mutate(sex="m")
-
-fs <- all %>%
-		select(model, iteration, hatchSuccess, coeff, contains("_F")) %>%
-		rename_at(.vars=vars(ends_with("_F")),
-				  .funs=funs(sub("_F","",.))) %>%
-		mutate(sex="f")
-
-
-# Results for all models in by-iteration rows
-all <- bind_rows(null, overlap_swap, overlap_rand,
-				 sexdiff, foraging_var, foraging_mean)
-
-# Sex-specific energy results for all models 
-sexes <- bind_rows(ms, fs)
-
-# Hatching success for all models
-hps <- all %>%
-		group_by(model, hatchSuccess, coeff) %>%
-		count() %>%
-		mutate(p = n / max(null$iteration)) %>%
-		ungroup()
 
 source("Scripts/PIT_LHSP.r")
 
-# Foraging and incubation bout info for histograms\
+# Foraging and incubation bout info for histograms
 bouts <- read_csv("Output/bouts.txt") %>%
-			bind_rows(readPITData())
+		  bind_rows(readPITData())
+
+
+
+
 ####################
 ####  Analysis #####
 ####################

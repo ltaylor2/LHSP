@@ -12,23 +12,21 @@
 #include "Parent.hpp"
 
 // The number of iterations for each model or parameter set of a given model
-constexpr static int ITERATIONS = 100000;
+constexpr static int ITERATIONS = 10000;
 
 // Energetic parameters for easy theoretical analysis in life history course report
 constexpr static double BASE_ENERGY[1] 	         = {100};
-constexpr static double INCUBATION_METABOLISM[1] = {BASE_ENERGY * .1};
-constexpr static double ALPHA[1]	         = {1.5};
-constexpr static double FORAGING_METABOLISM[1]   = {INCUBATING_METABOLISM * ALPHA};
-constexpr static double MAX_ENERGY_THRESHOLD[1]  = {BASE_ENERGY};
-constexpr static double MIN_ENERGY_THRESHOLD[1]  = {FORAGING_METABOLISM};
+constexpr static double INCUBATION_METABOLISM[1] = {10};
+constexpr static double FORAGING_METABOLISM[1]   = {20};
+constexpr static double MAX_ENERGY_THRESHOLD[1]  = {100};
+constexpr static double MIN_ENERGY_THRESHOLD[1]  = {20};
 
 // Multiplicative coefficients for mean of foraging dist (-mean)
-constexpr static double FORAGING_MEAN_COEFFS[10] = {0.80, 0.82, 0.84, 0.86, 0.88,
-						    0.90, 0.92, 0.94, 0.96, 0.98};
+constexpr static double FORAGING_MEANS[10] = {10, 20, 30, 40, 50,
+				              60, 70, 80, 90, 100};
 
 // All output in from the model is written directly to file
-constexpr static char NULL_FNAME[]          = "null_output.txt";
-constexpr static char OVERLAP_SWAP_FNAME[]  = "overlap_swap_output.txt";
+// constexpr static char OVERLAP_SWAP_FNAME[]  = "overlap_swap_output.txt";
 constexpr static char FORAGING_MEAN_FNAME[] = "foraging_mean_output.txt";
 
 constexpr static char BOUTS_FNAME[] = "bouts.txt";
@@ -40,7 +38,7 @@ static std::mt19937* randGen;
 void breedingSeason_OVERLAP_SWAP(Parent&, Parent&, Egg&, int);
 void breedingSeason_FORAGING_MEAN(Parent&, Parent&, Egg&, int);
 void runModel(int, void(*)(Parent&, Parent&, Egg&, int), std::string);
-void printBoutInfo(std::string, std::string, std::string, std::vector<int>);
+void printBoutInfo(std::string, std::string, std::string, std::vector<int>, int);
 
 // [[Rcpp::export]]
 int main()
@@ -56,11 +54,11 @@ int main()
 	// All output to R terminals has to be with Rcout
 	Rcpp::Rcout << "\n\n\n" << "Beginning model runs" << "\n\n\n";
 
-	// Format header for all bouts record for NULL and OVERLAP_SWAP models
+	// Format header for all bouts record for OVERLAP_SWAP model
 	std::ofstream outfile;
 	std::string s(BOUTS_FNAME);
 	outfile.open("Output/" + s, std::ofstream::trunc);
-	outfile << "model,state,boutLength\n";
+	outfile << "model,state,boutLength,iteration\n";
 	outfile.close();
 
 	/*
@@ -69,9 +67,7 @@ int main()
 		file. Models with parameter coefficient sets are multiplied by the number
 		of coefficients, so all sets run for ITERATIONS iteration.
 	*/  
-
-	runModel(ITERATIONS, *breedingSeason_NULL, NULL_FNAME);
-	runModel(ITERATIONS, *breedingSeason_OVERLAP_SWAP, OVERLAP_SWAP_FNAME);
+	// runModel(ITERATIONS, *breedingSeason_OVERLAP_SWAP, OVERLAP_SWAP_FNAME);
 	runModel(ITERATIONS*10, *breedingSeason_FORAGING_MEAN, FORAGING_MEAN_FNAME);
 
 	// Report output and exit
@@ -92,8 +88,8 @@ int main()
 		   outfileName file to write output
 */
 void runModel(int iterations, 
-			  void (*modelFunc)(Parent&, Parent&, Egg&, int iter), 
-			  std::string outfileName) 
+	      void (*modelFunc)(Parent&, Parent&, Egg&, int iter), 
+	      std::string outfileName) 
 {
 	// Start formatted output
 	std::ofstream outfile;
@@ -107,7 +103,7 @@ void runModel(int iterations,
 		<< "meanForaging_M,varForaging_M,numForaging_M,"
 		<< "meanIncubation_F,varIncubation_F,numIncubation_F,"
 		<< "meanForaging_F,varForaging_F,numForaging_F,"
-		<< "baseEnergy,incubationMetabolism,foragingMetabolism,"
+		<< "incubationMetabolism,foragingMetabolism,"
 		<< "minEnergyThreshold,maxEnergyThreshold"
 		<< "\n";
 
@@ -145,19 +141,14 @@ void runModel(int iterations,
 		bool printBouts = false;
 		std::string model = "";
 
-		if (outfileName.compare("null_output.txt") == 0) {
-			printBouts = true;
-			model = "null";
-		} else if (outfileName.compare("overlap_swap_output.txt") == 0) {
-			printBouts = true;
-			model = "overlap_swap";
-		}
+		printBouts = true;
+		model = "foraging_mean";
 
 		if (printBouts) {
-			printBoutInfo(BOUTS_FNAME, model, "incubating", pm.getIncubationBouts());
-			printBoutInfo(BOUTS_FNAME, model, "incubating", pf.getIncubationBouts());
-			printBoutInfo(BOUTS_FNAME, model, "foraging", pm.getForagingBouts());
-			printBoutInfo(BOUTS_FNAME, model, "foraging", pf.getForagingBouts());
+			printBoutInfo(BOUTS_FNAME, model, "incubating", pm.getIncubationBouts(), i);
+			printBoutInfo(BOUTS_FNAME, model, "incubating", pf.getIncubationBouts(), i);
+			printBoutInfo(BOUTS_FNAME, model, "foraging",   pm.getForagingBouts(), i);
+			printBoutInfo(BOUTS_FNAME, model, "foraging",   pf.getForagingBouts(), i);
 		}
 
 		// Save results of each season
@@ -200,7 +191,6 @@ void runModel(int iterations,
 		double numForaging_F = foragingBouts_F.size();			// number of foraging bouts F
 
 		// same for both sexes for life history evolution course report
-		double baseEnergy = pm.getBaseEnergy();
 		double incubationMetabolism = pm.getIncubationMetabolism();
 		double foragingMetabolism = pm.getForagingMetabolism();
 		double minEnergyThreshold = pm.getMinEnergyThreshold();
@@ -230,7 +220,6 @@ void runModel(int iterations,
 			<< meanForaging_F << ","
 			<< varForaging_F << ","
 			<< numForaging_F << ","
-			<< baseEnergy << ","
 			<< incubationMetabolism << ","
 			<< foragingMetabolism << ","
 			<< minEnergyThreshold << ","
@@ -246,13 +235,13 @@ void breedingSeason_OVERLAP_SWAP(Parent& pm, Parent& pf, Egg& egg, int iter) {
 
 
 	// Manually setting energetic parameters for life history evolution course test
-	pm.setBaseEnergy(BASE_ENERGY[0]);
+	pm.setEnergy(BASE_ENERGY[0]);
 	pm.setIncubationMetabolism(INCUBATION_METABOLISM[0]);
 	pm.setForagingMetabolism(FORAGING_METABOLISM[0]);
 	pm.setMinEnergyThreshold(MIN_ENERGY_THRESHOLD[0]);
 	pm.setMaxEnergyThreshold(MAX_ENERGY_THRESHOLD[0]);
 
-	pf.setBaseEnergy(BASE_ENERGY[0]);
+	pf.setEnergy(BASE_ENERGY[0]);
 	pf.setIncubationMetabolism(INCUBATION_METABOLISM[0]);
 	pf.setForagingMetabolism(FORAGING_METABOLISM[0]);
 	pf.setMinEnergyThreshold(MIN_ENERGY_THRESHOLD[0]);
@@ -262,7 +251,7 @@ void breedingSeason_OVERLAP_SWAP(Parent& pm, Parent& pf, Egg& egg, int iter) {
 		Breeding season lasts a set amount, with no neglect effects
 		(but keeping track of neglect)
 	*/
-	while (egg.getIncubationDays() <= Egg::HATCH_DAYS_MAX) {		
+	while (!egg.isHatched()) {		
 
 		// Check if parent is incubating
 		bool incubated = false;
@@ -314,28 +303,23 @@ void breedingSeason_OVERLAP_SWAP(Parent& pm, Parent& pf, Egg& egg, int iter) {
 
 void breedingSeason_FORAGING_MEAN(Parent& pm, Parent&pf, Egg& egg, int iter) {
 
-	// Mod math, again
-	double foragingdiffCoeff = FORAGING_MEAN_COEFFS[iter % 10];
+	// Mod math access to global parameter arrays, again
+	double newForagingMean = FORAGING_MEANS[iter % 10];
 
 	// Both parents get a new foraging distribution mean for the season
-	pm.setForagingDistribution(Parent::FORAGING_MEAN * foragingdiffCoeff, 
-							   Parent::FORAGING_SD);
-	pf.setForagingDistribution(Parent::FORAGING_MEAN * foragingdiffCoeff, 
-							   Parent::FORAGING_SD);
-
-	// Inhereit SEXDIFF cost, but with only egg
-	pf.setEnergy(pf.getEnergy() - Egg::EGG_COST);
+	pm.setForagingDistribution(newForagingMean, Parent::FORAGING_SD);
+	pf.setForagingDistribution(newForagingMean, Parent::FORAGING_SD);
 
 	// Then begin all behavior from OVERLAP_SWAP
 	breedingSeason_OVERLAP_SWAP(pm, pf, egg, iter);
 }
 
-void printBoutInfo(std::string fname, std::string model, std::string tag, std::vector<int> v) {
+void printBoutInfo(std::string fname, std::string model, std::string tag, std::vector<int> v, int iter) {
 	std::ofstream of;
 	of.open("Output/" + fname, std::ofstream::app);
 
 	for (int i = 0; i < v.size(); i++) {
-		of << model << "," << tag << "," << v[i] << "\n";
+		of << model << "," << tag << "," << v[i] << "," << iter << "\n";
 	}
 
 	of.close();
