@@ -34,13 +34,14 @@ public:
 	void changeState();
 	
 	// Setters
-	void setState(State state_) { this->state = state_ ; }
+	void setState(State state_) { this->state = state_; }
 	void setEnergy(double energy_) { this->energy = energy_; }
 
-	void setReturnEnergyThreshold(double thresh_)
-	{ 
-		this->returnEnergyThreshold = thresh_; 
-	}
+	double setBaseEnergy(double baseEnergy_) { this->baseEnergy = baseEnergy_; } 
+	double setIncubationMetabolism(double incubationMetabolism_) { this->incubationMetabolism = incubationMetabolism_; }
+	double setForagingMetabolism(double foragingMetabolism_) { this->foragingMetabolism = foragingMetabolism_; }
+	double setMinEnergyThreshold(double minEnergyThreshold_) { this->minEnergyThreshold = minEnergyThreshold_; }
+	double setMaxEnergyThreshold(double maxEnergyThreshold_) { this->maxEnergyThreshold = maxEnergyThreshold_; }
 
 	void setForagingDistribution(double mean, double sd)
 	{ 
@@ -63,90 +64,74 @@ public:
 	std::vector<int> getIncubationBouts() { return this->incubationBouts; }
 	std::vector<int> getForagingBouts() { return this->foragingBouts; }
 
-	/*
-		Parameters for the mean and standard deviation for foraging,
-		in kJ of metabolic intake. Modeled as a normal distribution.
-		Montevecchi et al. (1992) for Newfoundland parameters
-	*/
-    constexpr static double FORAGING_MEAN = 162;
-    constexpr static double FORAGING_SD = 47;
+	double getBaseEnergy() {return this->baseEnergy; }
+	double getIncubationMetabolism() {return this->incubationMetabolism; }
+	double getForagingMetabolism() { return this->foragingMetabolism; }
+	double getMinEnergyThreshold() { return this->minEnergyThreshold; }
+	double getMaxEnergyThreshold() { return this->maxEnergyThreshold; }
+	
+	// Defaults for param initialization
+	constexpr static double BASE_ENERGY 	      = 100;
+	constexpr static double INCUBATION_METABOLISM = BASE_ENERGY * .1;
+	constexpr static double ALPHA 		      = 1.5
+	constexpr static double FORAGING_METABOLISM   = INCUBATING_METABOLISM * ALPHA;
+	constexpr static double MIN_ENERGY_THRESHOLD  = FORAGING_METABOLISM;
+	constexpr static double MAX_ENERGY_THRESHOLD  = BASE_ENERGY;
+
+    	constexpr static double FORAGING_MEAN = 20;
+    	constexpr static double FORAGING_SD   = 5;		
 
 private:
 
-		/*
-			Initial energy buffer at the beginning of the incubation season (kJ)
-			Derived from the mean energy adults had at the beginning of observed
-			incubation bouts in Ricklefs et al. (1986)
-		*/ 
-		constexpr static double BASE_ENERGY = 766;
+	// Normal distribution to draw stochastic foraging energy intakes
+	std::normal_distribution<double> foragingDistribution;
 
+	/*
+	   A day of incubation behavior while in the incubating state.
+	   While in the nesting burrow, the adult loses a set amount of energy
+	   to metabolism, and can gain no energy.
+	   Incubation deterministically stops when the energy of the 
+	   adult passes below a strict threshold
+	*/
+	void incubate();
 
-		/*
-			Metabolic rate requirements while incubating and foraging (kJ/day)
-			From Ricklefs et al. (1986) 
-			and further discussion in Montevecchi et al. (1992)
-		*/
-		constexpr static double INCUBATING_METABOLISM = 52;
-		constexpr static double FORAGING_METABOLISM = 123;
+	/*
+	   A day of foraging behavior while in the foraging state.
+	   On the foraging grounds, the adult loses a set amount
+	   of energy to metabolism, but gains a stochastic amount of energy
+	   from a normal distribution of metabolic intake values.
+	   Foraging deterministically stops when the energy of the adult
+	   passes above strict threshold.
+	*/
+	void forage();
 
-		/* 
-			The deterministic threshold above which foraging ceases 
-			(at the end of the day), here equaling the mean amount of energy at
-			which parents were found to start incubating (BASE_ENERGY)
-		*/
-		constexpr static double MAX_ENERGY_THRESHOLD = BASE_ENERGY;
+	// State change functions.
+	// @ret TRUE 
+	bool stopIncubating();
+	bool stopForaging();
 
-		/*
-			The deterministc threshold below which incubation ceases
-			(at the end of the day), here equaling the metabolic cost of
-			foraging for a day.
-		*/
-		constexpr static double MIN_ENERGY_THRESHOLD = FORAGING_METABOLISM;
-		
-		// Normal distribution to draw stochastic foraging energy intakes
-	   	std::normal_distribution<double> foragingDistribution;
+	// All dynamic for life history course report
+	double baseEnergy;
+	double incubationMetabolism;
+	double foragingMetabolism;
+	double maxEnergyThreshold;
+	double minEnergyThreshold;
 
+	Sex sex;				// individual's sex
 
-	   	/*
-	   		A day of incubation behavior while in the incubating state.
-	   		While in the nesting burrow, the adult loses a set amount of energy
-	   		to metabolism, and can gain no energy.
-	   		Incubation deterministically stops when the energy of the 
-	   		adult passes below a strict threshold
-	   	*/
-	    void incubate();
+	State state;				// current state
+	State previousDayState;			// state during the previous day
 
-	   	/*
-	   		A day of foraging behavior while in the foraging state.
-	   		On the foraging grounds, the adult loses a set amount
-	   		of energy to metabolism, but gains a stochastic amount of energy
-	   		from a normal distribution of metabolic intake values.
-	   		Foraging deterministically stops when the energy of the adult
-	   		passes above strict threshold.
-	   	*/
-	    void forage();
+	double energy;				// current energy value (kJ)
+	std::mt19937* randGen;			// ptr to random device
 
-	    // State change functions.
-	    // @ret TRUE 
-	   	bool stopIncubating();
-	   	bool stopForaging();
+	std::vector<double> energyRecord;	// energy values across all days
 
-	   	Sex sex;							// individual's sex
+	int incubationDays;			// current consecutive inc. days
+	std::vector<int> incubationBouts;	// incubation bout record
 
-	   	State state;						// current state
-	   	State previousDayState;				// state during the previous day
+	int foragingDays;			// current consecutive forg. days
+	std::vector<int> foragingBouts;		// foraging bout record
 
-	   	double energy;						// current energy value (kJ)
-	   	double returnEnergyThreshold;		// energy threshold (kJ), can reset
-		std::mt19937* randGen;				// ptr to random device
-
-	   	std::vector<double> energyRecord;	// energy values across all days
-
-	   	int incubationDays;					// current consecutive inc. days
-	   	std::vector<int> incubationBouts;	// incubation bout record
-
-	   	int foragingDays;					// current consecutive forg. days
-	   	std::vector<int> foragingBouts;		// foraging bout record
-
-	   	bool firstBout;						// is it the adult's first bout?
+	bool firstBout;				// is it the adult's first bout?
 };

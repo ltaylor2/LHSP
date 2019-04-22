@@ -14,47 +14,33 @@
 // The number of iterations for each model or parameter set of a given model
 constexpr static int ITERATIONS = 100000;
 
-// Multiplicative coefficients of egg cost (i.e., 1, 2, 3, eggs laid as cost)
-constexpr static double SEXDIFF_COEFFS[5] = {1, 2, 3, 4, 5};
-
-// Multiplicative coefficents for variance of foraging dist. (+variance) 
-constexpr static double FORAGING_VAR_COEFFS[10] = {0.5, 1.5, 2.5, 3.5, 4.5, 
-												   5.5, 6.5, 7.5, 8.5, 9.5};
+// Energetic parameters for easy theoretical analysis in life history course report
+constexpr static double BASE_ENERGY[1] 	         = {100};
+constexpr static double INCUBATION_METABOLISM[1] = {BASE_ENERGY * .1};
+constexpr static double ALPHA[1]	         = {1.5};
+constexpr static double FORAGING_METABOLISM[1]   = {INCUBATING_METABOLISM * ALPHA};
+constexpr static double MAX_ENERGY_THRESHOLD[1]  = {BASE_ENERGY};
+constexpr static double MIN_ENERGY_THRESHOLD[1]  = {FORAGING_METABOLISM};
 
 // Multiplicative coefficients for mean of foraging dist (-mean)
 constexpr static double FORAGING_MEAN_COEFFS[10] = {0.80, 0.82, 0.84, 0.86, 0.88,
-												    0.90, 0.92, 0.94, 0.96, 0.98};
+						    0.90, 0.92, 0.94, 0.96, 0.98};
 
 // All output in from the model is written directly to file
-constexpr static char NULL_FNAME[]         = "null_output.txt";
-constexpr static char OVERLAP_SWAP_FNAME[] = "overlap_swap_output.txt";
-constexpr static char OVERLAP_RAND_FNAME[] = "overlap_rand_output.txt";
-constexpr static char SEXDIFF_FNAME[] 	   = "sexdiff_output.txt";
-constexpr static char FORAGING_VAR_FNAME[]  = "foraging_var_output.txt";
+constexpr static char NULL_FNAME[]          = "null_output.txt";
+constexpr static char OVERLAP_SWAP_FNAME[]  = "overlap_swap_output.txt";
 constexpr static char FORAGING_MEAN_FNAME[] = "foraging_mean_output.txt";
 
 constexpr static char BOUTS_FNAME[] = "bouts.txt";
-
-// constexpr static char SEXDIFFCOMP_1_FNAME[] = "sexdiffcomp_1_output.txt";
-// constexpr static char SEXDIFFCOMP_2_FNAME[] = "sexdiffcomp_2_output.txt";
 
 // Need a single, static random generator device to let us only seed once
 static std::mt19937* randGen;
 
 // Prototypes -- see functions for documentation
-void breedingSeason_NULL(Parent&, Parent&, Egg&, int);
 void breedingSeason_OVERLAP_SWAP(Parent&, Parent&, Egg&, int);
-void breedingSeason_OVERLAP_RAND(Parent&, Parent&, Egg&, int);
-void breedingSeason_SEXDIFF(Parent&, Parent&, Egg&, int);
-void breedingSeason_FORAGING_VAR(Parent&, Parent&, Egg&, int);
 void breedingSeason_FORAGING_MEAN(Parent&, Parent&, Egg&, int);
 void runModel(int, void(*)(Parent&, Parent&, Egg&, int), std::string);
 void printBoutInfo(std::string, std::string, std::string, std::vector<int>);
-
-// Sex-specific difference compensation. Not in current build.
-
-// void breedingSeason_SEXDIFFCOMP_1(Parent&, Parent&, Egg&, int);
-// void breedingSeason_SEXDIFFCOMP_2(Parent&, Parent&, Egg&, int);
 
 // [[Rcpp::export]]
 int main()
@@ -63,8 +49,7 @@ int main()
 	auto startTime = std::chrono::system_clock::now();
 
 	// Seed static random generator device with ridiculous C++11 things
-	auto seed = 
-		std::chrono::high_resolution_clock::now().time_since_epoch().count();
+	auto seed = std::chrono::high_resolution_clock::now().time_since_epoch().count();
 	std::mt19937 r = std::mt19937(seed);
 	randGen = &r;
 
@@ -87,14 +72,7 @@ int main()
 
 	runModel(ITERATIONS, *breedingSeason_NULL, NULL_FNAME);
 	runModel(ITERATIONS, *breedingSeason_OVERLAP_SWAP, OVERLAP_SWAP_FNAME);
-	runModel(ITERATIONS, *breedingSeason_OVERLAP_RAND, OVERLAP_RAND_FNAME);
-
-	runModel(ITERATIONS*5, *breedingSeason_SEXDIFF, SEXDIFF_FNAME);
-	runModel(ITERATIONS*10, *breedingSeason_FORAGING_VAR, FORAGING_VAR_FNAME);
 	runModel(ITERATIONS*10, *breedingSeason_FORAGING_MEAN, FORAGING_MEAN_FNAME);
-
-	// runModel(ITERATIONS, *breedingSeason_SEXDIFFCOMP_1, SEXDIFFCOMP_1_FNAME);
-	// runModel(ITERATIONS, *breedingSeason_SEXDIFFCOMP_2, SEXDIFFCOMP_2_FNAME);
 
 	// Report output and exit
 	auto endTime = std::chrono::system_clock::now();
@@ -123,13 +101,15 @@ void runModel(int iterations,
 
 	// Header column for CSV format
 	outfile << "iteration,hatchSuccess,hatchDays,neglect,maxNeglect,"
-			<< "endEnergy_M,meanEnergy_M,varEnergy_M,"
-			<< "endEnergy_F,meanEnergy_F,varEnergy_F,"
-			<< "meanIncubation_M,varIncubation_M,numIncubation_M,"
-			<< "meanForaging_M,varForaging_M,numForaging_M,"
-			<< "meanIncubation_F,varIncubation_F,numIncubation_F,"
-			<< "meanForaging_F,varForaging_F,numForaging_F"
-		    << "\n";
+		<< "endEnergy_M,meanEnergy_M,varEnergy_M,"
+		<< "endEnergy_F,meanEnergy_F,varEnergy_F,"
+		<< "meanIncubation_M,varIncubation_M,numIncubation_M,"
+		<< "meanForaging_M,varForaging_M,numForaging_M,"
+		<< "meanIncubation_F,varIncubation_F,numIncubation_F,"
+		<< "meanForaging_F,varForaging_F,numForaging_F,"
+		<< "baseEnergy,incubationMetabolism,foragingMetabolism,"
+		<< "minEnergyThreshold,maxEnergyThreshold"
+		<< "\n";
 
 	// Initialize output objects once, overwrite each iteration
 	std::vector<bool> hatchSuccess = std::vector<bool>();
@@ -150,7 +130,7 @@ void runModel(int iterations,
 		// Printing 1/10th progress updates
 		if (iterations >= 10 && i % (iterations/10) == 0) {
 			Rcpp::Rcout << "LHSP Model for " + outfileName + " on Iteration: " 
-						<< i << "\n";
+				    << i << "\n";
 		}
 
 		// Intialize new individuals for each season
@@ -181,68 +161,80 @@ void runModel(int iterations,
 		}
 
 		// Save results of each season
-		hatchSuccess.push_back(egg.isHatched());	   // successful season?
-		hatchDays.push_back(egg.getIncubationDays());  // number of days to hatch
+		hatchSuccess.push_back(egg.isHatched());	   		// successful season?
+		hatchDays.push_back(egg.getIncubationDays());  			// number of days to hatch
 
-		totNeglect.push_back(egg.getTotNeg());		   // total neglect
-		maxNeglect.push_back(egg.getMaxNeg());		   // max neglect streak
+		totNeglect.push_back(egg.getTotNeg());		   		// total neglect
+		maxNeglect.push_back(egg.getMaxNeg());		   		// max neglect streak
 
-		energy_M = pm.getEnergyRecord();			   // full season energy M
-		energy_F = pf.getEnergyRecord();			   // full season energy F
+		energy_M = pm.getEnergyRecord();			   	// full season energy M
+		energy_F = pf.getEnergyRecord();			  	// full season energy F
 
-		incubationBouts_M = pm.getIncubationBouts();   // inc. bout record M
-		foragingBouts_M = pm.getForagingBouts();	   // forgaging bout record M
-		incubationBouts_F = pf.getIncubationBouts();   // inc. bout record F
-		foragingBouts_F = pf.getForagingBouts();	   // foraging bout record F
+		incubationBouts_M = pm.getIncubationBouts();   			// inc. bout record M
+		foragingBouts_M = pm.getForagingBouts();	   		// forgaging bout record M
+		incubationBouts_F = pf.getIncubationBouts();   			// inc. bout record F
+		foragingBouts_F = pf.getForagingBouts();	   		// foraging bout record F
 
-		double endEnergy_M = energy_M[energy_M.size()-1];	// energy at end of season M
+		double endEnergy_M = energy_M[energy_M.size()-1];		// energy at end of season M
 		double meanEnergy_M = vectorMean(energy_M);			// mean energy across season M
 		double varEnergy_M = vectorVar(energy_M);			// variance in energy across season M
 
-		double endEnergy_F = energy_F[energy_F.size()-1];	// energy at end of season F
+		double endEnergy_F = energy_F[energy_F.size()-1];		// energy at end of season F
 		double meanEnergy_F = vectorMean(energy_F);			// mean energy across season F
 		double varEnergy_F = vectorVar(energy_F);			// variance in energy across season F
 
 		double meanIncubation_M = vectorMean(incubationBouts_M);	// mean inc. bout length M
 		double varIncubation_M = vectorVar(incubationBouts_M);		// variance in inc. bout length M
-		double numIncubation_M = incubationBouts_M.size();			// number of inc. bouts M
+		double numIncubation_M = incubationBouts_M.size();		// number of inc. bouts M
 
 		double meanForaging_M = vectorMean(foragingBouts_M);		// mean foraging bout length M
-		double varForaging_M = vectorVar(foragingBouts_M);			// variance in foraging bout length M
-		double numForaging_M = foragingBouts_M.size();				// number of foraging bouts M
+		double varForaging_M = vectorVar(foragingBouts_M);		// variance in foraging bout length M
+		double numForaging_M = foragingBouts_M.size();			// number of foraging bouts M
 
 		double meanIncubation_F = vectorMean(incubationBouts_F);	// mean inc. bout length F
 		double varIncubation_F = vectorVar(incubationBouts_F);		// variance in inc. bout length F
-		double numIncubation_F = incubationBouts_F.size();			// number of inc. bouts F
+		double numIncubation_F = incubationBouts_F.size();		// number of inc. bouts F
 
 		double meanForaging_F = vectorMean(foragingBouts_F);		// mean foraging bout lenght F
-		double varForaging_F = vectorVar(foragingBouts_F);			// variance in foraging bout length F
-		double numForaging_F = foragingBouts_F.size();				// number of foraging bouts F
+		double varForaging_F = vectorVar(foragingBouts_F);		// variance in foraging bout length F
+		double numForaging_F = foragingBouts_F.size();			// number of foraging bouts F
+
+		// same for both sexes for life history evolution course report
+		double baseEnergy = pm.getBaseEnergy();
+		double incubationMetabolism = pm.getIncubationMetabolism();
+		double foragingMetabolism = pm.getForagingMetabolism();
+		double minEnergyThreshold = pm.getMinEnergyThreshold();
+		double maxEnergyThreshold = pm.getMaxEnergyThreshold();
 
 		// Write output in CSV format
 		outfile << i << ","
 		        << hatchSuccess[i] << ","
-			    << hatchDays[i] << ","
-			    << totNeglect[i] << ","
-			    << maxNeglect[i] << ","
-			    << endEnergy_M << ","
-			    << meanEnergy_M << ","
-			    << varEnergy_M << ","
-			    << endEnergy_F << ","
-			    << meanEnergy_F << ","
-			    << varEnergy_F << ","
-			    << meanIncubation_M << ","
-			    << varIncubation_M << ","
-			    << numIncubation_M << ","
-			    << meanForaging_M << ","
-			    << varForaging_M << ","
-			    << numForaging_M << ","
-			    << meanIncubation_F << ","
-			    << varIncubation_F << ","
-			    << numIncubation_F << ","
-			    << meanForaging_F << ","
-			    << varForaging_F << ","
-			    << numForaging_F << "\n";
+			<< hatchDays[i] << ","
+			<< totNeglect[i] << ","
+			<< maxNeglect[i] << ","
+			<< endEnergy_M << ","
+			<< meanEnergy_M << ","
+			<< varEnergy_M << ","
+			<< endEnergy_F << ","
+			<< meanEnergy_F << ","
+			<< varEnergy_F << ","
+			<< meanIncubation_M << ","
+			<< varIncubation_M << ","
+			<< numIncubation_M << ","
+			<< meanForaging_M << ","
+			<< varForaging_M << ","
+			<< numForaging_M << ","
+			<< meanIncubation_F << ","
+			<< varIncubation_F << ","
+			<< numIncubation_F << ","
+			<< meanForaging_F << ","
+			<< varForaging_F << ","
+			<< numForaging_F << ","
+			<< baseEnergy << ","
+			<< incubationMetabolism << ","
+			<< foragingMetabolism << ","
+			<< minEnergyThreshold << ","
+			<< maxEnergyThreshold << "\n";
 	}
 
 	// Close file and exit
@@ -250,63 +242,27 @@ void runModel(int iterations,
 	Rcpp::Rcout << "Final output written to " << outfileName << "\n\n";
 }
 
-/*
-	NULL model breeding season
-	@param pm male adult parent
-		   pf female adult parent
-		   egg and egg, if it was unclear
-		   iter current iteration of breeding season 
-
-	In the NULL model, parents lose energy while incubating and gain/lose
-	energy while foraging, with no addition additional state rules.
-*/
-void breedingSeason_NULL(Parent& pm, Parent& pf, Egg& egg, int iter) {
-	/* 
-		Breeding season lasts until the egg hatches succesfully, or 
-	 	if the egg hits the hard cut-off of incubation days due to 
-	 	accumulated neglect 
-	*/
-	while (!egg.isHatched() && 
-		   (egg.getIncubationDays() <= Egg::HATCH_DAYS_MAX)) {		
-
-		// Check if parent is incubating
-		bool incubated = false;
-		if (pm.getState() == State::incubating ||
-			pf.getState() == State::incubating) {
-			incubated = true;
-		}
-
-		// Egg behavior based on incubation
-		egg.eggDay(incubated);
-
-		// Parent behavior, including state change
-		pm.parentDay();
-		pf.parentDay();
-	}
-}
-
-/*
-	OVERLAP_SWAP model breeding season
-	@param pm male adult parent
-		   pf female adult parent
-		   egg and egg, if it was unclear
-		   iter current iteration of breeding season 
-
-	In the OVERLAP_SWAP model, all NULL model behavior is retained, with 
-	an additional rule that prevents redundant incubating by two parents.
-	After all egg + parent behavior occurs for the given day, the model checks
-	if both parents are incubating. If so, the one that was incubating on the
-	previous day switches to foraging, regardless of normal energetic
-	thresholding.
-*/
 void breedingSeason_OVERLAP_SWAP(Parent& pm, Parent& pf, Egg& egg, int iter) {
+
+
+	// Manually setting energetic parameters for life history evolution course test
+	pm.setBaseEnergy(BASE_ENERGY[0]);
+	pm.setIncubationMetabolism(INCUBATION_METABOLISM[0]);
+	pm.setForagingMetabolism(FORAGING_METABOLISM[0]);
+	pm.setMinEnergyThreshold(MIN_ENERGY_THRESHOLD[0]);
+	pm.setMaxEnergyThreshold(MAX_ENERGY_THRESHOLD[0]);
+
+	pf.setBaseEnergy(BASE_ENERGY[0]);
+	pf.setIncubationMetabolism(INCUBATION_METABOLISM[0]);
+	pf.setForagingMetabolism(FORAGING_METABOLISM[0]);
+	pf.setMinEnergyThreshold(MIN_ENERGY_THRESHOLD[0]);
+	pf.setMaxEnergyThreshold(MAX_ENERGY_THRESHOLD[0]);
+
 	/* 
-		Breeding season lasts until the egg hatches succesfully, or 
-	 	if the egg hits the hard cut-off of incubation days due to 
-	 	accumulated neglect 
+		Breeding season lasts a set amount, with no neglect effects
+		(but keeping track of neglect)
 	*/
-	while (!egg.isHatched() && 
-		   (egg.getIncubationDays() <= Egg::HATCH_DAYS_MAX)) {		
+	while (egg.getIncubationDays() <= Egg::HATCH_DAYS_MAX) {		
 
 		// Check if parent is incubating
 		bool incubated = false;
@@ -316,7 +272,7 @@ void breedingSeason_OVERLAP_SWAP(Parent& pm, Parent& pf, Egg& egg, int iter) {
 			incubated = true;
 		}
 
-		// Egg behavior based on incubation
+		// Counting egg neglect
 		egg.eggDay(incubated);
 
 		// Parent behavior, including state change
@@ -327,16 +283,16 @@ void breedingSeason_OVERLAP_SWAP(Parent& pm, Parent& pf, Egg& egg, int iter) {
 		// next day, send the parent previously incubating away, while
 		// the newly arrived parent stays to incubate afresh
 		if (pm.getState() == State::incubating &&
-			pf.getState() == State::incubating) {
+		    pf.getState() == State::incubating) {
 			
 			State previousMaleState = pm.getPreviousDayState();
 			State previousFemaleState = pf.getPreviousDayState();
 
 			if (previousMaleState == State::incubating &&
-				previousFemaleState == State::foraging) {
+			    previousFemaleState == State::foraging) {
 				pm.changeState();
 			} else if (previousFemaleState == State::incubating &&
-					   previousMaleState == State::foraging) {
+			           previousMaleState == State::foraging) {
 				pf.changeState();
 			} 
 
@@ -356,126 +312,6 @@ void breedingSeason_OVERLAP_SWAP(Parent& pm, Parent& pf, Egg& egg, int iter) {
 	}
 }
 
-/*
-	OVERLAP_RAND model breeding season
-	@param pm male adult parent
-		   pf female adult parent
-		   egg and egg, if it was unclear
-		   iter current iteration of breeding season 
-
-	The OVERLAP_RAND model is identical to the OVERLAP_SWAP model, except that
-	when both adults are incubating before the beginning of the next day,
-	the parent that swaps back to foraging is always chosen randomly (rather than
-	the parent that was previously incubating).
-*/
-void breedingSeason_OVERLAP_RAND(Parent& pm, Parent& pf, Egg& egg, int iter) {
-	
-	while (!egg.isHatched() && 
-		   (egg.getIncubationDays() <= Egg::HATCH_DAYS_MAX)) {		
-
-		// Check if parent is incubating
-		bool incubated = false;
-		if (pm.getState() == State::incubating ||
-			pf.getState() == State::incubating) {
-			
-			incubated = true;
-		}
-
-		// Egg behavior based on incubation
-		egg.eggDay(incubated);
-
-		// Parent behavior, including state change
-		pm.parentDay();
-		pf.parentDay();
-
-		// If both parents are now incubating before the start of the 
-		// next day, send a random parent back to foraging
-		if (pm.getState() == State::incubating &&
-			pf.getState() == State::incubating) {
-					
-			if ((double)rand() / RAND_MAX <= 0.5) {
-				pm.changeState();
-			} else {
-				pf.changeState();
-			}
-		}
-	}
-}
-
-/*
-	SEXDIFF model breeding season
-	@param pm male adult parent
-		   pf female adult parent
-		   egg and egg, if it was unclear
-		   iter current iteration of breeding season 
-
-	The SEXDIFF model inherits all the behavior of the OVERLAP_SWAP model,
-	with a single energetic penalty to the female to represent the cost of 
-	the egg. 
-
-	This model iterates through the coefficients defined in SEXDIFF_COEFFS,
-	which represent multiplying the cost of an egg by 1x-5x, simulating
-	a greater single energetic cost for larger clutch sizes.
-*/
-void breedingSeason_SEXDIFF(Parent& pm, Parent& pf, Egg& egg, int iter) {
-
-	/*
-		Easily step through parameter set arrays using mods
-		(i.e., every 4th iteration will run the 4th parameter from the array)
-		This model is sent 5x the iterations, so all sets are 
-		equally represented
-	*/
-	double sexdiffCoeff = SEXDIFF_COEFFS[iter%5];
-
-	// Female pays initial cost of egg(s) before season begins
-	pf.setEnergy(pf.getEnergy() - Egg::EGG_COST * sexdiffCoeff);
-
-	// Then begin all behavior from OVERLAP_SWAP
-	breedingSeason_OVERLAP_SWAP(pm, pf, egg, iter);
-}
-
-/*
-	FORAGING_VAR model breeding season
-	@param pm male adult parent
-		   pf female adult parent
-		   egg and egg, if it was unclear
-		   iter current iteration of breeding season 
-
-	The FORAGING_VAR model inherits all the behavior of the SEXDIFF model
-	(with a single egg cost), with additional parameter settings that steps
-	through increases to the standard deviation of the normal distribution
-	that defines foraging outcomes. 
-*/
-void breedingSeason_FORAGING_VAR(Parent& pm, Parent&pf, Egg& egg, int iter) {
-
-	// Again relying on mod math to easily step through parameters
-	double foragingdiffCoeff = FORAGING_VAR_COEFFS[iter % 10];
-
-	// Both parents get a new foraging distribution SD for the season
-	pm.setForagingDistribution(Parent::FORAGING_MEAN, 
-							   Parent::FORAGING_SD * foragingdiffCoeff);
-	pf.setForagingDistribution(Parent::FORAGING_MEAN, 
-							   Parent::FORAGING_SD * foragingdiffCoeff);
-
-	// Female incurs one-time cost of individual egg
-	pf.setEnergy(pf.getEnergy() - Egg::EGG_COST);
-
-	// Then begin all behavior from OVERLAP_SWAP
-	breedingSeason_OVERLAP_SWAP(pm, pf, egg, iter);
-}
-
-/*
-	FORAGING_MEAN model breeding season
-	@param pm male adult parent
-		   pf female adult parent
-		   egg and egg, if it was unclear
-		   iter current iteration of breeding season 
-
-	The FORAGING_MEAN model inherits all the behavior of the SEXDIFF model
-	(with a single egg cost), with additional parameter settings that steps
-	through decreases to the mean of the normal distribution
-	that defines foraging outcomes. 
-*/
 void breedingSeason_FORAGING_MEAN(Parent& pm, Parent&pf, Egg& egg, int iter) {
 
 	// Mod math, again
@@ -493,82 +329,6 @@ void breedingSeason_FORAGING_MEAN(Parent& pm, Parent&pf, Egg& egg, int iter) {
 	// Then begin all behavior from OVERLAP_SWAP
 	breedingSeason_OVERLAP_SWAP(pm, pf, egg, iter);
 }
-
-/*
-	SEXDIFFCOMP_1 model breeding season -- NOT USED IN THIS BUILD
-	@param pm male adult parent
-		   pf female adult parent
-		   egg and egg, if it was unclear
-		   iter current iteration of breeding season 
-
-	The SEXDIFFCOMP_1 model inherits all the behavior of the SEXDIFF model,
-	with altered male behavior as a possible compensating mechanism. Here,
-	rather than the more orderly switching of the OVERLAP_SWAP model, the male
-	is always twice as likely as the female to remain incubating if there is an
-	incubation overlap, freeing the female to forage.
-*/
-// void breedingSeason_SEXDIFFCOMP_1(Parent& pm, Parent& pf, Egg& egg, int iter) {
-
-// 	// Inhereit SEXDIFF cost, but with only egg
-// 	pf.setEnergy(pf.getEnergy() - Egg::EGG_COST);
-	
-// 	while (!egg.isHatched() && 
-// 		   (egg.getIncubationDays() <= Egg::HATCH_DAYS_MAX)) {		
-
-// 		// Check if parent is incubating
-// 		bool incubated = false;
-// 		if (pm.getState() == State::incubating ||
-// 			pf.getState() == State::incubating) {
-			
-// 			incubated = true;
-// 		}
-
-// 		// Egg behavior based on incubation
-// 		egg.eggDay(incubated);
-
-// 		// Parent behavior, including state change
-// 		pm.parentDay();
-// 		pf.parentDay();
-
-// 		// If both parents are now incubating before the start of the 
-// 		// Male has 2/3 chance of being the one to remain incubating,
-// 		// While the female forages
-// 		if (pm.getState() == State::incubating &&
-// 			pf.getState() == State::incubating) {
-
-// 			if ((double)rand() / RAND_MAX <= (1.0/3)) {
-// 				pm.changeState();
-// 			} else {
-// 				pf.changeState();
-// 			}
-// 		}
-// 	}
-// }
-
-/*
-	SEXDIFFCOMP_2 model breeding season -- NOT USED IN THIS BUILD
-	@param pm male adult parent
-		   pf female adult parent
-		   egg and egg, if it was unclear
-		   iter current iteration of breeding season 
-
-	The SEXDIFFCOMP_2 model inherits all the behavior of the SEXDIFF model,
-	with altered male behavior as a possible compensating mechanism. Here,
-	the compensating mechanism is a relaxed physiological sensitivity on the 
-	part of the male. Males have half the required maximum energy threshold
-	in returning from foraging.
-*/
-// void breedingSeason_SEXDIFFCOMP_2(Parent& pm, Parent& pf, Egg& egg, int iter) {
-	
-// 	// Male's maximum energy threshold to return from foraging is halved
-// 	pm.setReturnEnergyThreshold(pm.getReturnEnergyThreshold()*0.5);
-
-// 	// Inhereit SEXDIFF cost, but with only egg
-// 	pf.setEnergy(pf.getEnergy() - Egg::EGG_COST);
-
-// 	// Then begin all behavior from OVERLAP_SWAP
-// 	breedingSeason_OVERLAP_SWAP(pm, pf, egg, iter);
-// }
 
 void printBoutInfo(std::string fname, std::string model, std::string tag, std::vector<int> v) {
 	std::ofstream of;

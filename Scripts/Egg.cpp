@@ -18,18 +18,17 @@ void Egg::eggDay(bool incubated)
 		this->currNegCounter = 0;
 	} 
 
-	// Neglected eggs suffer an incubation penalty
+	// Keeping track of egg neglect
 	else {
 		currNegCounter++;
 		totNegCounter++;
 		if (currNegCounter > maxNegCounter) {
 			this->maxNegCounter = currNegCounter;
 		}
-
-		hatchDays += NEGLECT_PENALTY;
 	}
 
-	// Egg hatches when it catches up with the required hatching time
+	// Incubation finishes when it reaches the incubation limit
+	// (Here not effected by neglect within the simulations itself)
 	if (currDays >= hatchDays) {
 		this->hatched = true;
 	}

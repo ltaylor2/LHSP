@@ -111,7 +111,7 @@ g <- ggplot(record) +
                  aes(x=m, y=0, colour=eggState), size=2, shape=1) +
       geom_point(data=subset(record, eggState=="both"), 
                  aes(x=m, y=0, colour=eggState), size=0.8, shape=4) +
-      scale_colour_manual(values=c("both"="gray", warm="#BB7784", cold="#7D87B9")) +
+      scale_colour_manual(values=c("both"="gray", warm="#f4656d", cold="#008eb3")) +
       guides(colour=FALSE) +
       xlab("Time") +
       ylab("") +

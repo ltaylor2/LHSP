@@ -1,8 +1,7 @@
 #include "Parent.hpp"
 
 Parent::Parent(Sex sex_, std::mt19937* randGen_):
-	foragingDistribution(std::normal_distribution<double>(FORAGING_MEAN, 
-														  FORAGING_SD)),
+	foragingDistribution(std::normal_distribution<double>(FORAGING_MEAN, FORAGING_SD)),
 	sex(sex_),
 	energy(BASE_ENERGY),
 	returnEnergyThreshold(BASE_ENERGY),
@@ -12,7 +11,12 @@ Parent::Parent(Sex sex_, std::mt19937* randGen_):
 	incubationBouts(std::vector<int>()),
 	foragingDays(0),
 	foragingBouts(std::vector<int>()),
-	firstBout(true)
+	firstBout(true),
+	baseEnergy(BASE_ENERGY),
+	incubationMetabolism(INCUBATION_METABOLISM),
+	foragingMetabolism(FORAGING_METABOLISM),
+	minEnergyThreshold(MIN_ENERGY_THRESHOLD),
+	maxEnergyThreshold(MAX_ENERGY_THRESHOLD)
 {
 	/*
 		Males begin the breeding season in the foraging state,
@@ -68,7 +72,7 @@ void Parent::incubate()
 	this->incubationDays++;
 
 	// Lose energy to metabolism
-	this->energy -= INCUBATING_METABOLISM;
+	this->energy -= incubationMetabolism;
 
 	// Incubating -> Foraging depending on energy
 	if (stopIncubating()) {
@@ -87,7 +91,7 @@ void Parent::forage()
 	this->energy += foragingEnergy;
 
 	// Lose energy to metabolism
-	this->energy -= FORAGING_METABOLISM;
+	this->energy -= foragingMetabolism;
 
 	// Foraging -> Incubating depending on energy
 	if (stopForaging()) {
@@ -100,7 +104,7 @@ void Parent::forage()
 bool Parent::stopIncubating() 
 {
 	// Deterministic binary minimum threshold
-	if (this->energy < MIN_ENERGY_THRESHOLD) {
+	if (this->energy < minEnergyThreshold) {
 		return true;
 	}
 	return false;
@@ -109,7 +113,7 @@ bool Parent::stopIncubating()
 bool Parent::stopForaging() 
 {
 	// Deterministic binary maximum threshold
-	if (this->energy > returnEnergyThreshold) {
+	if (this->energy > maxEnergyThreshold) {
 		return true;
 	}
 	return false;
