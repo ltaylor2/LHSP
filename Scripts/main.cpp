@@ -19,6 +19,7 @@ constexpr static double BASE_ENERGY[1] 	         = {100};
 constexpr static double INCUBATION_METABOLISM[1] = {10};
 constexpr static double FORAGING_METABOLISM[1]   = {15};
 constexpr static double MIN_ENERGY_THRESHOLD[1]  = {15};
+constexpr static double MAX_ENERGY_THRESHOLD[1]  = {80};
 
 std::vector<double> MAX_ENERGY_THRESHOLD;
 
@@ -26,7 +27,7 @@ std::vector<double> MAX_ENERGY_THRESHOLD;
 constexpr static double FORAGING_MEANS[10] = {10, 20, 30, 40, 50, 60, 70, 80, 90, 100};
 
 // All output in from the model is written directly to file
-constexpr static char OVERLAP_SWAP_FNAME[]  = "overlap_swap_output.txt";
+constexpr static char OVERLAP_SWAP_FNAME[]  = "maxEnergy_output.txt";
 // constexpr static char FORAGING_MEAN_FNAME[] = "foraging_mean_output.txt";
 
 constexpr static char BOUTS_FNAME[] = "bouts.txt";
@@ -44,10 +45,10 @@ void printBoutInfo(std::string, std::string, std::string, std::vector<int>, int)
 int main()
 {
 
-	ITERATIONS = 600000;
-	int baseMaxEnergyThreshold = 40;
-	for (int i = 0; i < ITERATIONS/10000; i++) {
-		MAX_ENERGY_THRESHOLD.push_back(baseMaxEnergyThreshold + i);
+	ITERATIONS = 8000000;
+	int base = 1;
+	for (int i = 0; i < ITERATIONS/100000; i++) {
+		MAX_ENERGY_THRESHOLD.push_back(base + i);
 	}
 
 

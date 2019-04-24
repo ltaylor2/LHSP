@@ -68,6 +68,7 @@ public:
 	double getMaxEnergyThreshold() { return this->maxEnergyThreshold; }
 
 	bool isAlive() { return this->alive; }
+	
 	// Defaults for param initialization
 	constexpr static double BASE_ENERGY 	      = 100;
 	constexpr static double INCUBATION_METABOLISM = 10;
