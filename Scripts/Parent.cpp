@@ -11,6 +11,7 @@ Parent::Parent(Sex sex_, std::mt19937* randGen_):
 	foragingBouts(std::vector<int>()),
 	firstBout(true),
 	energy(BASE_ENERGY),
+	alive(true),
 	incubationMetabolism(INCUBATION_METABOLISM),
 	foragingMetabolism(FORAGING_METABOLISM),
 	minEnergyThreshold(MIN_ENERGY_THRESHOLD),
@@ -31,6 +32,9 @@ Parent::Parent(Sex sex_, std::mt19937* randGen_):
 
 void Parent::parentDay()
 {
+	if (this->energy < 0) {
+		this->alive = false;
+	}
 
 	energyRecord.push_back(this->energy);
 	

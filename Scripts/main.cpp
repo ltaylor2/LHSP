@@ -12,22 +12,22 @@
 #include "Parent.hpp"
 
 // The number of iterations for each model or parameter set of a given model
-constexpr static int ITERATIONS = 10000;
+int ITERATIONS;
 
 // Energetic parameters for easy theoretical analysis in life history course report
 constexpr static double BASE_ENERGY[1] 	         = {100};
 constexpr static double INCUBATION_METABOLISM[1] = {10};
-constexpr static double FORAGING_METABOLISM[1]   = {20};
-constexpr static double MAX_ENERGY_THRESHOLD[1]  = {100};
-constexpr static double MIN_ENERGY_THRESHOLD[1]  = {20};
+constexpr static double FORAGING_METABOLISM[1]   = {15};
+constexpr static double MIN_ENERGY_THRESHOLD[1]  = {15};
 
-// Multiplicative coefficients for mean of foraging dist (-mean)
-constexpr static double FORAGING_MEANS[10] = {10, 20, 30, 40, 50,
-				              60, 70, 80, 90, 100};
+std::vector<double> MAX_ENERGY_THRESHOLD;
+
+// Multiplicative coefficients for mean of foraging dist
+constexpr static double FORAGING_MEANS[10] = {10, 20, 30, 40, 50, 60, 70, 80, 90, 100};
 
 // All output in from the model is written directly to file
-// constexpr static char OVERLAP_SWAP_FNAME[]  = "overlap_swap_output.txt";
-constexpr static char FORAGING_MEAN_FNAME[] = "foraging_mean_output.txt";
+constexpr static char OVERLAP_SWAP_FNAME[]  = "overlap_swap_output.txt";
+// constexpr static char FORAGING_MEAN_FNAME[] = "foraging_mean_output.txt";
 
 constexpr static char BOUTS_FNAME[] = "bouts.txt";
 
@@ -43,6 +43,14 @@ void printBoutInfo(std::string, std::string, std::string, std::vector<int>, int)
 // [[Rcpp::export]]
 int main()
 {
+
+	ITERATIONS = 600000;
+	int baseMaxEnergyThreshold = 40;
+	for (int i = 0; i < ITERATIONS/10000; i++) {
+		MAX_ENERGY_THRESHOLD.push_back(baseMaxEnergyThreshold + i);
+	}
+
+
 	// Record model timing to help me know which computer is the fanciest
 	auto startTime = std::chrono::system_clock::now();
 
@@ -67,8 +75,8 @@ int main()
 		file. Models with parameter coefficient sets are multiplied by the number
 		of coefficients, so all sets run for ITERATIONS iteration.
 	*/  
-	// runModel(ITERATIONS, *breedingSeason_OVERLAP_SWAP, OVERLAP_SWAP_FNAME);
-	runModel(ITERATIONS*10, *breedingSeason_FORAGING_MEAN, FORAGING_MEAN_FNAME);
+	runModel(ITERATIONS, *breedingSeason_OVERLAP_SWAP, OVERLAP_SWAP_FNAME);
+	// runModel(ITERATIONS*10, *breedingSeason_FORAGING_MEAN, FORAGING_MEAN_FNAME);
 
 	// Report output and exit
 	auto endTime = std::chrono::system_clock::now();
@@ -141,8 +149,8 @@ void runModel(int iterations,
 		bool printBouts = false;
 		std::string model = "";
 
-		printBouts = true;
-		model = "foraging_mean";
+		// printBouts = true;
+		// model = "foraging_mean";
 
 		if (printBouts) {
 			printBoutInfo(BOUTS_FNAME, model, "incubating", pm.getIncubationBouts(), i);
@@ -152,7 +160,16 @@ void runModel(int iterations,
 		}
 
 		// Save results of each season
-		hatchSuccess.push_back(egg.isHatched());	   		// successful season?
+
+		// successful season?
+		// For life history course report, a season failed if either of the parents died 
+		// (energy dropped below 0), or max neglect extended past 7 day streak
+		bool didHatch = true;
+		if (egg.getMaxNeg() >= 7 || !pm.isAlive() || !pf.isAlive()) {
+			didHatch = false;
+		}
+		hatchSuccess.push_back(didHatch);		   		
+		
 		hatchDays.push_back(egg.getIncubationDays());  			// number of days to hatch
 
 		totNeglect.push_back(egg.getTotNeg());		   		// total neglect
@@ -233,19 +250,18 @@ void runModel(int iterations,
 
 void breedingSeason_OVERLAP_SWAP(Parent& pm, Parent& pf, Egg& egg, int iter) {
 
-
 	// Manually setting energetic parameters for life history evolution course test
 	pm.setEnergy(BASE_ENERGY[0]);
 	pm.setIncubationMetabolism(INCUBATION_METABOLISM[0]);
 	pm.setForagingMetabolism(FORAGING_METABOLISM[0]);
 	pm.setMinEnergyThreshold(MIN_ENERGY_THRESHOLD[0]);
-	pm.setMaxEnergyThreshold(MAX_ENERGY_THRESHOLD[0]);
+	pm.setMaxEnergyThreshold(MAX_ENERGY_THRESHOLD[iter % MAX_ENERGY_THRESHOLD.size()]);
 
 	pf.setEnergy(BASE_ENERGY[0]);
 	pf.setIncubationMetabolism(INCUBATION_METABOLISM[0]);
 	pf.setForagingMetabolism(FORAGING_METABOLISM[0]);
 	pf.setMinEnergyThreshold(MIN_ENERGY_THRESHOLD[0]);
-	pf.setMaxEnergyThreshold(MAX_ENERGY_THRESHOLD[0]);
+	pf.setMaxEnergyThreshold(MAX_ENERGY_THRESHOLD[iter % MAX_ENERGY_THRESHOLD.size()]);
 
 	/* 
 		Breeding season lasts a set amount, with no neglect effects
@@ -256,7 +272,7 @@ void breedingSeason_OVERLAP_SWAP(Parent& pm, Parent& pf, Egg& egg, int iter) {
 		// Check if parent is incubating
 		bool incubated = false;
 		if (pm.getState() == State::incubating ||
-			pf.getState() == State::incubating) {
+		    pf.getState() == State::incubating) {
 			
 			incubated = true;
 		}

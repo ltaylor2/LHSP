@@ -67,15 +67,16 @@ public:
 	double getMinEnergyThreshold() { return this->minEnergyThreshold; }
 	double getMaxEnergyThreshold() { return this->maxEnergyThreshold; }
 
+	bool isAlive() { return this->alive; }
 	// Defaults for param initialization
 	constexpr static double BASE_ENERGY 	      = 100;
 	constexpr static double INCUBATION_METABOLISM = 10;
-	constexpr static double FORAGING_METABOLISM   = 15;
-	constexpr static double MIN_ENERGY_THRESHOLD  = 15;
+	constexpr static double FORAGING_METABOLISM   = 20;
+	constexpr static double MIN_ENERGY_THRESHOLD  = 20;
 	constexpr static double MAX_ENERGY_THRESHOLD  = 100;
 
     	constexpr static double FORAGING_MEAN = 20;
-    	constexpr static double FORAGING_SD   = 10;		
+    	constexpr static double FORAGING_SD   = 5;		
 
 private:
 
@@ -125,6 +126,7 @@ private:
 
 	// All dynamic for life history course report
 	double energy;				// current energy value (kJ)
+	bool alive;
 	double incubationMetabolism;
 	double foragingMetabolism;
 	double minEnergyThreshold;
