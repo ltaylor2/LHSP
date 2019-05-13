@@ -3,6 +3,7 @@
 Egg::Egg():
 	alive(true),
 	hatched(false),
+	eggCost(EGG_COST),
 	currDays(0),
 	hatchDays(START_HATCH_DAYS),
 	currNegCounter(0),
@@ -24,6 +25,9 @@ void Egg::eggDay(bool incubated)
 		totNegCounter++;
 		if (currNegCounter > maxNegCounter) {
 			this->maxNegCounter = currNegCounter;
+			if (maxNegCounter > NEGLECT_MAX) {
+				this->alive = false;
+			}
 		}
 
 		hatchDays += NEGLECT_PENALTY;

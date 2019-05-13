@@ -1,12 +1,19 @@
 #include "Parent.hpp"
 
 Parent::Parent(Sex sex_, std::mt19937* randGen_):
-	foragingDistribution(std::normal_distribution<double>(FORAGING_MEAN, 
-														  FORAGING_SD)),
 	sex(sex_),
-	energy(BASE_ENERGY),
-	returnEnergyThreshold(BASE_ENERGY),
+	alive(true),
 	randGen(randGen_),
+	energy(BASE_ENERGY),
+	baseEnergy(BASE_ENERGY),
+	incubatingMetabolism(INCUBATING_METABOLISM),
+	foragingMetabolism(FORAGING_METABOLISM),
+	maxEnergyThresh(MAX_ENERGY_THRESHOLD),
+	minEnergyThresh(MIN_ENERGY_THRESHOLD),
+	foragingMean(FORAGING_MEAN),
+	foragingSD(FORAGING_SD),
+	foragingDistribution(std::normal_distribution<double>(foragingMean, 
+							      foragingSD)),
 	energyRecord(std::vector<double>()),
 	incubationDays(0),
 	incubationBouts(std::vector<int>()),
@@ -15,8 +22,8 @@ Parent::Parent(Sex sex_, std::mt19937* randGen_):
 	firstBout(true)
 {
 	/*
-		Males begin the breeding season in the foraging state,
-		while females begin the breeding season in the incubating state
+	Males begin the breeding season in the foraging state,
+	while females begin the breeding season in the incubating state
 	*/
 	this->state = State::foraging;
 	this->previousDayState = State::foraging;
@@ -29,7 +36,6 @@ Parent::Parent(Sex sex_, std::mt19937* randGen_):
 
 void Parent::parentDay()
 {
-
 	energyRecord.push_back(this->energy);
 	
 	// Act out state behavior
@@ -37,6 +43,10 @@ void Parent::parentDay()
 		incubate();
 	} else if (this->state == State::foraging) {
 		forage();
+	}
+
+	if (this->energy <= 0) {
+		this->alive = false;
 	}
 }
 
@@ -49,9 +59,9 @@ void Parent::changeState()
 		this->state = State::foraging;
 	} else if (this->state == State::foraging) {
 		/* 
-			NOTE when an adult begins in the foraging state with BASE energy
-		 		(like males in the current build), we want to drop this first 
-		 		errant 1-day record
+		NOTE when an adult begins in the foraging state with BASE energy
+		(like males in the current build), we want to drop this first 
+		errant 1-day record
 		*/
 		if (!firstBout) {
 			this->foragingBouts.push_back(this->foragingDays);
@@ -68,7 +78,7 @@ void Parent::incubate()
 	this->incubationDays++;
 
 	// Lose energy to metabolism
-	this->energy -= INCUBATING_METABOLISM;
+	this->energy -= incubatingMetabolism;
 
 	// Incubating -> Foraging depending on energy
 	if (stopIncubating()) {
@@ -87,7 +97,7 @@ void Parent::forage()
 	this->energy += foragingEnergy;
 
 	// Lose energy to metabolism
-	this->energy -= FORAGING_METABOLISM;
+	this->energy -= foragingMetabolism;
 
 	// Foraging -> Incubating depending on energy
 	if (stopForaging()) {
@@ -99,8 +109,8 @@ void Parent::forage()
 
 bool Parent::stopIncubating() 
 {
-	// Deterministic binary minimum threshold
-	if (this->energy < MIN_ENERGY_THRESHOLD) {
+	// Deterministic boolean minimum threshold
+	if (this->energy < minEnergyThresh) {
 		return true;
 	}
 	return false;
@@ -108,21 +118,30 @@ bool Parent::stopIncubating()
 
 bool Parent::stopForaging() 
 {
-	// Deterministic binary maximum threshold
-	if (this->energy > returnEnergyThreshold) {
+	// Deterministic boolean maximum threshold
+	if (this->energy > maxEnergyThresh) {
 		return true;
 	}
 	return false;
 }
 
-// std::string Parent::getStrState() {
-// 	// Why oh why do I not know an easier way to convert enums to strings?
-// 	std::string s = "";
-// 	if (this->state == State::incubating) {
-// 		s = "Incubating";
-// 	} else if (this->state == State::foraging) {
-// 		s = "Foraging";
-// 	}
+void Parent::setForagingDistribution(double foragingMean_, double foragingSD_)
+{ 
+	this->foragingMean = foragingMean_;
+	this->foragingSD = foragingSD_;
 
-// 	return s;
-// }
+	this->foragingDistribution = 
+		std::normal_distribution<double>(foragingMean_, foragingSD_); 
+}
+
+std::string Parent::getStrState() {
+	// Why oh why do I not know an easier way to convert enums to strings?
+	std::string s = "";
+	if (this->state == State::incubating) {
+		s = "Incubating";
+	} else if (this->state == State::foraging) {
+		s = "Foraging";
+	}
+
+	return s;
+}
