@@ -7,15 +7,15 @@ library(tidyverse)
 library(gridExtra)
 library(cowplot)
 
-# setwd("~/LHSP")
+setwd("~/Desktop/LHSP")
 
 # Set C++11 for Rcpp compilation
 Sys.setenv("PKG_CXXFLAGS"="-std=c++11") 
 
 # NOTE UNCOMMENTING WILL WIPE .o FILES FROM SCRIPTS FOLDER IN WD
 # 		BE CAREFUL
-# scriptFiles <- list.files("Scripts/", full.names=TRUE)
-# invisible(file.remove(scriptFiles[grep(".o", scriptFiles)]))
+scriptFiles <- list.files("Scripts/", full.names=TRUE)
+invisible(file.remove(scriptFiles[grep(".o", scriptFiles)]))
 
 ####################
 ####   Model   #####
