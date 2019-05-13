@@ -38,6 +38,10 @@ void Parent::parentDay()
 {
 	energyRecord.push_back(this->energy);
 	
+	if (this->energy <= 0) {
+		this->alive = false;
+	}
+
 	// Act out state behavior
 	if (this->state == State::incubating) {
 		incubate();
@@ -45,9 +49,6 @@ void Parent::parentDay()
 		forage();
 	}
 
-	if (this->energy <= 0) {
-		this->alive = false;
-	}
 }
 
 

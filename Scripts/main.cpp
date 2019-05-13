@@ -12,16 +12,13 @@
 #include "Parent.hpp"
 
 // The number of iterations for each model or parameter set of a given model
-constexpr static int ITERATIONS = 100000;
+constexpr static int ITERATIONS = 10000;
 
-constexpr static char OUTPUT_FNAME[] = "output.txt";
+constexpr static char OUTPUT_FNAME[] = "sims.txt";
 
-constexpr static double P_INCUBATING_METABOLISM[] = {0, 100, 10};
-constexpr static double P_FORAGING_METABOLISM[] = {50, 250, 10};
-constexpr static double P_MAX_ENERGY_THRESH[] = {500, 800, 10};
-constexpr static double P_MIN_ENERGY_THRESH[] = {0, 800, 25};
-constexpr static double P_FORAGING_MEAN[] = {100, 200, 10};
-constexpr static double P_FORAGING_SD[] = {0, 100, 5};
+constexpr static double P_MAX_ENERGY_THRESH[] = {0, 1000, 50};
+constexpr static double P_MIN_ENERGY_THRESH[] = {0, 1000, 50};
+constexpr static double P_FORAGING_MEAN[] = {100, 200, 20};
 
 // Need a single, static random generator device to let us only seed once
 static std::mt19937* randGen;
@@ -30,9 +27,6 @@ static std::mt19937* randGen;
 void runModel(int, 
 	      void(*)(Parent&, Parent&, Egg&), 
 	      std::string,
-	      std::vector<double>, 
-	      std::vector<double>,
-	      std::vector<double>,
 	      std::vector<double>,
 	      std::vector<double>,
 	      std::vector<double>);
@@ -56,22 +50,16 @@ int main()
 	// All output to R terminals has to be with Rcout
 	Rcpp::Rcout << "\n\n\n" << "Beginning model runs" << "\n\n\n";
 
-	std::vector<double> v_incubatingMetabolism = paramVector(P_INCUBATING_METABOLISM);
-	std::vector<double> v_foragingMetabolism = paramVector(P_FORAGING_METABOLISM);
 	std::vector<double> v_maxEnergyThresh = paramVector(P_MAX_ENERGY_THRESH);
 	std::vector<double> v_minEnergyThresh = paramVector(P_MIN_ENERGY_THRESH);
 	std::vector<double> v_foragingMean = paramVector(P_FORAGING_MEAN);
-	std::vector<double> v_foragingSD = paramVector(P_FORAGING_SD);
 
 	runModel(ITERATIONS, 
 		 *breedingSeason, 
 		 OUTPUT_FNAME,
-		 v_incubatingMetabolism,
-		 v_foragingMetabolism,
 		 v_maxEnergyThresh,
 		 v_minEnergyThresh,
-		 v_foragingMean,
-		 v_foragingSD);
+		 v_foragingMean);
 
 	// Report output and exit
 	auto endTime = std::chrono::system_clock::now();
@@ -94,12 +82,9 @@ Master function to call each model and write formatted output
 void runModel(int iterations, 
 	      void (*modelFunc)(Parent&, Parent&, Egg&), 
 	      std::string outfileName,
-	      std::vector<double> v_incubatingMetabolism,
-	      std::vector<double> v_foragingMetabolism,
 	      std::vector<double> v_maxEnergyThresh,
 	      std::vector<double> v_minEnergyThresh,
-	      std::vector<double> v_foragingMean,
-	      std::vector<double> v_foragingSD) 
+	      std::vector<double> v_foragingMean)
 {
 	// Start formatted output
 	std::ofstream outfile;
@@ -109,13 +94,9 @@ void runModel(int iterations,
 	outfile << "iteration,hatchSuccess,hatchDays,neglect,maxNeglect,"
 		<< "endEnergy_M,meanEnergy_M,varEnergy_M,"
 		<< "endEnergy_F,meanEnergy_F,varEnergy_F,"
-		<< "baseEnergy,"
-		<< "incubatingMetabolism,"
-		<< "foragingMetabolism,"
 		<< "maxEnergyThresh,"
 		<< "minEnergyThresh,"
-		<< "foragingMean,"
-		<< "foragingSD"
+		<< "foragingMean"
 		<< "\n";
 
 	// Initialize output objects once, overwrite each iteration
@@ -132,44 +113,32 @@ void runModel(int iterations,
 	std::vector<int> incubationBouts_F = std::vector<int>();
 	std::vector<int> foragingBouts_F = std::vector<int>();
 
-	int totParamIterations = v_incubatingMetabolism.size() * v_foragingMetabolism.size() *
-			  	 v_maxEnergyThresh.size() * v_minEnergyThresh.size() *
-			  	 v_foragingMean.size() * v_foragingSD.size() * iterations;
+	int totParamIterations = v_maxEnergyThresh.size() * 
+				 v_minEnergyThresh.size() * 
+				 v_foragingMean.size();
 	int paramIteration = 1;
 
-	for (int a = 0; a < v_incubatingMetabolism.size(); a++) {
-		double incubatingMetabolism = v_incubatingMetabolism[a];
+	for (int a = 0; a < v_maxEnergyThresh.size(); a++) {
+		double maxEnergyThresh = v_maxEnergyThresh[a];
 
-	  for (int b = 0; b < v_foragingMetabolism.size(); b++) {
-		  double foragingMetabolism = v_foragingMetabolism[b];
-	 
-	    for (int c = 0; c < v_maxEnergyThresh.size(); c++) {
-	  	  double maxEnergyThresh = v_maxEnergyThresh[c];
+	for (int b = 0; b < v_minEnergyThresh.size(); b++) {
+	        double minEnergyThresh = v_minEnergyThresh[b];
 
-	      for (int d = 0; d < v_minEnergyThresh.size(); d++) {
-	      	  double minEnergyThresh = v_minEnergyThresh[d];
+	for (int c = 0; c < v_foragingMean.size(); c++) {
+		double foragingMean = v_foragingMean[c];
 
-	        for (int e = 0; e < v_foragingMean.size(); e++) {
-	          double foragingMean = v_foragingMean[e];
+		if (paramIteration % (totParamIterations/100) == 0) {
+			Rcpp::Rcout << "Searching parameter space of size " 
+		             << totParamIterations
+		             << " on combo " << paramIteration
+		             << " (" << iterations << " iters per combo)\n";
+		}
 
-	          for (int f = 0; f < v_foragingSD.size(); f++) {
-	            double foragingSD = v_foragingSD[f];
-		    Rcpp::Rcout << "LHSP Model for searching parameter space of size " 
-		                << totParamIterations
-		                << " on combination #" << paramIteration
-		                << " with " << iterations << " iterations per combination.\n";
-
-	            for (int i = 0; i < iterations; i++) {
+	        for (int i = 0; i < iterations; i++) {
 
 			Parent pm = Parent(Sex::male, randGen);
 			Parent pf = Parent(Sex::female, randGen);
 			Egg egg = Egg();
-
-			pm.setIncubatingMetabolism(incubatingMetabolism);
-			pf.setIncubatingMetabolism(incubatingMetabolism);
-
-			pm.setForagingMetabolism(foragingMetabolism);
-			pf.setForagingMetabolism(foragingMetabolism);
 
 			pm.setMaxEnergyThresh(maxEnergyThresh);
 			pf.setMaxEnergyThresh(maxEnergyThresh);
@@ -177,8 +146,8 @@ void runModel(int iterations,
 			pm.setMinEnergyThresh(minEnergyThresh);
 			pf.setMinEnergyThresh(minEnergyThresh);
 
-			pm.setForagingDistribution(foragingMean, foragingSD);
-			pf.setForagingDistribution(foragingMean, foragingSD);
+			pm.setForagingDistribution(foragingMean, pm.getForagingSD());
+			pf.setForagingDistribution(foragingMean, pf.getForagingSD());
 
 			// Run the given breeding season model funciton
 			modelFunc(pm, pf, egg);
@@ -199,7 +168,6 @@ void runModel(int iterations,
 			double meanEnergy_F = vectorMean(energy_F);		// mean energy across season F
 			double varEnergy_F = vectorVar(energy_F);		// variance in energy across season F
 
-
 			// Write output in CSV format
 			outfile << i << ","
 			        << hatchSuccess << ","
@@ -212,15 +180,14 @@ void runModel(int iterations,
 				<< endEnergy_F << ","
 				<< meanEnergy_F << ","
 				<< varEnergy_F << ","
+				<< maxEnergyThresh << ","
+				<< minEnergyThresh << ","
+				<< foragingMean
 				<< "\n";
-	            }
-
-	            paramIteration++;
-	          }
 	        }
-	      }
-	    }
-	  }
+	        paramIteration++;
+	}
+	}
 	}
 
 	// Close file and exit
@@ -253,6 +220,8 @@ std::vector<double> paramVector(const double p[3]) {
 	for (double i = min; i <= max; i+=by) {
 		ret.push_back(i);
 	}
+
+	Rcpp::Rcout << ret.size() << "/ ";
 	return ret;
 }
 

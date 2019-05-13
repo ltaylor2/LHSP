@@ -6,6 +6,7 @@ Egg::Egg():
 	eggCost(EGG_COST),
 	currDays(0),
 	hatchDays(START_HATCH_DAYS),
+	maxHatchDays(HATCH_DAYS_MAX),
 	currNegCounter(0),
 	totNegCounter(0),
 	maxNegCounter(0)
