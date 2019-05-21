@@ -34,16 +34,3 @@ main()
 ####################
 
 raw <- read_csv("Output/sims.txt");
-
-successes <- raw %>%
-		filter(hatchSuccess == "success") %>%
-		group_by(maxEnergyThresh, minEnergyThresh, foragingMean, hatchSuccess) %>%
-		summarize(prob=n()/10000) %>%
-		ungroup() %>%
-		select(max=maxEnergyThresh,
-		       min=minEnergyThresh,
-		       forg=foragingMean,
-		       prob=prob)
-
-runApp("Scripts/")
-
