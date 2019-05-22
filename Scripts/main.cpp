@@ -11,13 +11,13 @@
 #include "Parent.hpp"
 
 // The number of iterations for each model or parameter set of a given model
-constexpr static int ITERATIONS = 10000;
+constexpr static int ITERATIONS = 50000;
 
 constexpr static char OUTPUT_FNAME[] = "sims.txt";
 
 constexpr static double P_MAX_ENERGY_THRESH[] = {0, 1000, 50};
 constexpr static double P_MIN_ENERGY_THRESH[] = {0, 1000, 50};
-constexpr static double P_FORAGING_MEAN[] = {100, 200, 10};
+constexpr static double P_FORAGING_MEAN[] = {130, 160, 5};
 
 // Need a single, static random generator device to let us only seed once
 static std::mt19937* randGen;

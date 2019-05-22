@@ -5,10 +5,11 @@ shinyServer(function(input, output) {
 
 
   output$tilePlot <- renderPlot({
-    d <- subset(successes, forg==input$foragingMean)
+    d <- subset(raw, foragingMean==input$foragingMean)
 
     ggplot(d) +
-      geom_tile(aes(x=min, y=max, fill=prob)) 
+      geom_tile(aes(x=minEnergyThresh, y=maxEnergyThresh, fill=hatchRate)) +
+      scale_fill_continuous(limits=c(0,1)) 
   })
 
 })

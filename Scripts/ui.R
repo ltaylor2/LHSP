@@ -4,7 +4,7 @@ library(shiny)
 shinyUI(fluidPage(
 
   # Application title
-  titlePanel("Hello Shiny!"),
+  titlePanel("Preliminary LHSP Analysis"),
 
   # Sidebar with a slider input for the number of bins
   sidebarLayout(
@@ -14,7 +14,7 @@ shinyUI(fluidPage(
                   min = 100,
                   max = 200,
                   value = 160,
-                  step = 20)
+                  step = 10)
     ),
 
     # Show a plot of the generated distribution
