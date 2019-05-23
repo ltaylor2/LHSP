@@ -11,13 +11,14 @@
 #include "Parent.hpp"
 
 // The number of iterations for each model or parameter set of a given model
-constexpr static int ITERATIONS = 50000;
+constexpr static int ITERATIONS = 20000;
 
-constexpr static char OUTPUT_FNAME[] = "sims.txt";
+constexpr static char OUTPUT_FNAME_F[] = "sims_F.txt";
+constexpr static char OUTPUT_FNAME_M[] = "sims_M.txt";
 
 constexpr static double P_MAX_ENERGY_THRESH[] = {0, 1000, 50};
 constexpr static double P_MIN_ENERGY_THRESH[] = {0, 1000, 50};
-constexpr static double P_FORAGING_MEAN[] = {130, 160, 5};
+constexpr static double P_FORAGING_MEAN[] = {130, 160, 3};
 
 // Need a single, static random generator device to let us only seed once
 static std::mt19937* randGen;
@@ -28,7 +29,8 @@ void runModel(int,
 	      std::string,
 	      std::vector<double>,
 	      std::vector<double>,
-	      std::vector<double>);
+	      std::vector<double>,
+	      Sex);
 
 void breedingSeason(Parent&, Parent&, Egg&);
 std::vector<double> paramVector(const double[3]);
@@ -55,10 +57,20 @@ int main()
 
 	runModel(ITERATIONS, 
 		 *breedingSeason, 
-		 OUTPUT_FNAME,
+		 OUTPUT_FNAME_F,
 		 v_maxEnergyThresh,
 		 v_minEnergyThresh,
-		 v_foragingMean);
+		 v_foragingMean,
+		 Sex::female);
+
+	runModel(ITERATIONS, 
+		 *breedingSeason, 
+		 OUTPUT_FNAME_M,
+		 v_maxEnergyThresh,
+		 v_minEnergyThresh,
+		 v_foragingMean,
+		 Sex::male);
+
 
 	// Report output and exit
 	auto endTime = std::chrono::system_clock::now();
@@ -83,7 +95,8 @@ void runModel(int iterations,
 	      std::string outfileName,
 	      std::vector<double> v_maxEnergyThresh,
 	      std::vector<double> v_minEnergyThresh,
-	      std::vector<double> v_foragingMean)
+	      std::vector<double> v_foragingMean,
+	      Sex focalSex)
 {
 	// Start formatted output
 	std::ofstream outfile;
@@ -152,29 +165,38 @@ void runModel(int iterations,
 
 	        for (int i = 0; i < iterations; i++) {
 
-	        	// focal parent (FEMALE) has the parameter combo
+	        	Egg egg = Egg();
+
 			Parent pf = Parent(Sex::female, randGen);
-
-			// male parent has random parameter set from the range
-			double maleMaxThresh = 	rand() % ((int)P_MAX_ENERGY_THRESH[1] - (int)P_MAX_ENERGY_THRESH[0]) 
-							+ P_MAX_ENERGY_THRESH[0];
-			double maleMinThresh = 	rand() % ((int)P_MIN_ENERGY_THRESH[1] - (int)P_MIN_ENERGY_THRESH[0]) 
-							+ P_MIN_ENERGY_THRESH[0];
-
 			Parent pm = Parent(Sex::male, randGen);
-			pm.setMaxEnergyThresh(maleMaxThresh);
-			pm.setMinEnergyThresh(maleMinThresh);
 
-			Egg egg = Egg();
+			pf.setMaxEnergyThresh(maxEnergyThresh);
+			pf.setMinEnergyThresh(minEnergyThresh);
+			pf.setForagingDistribution(foragingMean, pf.getForagingSD());
 
 			pm.setMaxEnergyThresh(maxEnergyThresh);
-			pf.setMaxEnergyThresh(maxEnergyThresh);
-
 			pm.setMinEnergyThresh(minEnergyThresh);
-			pf.setMinEnergyThresh(minEnergyThresh);
-
 			pm.setForagingDistribution(foragingMean, pm.getForagingSD());
-			pf.setForagingDistribution(foragingMean, pf.getForagingSD());
+
+			// Change the non-focal parent to random parameters
+	        	if (focalSex == Sex::female) {
+	        		double maleMaxThresh = 	rand() % ((int)P_MAX_ENERGY_THRESH[1] - (int)P_MAX_ENERGY_THRESH[0]) 
+							+ P_MAX_ENERGY_THRESH[0];
+				double maleMinThresh = 	rand() % ((int)P_MIN_ENERGY_THRESH[1] - (int)P_MIN_ENERGY_THRESH[0]) 
+							+ P_MIN_ENERGY_THRESH[0];
+
+				pm.setMaxEnergyThresh(maleMaxThresh);
+				pm.setMinEnergyThresh(maleMinThresh);
+	        	} else if (focalSex == Sex::male) {
+	        		double femMaxThresh = 	rand() % ((int)P_MAX_ENERGY_THRESH[1] - (int)P_MAX_ENERGY_THRESH[0]) 
+							+ P_MAX_ENERGY_THRESH[0];
+				double femMinThresh = 	rand() % ((int)P_MIN_ENERGY_THRESH[1] - (int)P_MIN_ENERGY_THRESH[0]) 
+							+ P_MIN_ENERGY_THRESH[0];
+
+				pf.setMaxEnergyThresh(femMaxThresh);
+				pf.setMinEnergyThresh(femMinThresh);
+
+	        	}
 
 			// Run the given breeding season model funciton
 			modelFunc(pm, pf, egg);
@@ -188,7 +210,7 @@ void runModel(int iterations,
 			energy_F = pf.getEnergyRecord();					// full season energy F
 
 			endEnergy_M.push_back(energy_M[energy_M.size()-1]);			// energy at end of season M
-			meanEnergy_M.push_back(vectorMean(energy_M));		// mean energy across season M
+			meanEnergy_M.push_back(vectorMean(energy_M));				// mean energy across season M
 			varEnergy_M.push_back(vectorVar(energy_M));				// variance in energy across season M
 
 			endEnergy_F.push_back(energy_F[energy_F.size()-1]);			// energy at end of season F
