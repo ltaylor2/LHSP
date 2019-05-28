@@ -156,6 +156,12 @@ void runModel(int iterations,
 	for (int c = 0; c < v_foragingMean.size(); c++) {
 		double foragingMean = v_foragingMean[c];
 
+	        paramIteration++;	// Param combo complete, onto the next one!
+
+	        if (minEnergyThresh >= maxEnergyThresh) {
+	        	continue;
+	        }
+	        
 		if (paramIteration % (totParamIterations/100) == 0) {
 			std::cout << "Searching parameter space of size " 
 		             << totParamIterations
@@ -273,7 +279,6 @@ void runModel(int iterations,
 	      	meanEnergy_F.clear();
 	      	varEnergy_F.clear();
 
-	        paramIteration++;	// Param combo complete, onto the next one!
 	}
 	}
 	}

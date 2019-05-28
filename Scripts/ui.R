@@ -11,10 +11,10 @@ shinyUI(fluidPage(
     sidebarPanel(
       sliderInput("foragingMean",
                   "Foraging Mean:",
-                  min = 100,
-                  max = 200,
-                  value = 160,
-                  step = 10)
+                  min = 130,
+                  max = 160,
+                  value = 130,
+                  step = 3)
     ),
 
     # Show a plot of the generated distribution

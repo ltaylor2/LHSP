@@ -120,7 +120,7 @@ bool Parent::stopIncubating()
 bool Parent::stopForaging() 
 {
 	// Deterministic boolean maximum threshold
-	if (this->energy > maxEnergyThresh) {
+	if (this->energy > maxEnergyThresh && this->foragingDays > 1) {
 		return true;
 	}
 	return false;
