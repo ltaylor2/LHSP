@@ -33,7 +33,20 @@ setwd("~/Desktop/LHSP")
 ####    DATA   #####
 ####################
 
-raw <- read_csv("Output/sims.txt") %>%
-	mutate(hatchRate = numSuccess/iterations)
+rawF <- read_csv("Output/sims_F.txt") %>%
+	 mutate(hatchRate = numSuccess/iterations)
 
+rawM <- read_csv("Output/sims_M.txt") %>%
+	 mutate(hatchRate = numSuccess/iterations)
+
+hsF <- rawF %>%
+	subset(foragingMean == 151 & minEnergyThresh < maxEnergyThresh) %>%
+	select(maxEnergyThresh, minEnergyThresh, hatchRate)
+
+neg <- rawF %>%
+	subset(maxEnergyThresh==750 & minEnergyThresh==150) %>%
+	mutate(negRate = totNeglect/hatchDays) %>%
+	select(foragingMean, negRate, hatchRate)
 runApp("Scripts/")
+
+
