@@ -13,8 +13,8 @@
 // The number of iterations for each model or parameter set of a given model
 constexpr static int ITERATIONS = 20000;
 
-constexpr static char OUTPUT_FNAME_F[] = "sims_F.txt";
-constexpr static char OUTPUT_FNAME_M[] = "sims_M.txt";
+constexpr static char OUTPUT_FNAME_F[] = "sims_F_SET.txt";
+constexpr static char OUTPUT_FNAME_M[] = "sims_M_SET.txt";
 
 constexpr static double P_MAX_ENERGY_THRESH[] = {0, 1000, 50};
 constexpr static double P_MIN_ENERGY_THRESH[] = {0, 1000, 50};
@@ -186,22 +186,25 @@ void runModel(int iterations,
 
 			// Change the non-focal parent to random parameters
 	        	if (focalSex == Sex::female) {
-	        		double maleMaxThresh = 	rand() % ((int)P_MAX_ENERGY_THRESH[1] - (int)P_MAX_ENERGY_THRESH[0]) 
-							+ P_MAX_ENERGY_THRESH[0];
-				double maleMinThresh = 	rand() % ((int)P_MIN_ENERGY_THRESH[1] - (int)P_MIN_ENERGY_THRESH[0]) 
-							+ P_MIN_ENERGY_THRESH[0];
+	        		pf.setMaxEnergyThresh(200)
+	        		pf.setMinEnergyThresh(150)
+	   			//double maleMaxThresh = rand() % ((int)P_MAX_ENERGY_THRESH[1] - (int)P_MAX_ENERGY_THRESH[0]) 
+				// 			+ P_MAX_ENERGY_THRESH[0];
+				// double maleMinThresh = 	rand() % ((int)P_MIN_ENERGY_THRESH[1] - (int)P_MIN_ENERGY_THRESH[0]) 
+				// 			+ P_MIN_ENERGY_THRESH[0];
 
-				pm.setMaxEnergyThresh(maleMaxThresh);
-				pm.setMinEnergyThresh(maleMinThresh);
+				// pm.setMaxEnergyThresh(maleMaxThresh);
+				// pm.setMinEnergyThresh(maleMinThresh);
 	        	} else if (focalSex == Sex::male) {
-	        		double femMaxThresh = 	rand() % ((int)P_MAX_ENERGY_THRESH[1] - (int)P_MAX_ENERGY_THRESH[0]) 
-							+ P_MAX_ENERGY_THRESH[0];
-				double femMinThresh = 	rand() % ((int)P_MIN_ENERGY_THRESH[1] - (int)P_MIN_ENERGY_THRESH[0]) 
-							+ P_MIN_ENERGY_THRESH[0];
+	   //      		double femMaxThresh = 	rand() % ((int)P_MAX_ENERGY_THRESH[1] - (int)P_MAX_ENERGY_THRESH[0]) 
+				// 			+ P_MAX_ENERGY_THRESH[0];
+				// double femMinThresh = 	rand() % ((int)P_MIN_ENERGY_THRESH[1] - (int)P_MIN_ENERGY_THRESH[0]) 
+				// 			+ P_MIN_ENERGY_THRESH[0];
 
-				pf.setMaxEnergyThresh(femMaxThresh);
-				pf.setMinEnergyThresh(femMinThresh);
-
+				// pf.setMaxEnergyThresh(femMaxThresh);
+				// pf.setMinEnergyThresh(femMinThresh);
+	        		pm.setMaxEnergyThresh(200)
+	        		pm.setMinEnergyThresh(150)
 	        	}
 
 			// Run the given breeding season model funciton
