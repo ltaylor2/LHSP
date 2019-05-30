@@ -311,7 +311,7 @@ std::string checkSeasonSuccess(Parent& pm, Parent& pf, Egg& egg)
 int isolateHatchResults(std::vector<std::string> results, std::string key)
 {
 	int ret = 0;
-	for (int i = 0; i < results.size(); i++) {
+	for (unsigned int i = 0; i < results.size(); i++) {
 		if (results[i].compare(key) == 0) {
 			ret++;
 		}
