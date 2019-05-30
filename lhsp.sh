@@ -1,8 +1,8 @@
 #!/bin/bash
-#SBATCH -p general
+#SBATCH -p general,scavenge
 #SBATCH -c 20
 #SBATCH --mem-per-cpu 6000
-#SBATCH -t 24:00:00 
+#SBATCH -t 5:00:00 
 #SBATCH -J lhspSims 
 #SBATCH -o lhsp_system.out
 #SBATCH -e lhsp_error.out
