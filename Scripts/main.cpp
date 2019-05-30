@@ -147,13 +147,13 @@ void runModel(int iterations,
 				 v_foragingMean.size();
 	int paramIteration = 1;
 
-	for (int a = 0; a < v_maxEnergyThresh.size(); a++) {
+	for (unsigned int a = 0; a < v_maxEnergyThresh.size(); a++) {
 		double maxEnergyThresh = v_maxEnergyThresh[a];
 
-	for (int b = 0; b < v_minEnergyThresh.size(); b++) {
+	for (unsigned int b = 0; b < v_minEnergyThresh.size(); b++) {
 	        double minEnergyThresh = v_minEnergyThresh[b];
 
-	for (int c = 0; c < v_foragingMean.size(); c++) {
+	for (unsigned int c = 0; c < v_foragingMean.size(); c++) {
 		double foragingMean = v_foragingMean[c];
 
 	        paramIteration++;	// Param combo complete, onto the next one!
@@ -186,8 +186,8 @@ void runModel(int iterations,
 
 			// Change the non-focal parent to random parameters
 	        	if (focalSex == Sex::female) {
-	        		pf.setMaxEnergyThresh(200)
-	        		pf.setMinEnergyThresh(150)
+	        		pf.setMaxEnergyThresh(200);
+	        		pf.setMinEnergyThresh(150);
 	   			//double maleMaxThresh = rand() % ((int)P_MAX_ENERGY_THRESH[1] - (int)P_MAX_ENERGY_THRESH[0]) 
 				// 			+ P_MAX_ENERGY_THRESH[0];
 				// double maleMinThresh = 	rand() % ((int)P_MIN_ENERGY_THRESH[1] - (int)P_MIN_ENERGY_THRESH[0]) 
@@ -203,8 +203,8 @@ void runModel(int iterations,
 
 				// pf.setMaxEnergyThresh(femMaxThresh);
 				// pf.setMinEnergyThresh(femMinThresh);
-	        		pm.setMaxEnergyThresh(200)
-	        		pm.setMinEnergyThresh(150)
+	        		pm.setMaxEnergyThresh(200);
+	        		pm.setMinEnergyThresh(150);
 	        	}
 
 			// Run the given breeding season model funciton
@@ -398,7 +398,7 @@ void printBoutInfo(std::string fname, std::string model, std::string tag, std::v
 	std::ofstream of;
 	of.open("Output/" + fname, std::ofstream::app);
 
-	for (int i = 0; i < v.size(); i++) {
+	for (unsigned int i = 0; i < v.size(); i++) {
 		of << model << "," << tag << "," << v[i] << "\n";
 	}
 
