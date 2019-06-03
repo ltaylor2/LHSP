@@ -38,11 +38,25 @@ rawF <- read_csv("Output/sims_F.txt") %>%
 
 rawM <- read_csv("Output/sims_M.txt") %>%
 	 mutate(hatchRate = numSuccess/iterations)
-	 
+	
+hrF <- rawF %>%
+	group_by(maxEnergyThresh, minEnergyThresh) %>%
+	summarize(hr = mean(hatchRate))
+
 hrM <- rawM %>%
 	group_by(maxEnergyThresh, minEnergyThresh) %>%
-	summarize(meanHR = mean(hatchRate))
+	summarize(hr = mean(hatchRate))
 
+tmp <- rawF %>%
+	subset(foragingMean==160) %>%
+	group_by(maxEnergyThresh, minEnergyThresh) %>%
+	summarize(hr = mean(hatchRate), energy=mean(endEnergy_F))
+
+
+rawM %>%
+	subset(foragingMean== 160) %>%
+	select(foragingMean, maxEnergyThresh, minEnergyThresh, meanEnergy_F, hatchRate) %>%
+	arrange(-hatchRate)
 
 runApp("Scripts/")
 
