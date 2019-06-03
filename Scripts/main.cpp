@@ -11,10 +11,9 @@
 #include "Parent.hpp"
 
 // The number of iterations for each model or parameter set of a given model
-constexpr static int ITERATIONS = 20000;
+constexpr static int ITERATIONS = 50000;
 
-constexpr static char OUTPUT_FNAME_F[] = "sims_F_SET.txt";
-constexpr static char OUTPUT_FNAME_M[] = "sims_M_SET.txt";
+constexpr static char OUTPUT_FNAME_F[] = "sims_EVEN.txt";
 
 constexpr static double P_MAX_ENERGY_THRESH[] = {0, 1000, 50};
 constexpr static double P_MIN_ENERGY_THRESH[] = {0, 1000, 50};
@@ -29,8 +28,7 @@ void runModel(int,
 	      std::string,
 	      std::vector<double>,
 	      std::vector<double>,
-	      std::vector<double>,
-	      Sex);
+	      std::vector<double>);
 
 void breedingSeason(Parent&, Parent&, Egg&);
 std::vector<double> paramVector(const double[3]);
@@ -60,17 +58,7 @@ int main()
 		 OUTPUT_FNAME_F,
 		 v_maxEnergyThresh,
 		 v_minEnergyThresh,
-		 v_foragingMean,
-		 Sex::female);
-
-	runModel(ITERATIONS, 
-		 *breedingSeason, 
-		 OUTPUT_FNAME_M,
-		 v_maxEnergyThresh,
-		 v_minEnergyThresh,
-		 v_foragingMean,
-		 Sex::male);
-
+		 v_foragingMean);
 
 	// Report output and exit
 	auto endTime = std::chrono::system_clock::now();
@@ -95,8 +83,7 @@ void runModel(int iterations,
 	      std::string outfileName,
 	      std::vector<double> v_maxEnergyThresh,
 	      std::vector<double> v_minEnergyThresh,
-	      std::vector<double> v_foragingMean,
-	      Sex focalSex)
+	      std::vector<double> v_foragingMean)
 {
 	// Start formatted output
 	std::ofstream outfile;
@@ -115,12 +102,20 @@ void runModel(int iterations,
 		<< "hatchDays" << ","
 		<< "totNeglect" << ","
 		<< "maxNeglect" << ","
+		<< "endEnergy_F" << ","
+		<< "meanEnergy_F" << ","
+		<< "varEnergy_F" << ","
 		<< "endEnergy_M" << ","
 		<< "meanEnergy_M" << ","
 		<< "varEnergy_M" << ","
-		<< "endEnergy_F" << ","
-		<< "meanEnergy_F" << ","
-		<< "varEnergy_F" << "\n";
+		<< "meanIncBout_F" << ","
+		<< "varIncBout_F" << ","
+		<< "meanForagingBout_F" << ","
+		<< "varForagingBout_F" << ","
+		<< "meanIncBout_M" << ","
+		<< "varIncBout_M" << ","
+		<< "meanForagingBout_M" << ","
+		<< "varForagingBout_M" << "\n";
 
 	// Initialize output objects to store records from each parameter combo iteration
 	// At the end of each param combination, summarize rates or mean values
@@ -132,15 +127,28 @@ void runModel(int iterations,
 	std::vector<int> totNeglect = std::vector<int>();
 	std::vector<int> maxNeglect = std::vector<int>();
 
-	std::vector<double> energy_M = std::vector<double>();
-	std::vector<double> endEnergy_M = std::vector<double>();
-	std::vector<double> meanEnergy_M = std::vector<double>();
-	std::vector<double> varEnergy_M = std::vector<double>();
 
 	std::vector<double> energy_F = std::vector<double>();
 	std::vector<double> endEnergy_F = std::vector<double>();
 	std::vector<double> meanEnergy_F = std::vector<double>();
 	std::vector<double> varEnergy_F = std::vector<double>();
+
+	std::vector<double> energy_M = std::vector<double>();
+	std::vector<double> endEnergy_M = std::vector<double>();
+	std::vector<double> meanEnergy_M = std::vector<double>();
+	std::vector<double> varEnergy_M = std::vector<double>();
+
+	std::vector<double> meanIncubationBouts_F = std::vector<double>();
+	std::vector<double> varIncubationBouts_F = std::vector<double>();
+
+	std::vector<double> meanForagingBouts_F = std::vector<double>();
+	std::vector<double> varForagingBouts_F = std::vector<double>();
+
+	std::vector<double> meanIncubationBouts_M = std::vector<double>();
+	std::vector<double> varIncubationBouts_M = std::vector<double>();
+
+	std::vector<double> meanForagingBouts_M = std::vector<double>();
+	std::vector<double> varForagingBouts_M = std::vector<double>();
 
 	int totParamIterations = v_maxEnergyThresh.size() * 
 				 v_minEnergyThresh.size() * 
@@ -184,29 +192,6 @@ void runModel(int iterations,
 			pm.setMinEnergyThresh(minEnergyThresh);
 			pm.setForagingDistribution(foragingMean, pm.getForagingSD());
 
-			// Change the non-focal parent to random parameters
-	        	if (focalSex == Sex::female) {
-	        		pf.setMaxEnergyThresh(200);
-	        		pf.setMinEnergyThresh(150);
-	   			//double maleMaxThresh = rand() % ((int)P_MAX_ENERGY_THRESH[1] - (int)P_MAX_ENERGY_THRESH[0]) 
-				// 			+ P_MAX_ENERGY_THRESH[0];
-				// double maleMinThresh = 	rand() % ((int)P_MIN_ENERGY_THRESH[1] - (int)P_MIN_ENERGY_THRESH[0]) 
-				// 			+ P_MIN_ENERGY_THRESH[0];
-
-				// pm.setMaxEnergyThresh(maleMaxThresh);
-				// pm.setMinEnergyThresh(maleMinThresh);
-	        	} else if (focalSex == Sex::male) {
-	   //      		double femMaxThresh = 	rand() % ((int)P_MAX_ENERGY_THRESH[1] - (int)P_MAX_ENERGY_THRESH[0]) 
-				// 			+ P_MAX_ENERGY_THRESH[0];
-				// double femMinThresh = 	rand() % ((int)P_MIN_ENERGY_THRESH[1] - (int)P_MIN_ENERGY_THRESH[0]) 
-				// 			+ P_MIN_ENERGY_THRESH[0];
-
-				// pf.setMaxEnergyThresh(femMaxThresh);
-				// pf.setMinEnergyThresh(femMinThresh);
-	        		pm.setMaxEnergyThresh(200);
-	        		pm.setMinEnergyThresh(150);
-	        	}
-
 			// Run the given breeding season model funciton
 			modelFunc(pm, pf, egg);
 
@@ -215,16 +200,39 @@ void runModel(int iterations,
 			totNeglect.push_back(egg.getTotNeg());
 			maxNeglect.push_back(egg.getMaxNeg());
 
-			energy_M = pm.getEnergyRecord();					// full season energy M
+			
 			energy_F = pf.getEnergyRecord();					// full season energy F
+			endEnergy_F.push_back(energy_F[energy_F.size()-1]);			// energy at end of season F
+			meanEnergy_F.push_back(vectorMean(energy_F));				// mean energy across season F
+			varEnergy_F.push_back(vectorVar(energy_F));				// variance in energy across season F
 
+			energy_M = pm.getEnergyRecord();					// full season energy M
 			endEnergy_M.push_back(energy_M[energy_M.size()-1]);			// energy at end of season M
 			meanEnergy_M.push_back(vectorMean(energy_M));				// mean energy across season M
 			varEnergy_M.push_back(vectorVar(energy_M));				// variance in energy across season M
 
-			endEnergy_F.push_back(energy_F[energy_F.size()-1]);			// energy at end of season F
-			meanEnergy_F.push_back(vectorMean(energy_F));				// mean energy across season F
-			varEnergy_F.push_back(vectorVar(energy_F));				// variance in energy across season F
+
+			// accumulate the overall bout record for the entire season
+			// across iterations for a param combo
+			// Appends to the full param combo storage vector
+			std::vector<int> currIncubationBouts_F = pf.getIncubationBouts();
+			std::vector<int> currForagingBouts_F = pf.getForagingBouts();
+
+			std::vector<int> currIncubationBouts_M = pm.getIncubationBouts();
+			std::vector<int> currForagingBouts_M = pm.getForagingBouts();
+
+			meanIncubationBouts_F.push_back(vectorMean(currIncubationBouts_F));
+			varIncubationBouts_F.push_back(vectorVar(currIncubationBouts_F));
+
+			meanForagingBouts_F.push_back(vectorMean(currForagingBouts_F));
+			varForagingBouts_F.push_back(vectorVar(currForagingBouts_F));
+
+			meanIncubationBouts_M.push_back(vectorMean(currIncubationBouts_M));
+			varIncubationBouts_M.push_back(vectorVar(currIncubationBouts_M));
+
+			meanForagingBouts_M.push_back(vectorMean(currForagingBouts_M));
+			varForagingBouts_M.push_back(vectorVar(currForagingBouts_M));
+
 	        }
 
 	        // Calculate summary values from full param combo run
@@ -238,13 +246,25 @@ void runModel(int iterations,
 	        double meanTotNeglect = vectorMean(totNeglect);
 	        double meanMaxNeglect = vectorMean(maxNeglect);
 
+	        double meanEndEnergy_F = vectorMean(endEnergy_F);
+	        double meanMeanEnergy_F= vectorMean(meanEnergy_F);
+	        double meanVarEnergy_F = vectorMean(varEnergy_F);
+
 	        double meanEndEnergy_M = vectorMean(endEnergy_M);
 	        double meanMeanEnergy_M = vectorMean(meanEnergy_M);
 	        double meanVarEnergy_M = vectorMean(varEnergy_M);
 
-	        double meanEndEnergy_F = vectorMean(endEnergy_F);
-	        double meanMeanEnergy_F= vectorMean(meanEnergy_F);
-	        double meanVarEnergy_F = vectorMean(varEnergy_F);
+	        double meanMeanIncBout_F = vectorMean(meanIncubationBouts_F);
+	        double meanVarIncBout_F = vectorMean(varIncubationBouts_F);
+
+	        double meanMeanForagingBout_F = vectorMean(meanForagingBouts_F);
+	        double meanVarForagingBout_F = vectorVar(varForagingBouts_F);
+
+	        double meanMeanIncBout_M = vectorMean(meanIncubationBouts_M);
+	        double meanVarIncBout_M = vectorMean(varIncubationBouts_M);
+
+	        double meanMeanForagingBout_M = vectorMean(meanForagingBouts_M);
+	        double meanVarForagingBout_M = vectorVar(varForagingBouts_M);
 
 	        // Write output in CSV format
 		outfile << iterations << ","
@@ -253,18 +273,26 @@ void runModel(int iterations,
 			<< foragingMean << ","
 		        << numSuccess << ","
 		        << numAllFail << ","
-		        << numParentFail << ","
-		        << numEggTimeFail << ","
-		        << numEggColdFail << ","
+	         	<< numParentFail << ","
+			<< numEggTimeFail << ","
+			<< numEggColdFail << ","
 			<< meanHatchDays << ","
 			<< meanTotNeglect << ","
 			<< meanMaxNeglect << ","
+			<< meanEndEnergy_F << ","
+			<< meanMeanEnergy_F << ","
+			<< meanVarEnergy_F << ","
 			<< meanEndEnergy_M << ","
 			<< meanMeanEnergy_M << ","
 			<< meanVarEnergy_M << ","
-			<< meanEndEnergy_F << ","
-			<< meanMeanEnergy_F << ","
-			<< meanVarEnergy_F << "\n";
+			<< meanMeanIncBout_F << ","
+			<< meanVarIncBout_F << ","
+			<< meanMeanForagingBout_F << ","
+			<< meanVarForagingBout_F << ","
+			<< meanMeanIncBout_M << ","
+			<< meanVarIncBout_M << ","
+			<< meanMeanForagingBout_M << ","
+			<< meanVarForagingBout_M << "\n";		
 
 		// Clear output vectors for next param combo
 		hatchResults.clear();
@@ -282,6 +310,11 @@ void runModel(int iterations,
 	      	meanEnergy_F.clear();
 	      	varEnergy_F.clear();
 
+	      	meanIncubationBouts_F.clear();
+	      	varIncubationBouts_F.clear();
+
+	      	meanForagingBouts_F.clear();
+	      	varForagingBouts_F.clear();
 	}
 	}
 	}
