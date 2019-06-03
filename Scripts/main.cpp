@@ -258,22 +258,22 @@ void runModel(int iterations,
 	        double meanVarIncBout_F = vectorMean(varIncubationBouts_F);
 
 	        double meanMeanForagingBout_F = vectorMean(meanForagingBouts_F);
-	        double meanVarForagingBout_F = vectorVar(varForagingBouts_F);
+	        double meanVarForagingBout_F = vectorMean(varForagingBouts_F);
 
 	        double meanMeanIncBout_M = vectorMean(meanIncubationBouts_M);
 	        double meanVarIncBout_M = vectorMean(varIncubationBouts_M);
 
 	        double meanMeanForagingBout_M = vectorMean(meanForagingBouts_M);
-	        double meanVarForagingBout_M = vectorVar(varForagingBouts_M);
+	        double meanVarForagingBout_M = vectorMean(varForagingBouts_M);
 
 	        // Write output in CSV format
 		outfile << iterations << ","
 			<< maxEnergyThresh << ","
 			<< minEnergyThresh << ","
 			<< foragingMean << ","
-		        << numSuccess << ","
-		        << numAllFail << ","
-	         	<< numParentFail << ","
+		    << numSuccess << ","
+		    << numAllFail << ","
+	      	<< numParentFail << ","
 			<< numEggTimeFail << ","
 			<< numEggColdFail << ","
 			<< meanHatchDays << ","
