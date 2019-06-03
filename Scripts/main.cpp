@@ -11,7 +11,7 @@
 #include "Parent.hpp"
 
 // The number of iterations for each model or parameter set of a given model
-constexpr static int ITERATIONS = 50000;
+constexpr static int ITERATIONS = 10000;
 
 constexpr static char OUTPUT_FNAME_F[] = "sims_EVEN.txt";
 
