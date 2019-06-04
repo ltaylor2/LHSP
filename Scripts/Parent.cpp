@@ -54,8 +54,10 @@ void Parent::parentDay()
 
 void Parent::changeState()
 {
-	if (this->state == State::incubating) {
-		this->incubationBouts.push_back(this->incubationDays);
+	if (this->state == State::incubating) {\
+		if (!firstBout) {
+			this->incubationBouts.push_back(this->incubationDays);
+		}
 		this->incubationDays = 0;
 		this->state = State::foraging;
 	} else if (this->state == State::foraging) {
