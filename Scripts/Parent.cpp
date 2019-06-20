@@ -17,7 +17,8 @@ Parent::Parent(Sex sex_, std::mt19937* randGen_):
 	shouldCompensate(false),
 	shouldRetaliate(false),
 	didOverlap(false),
-	reactDelay(0),
+	reactDelay(REACT_DELAY),
+	currReactDelay(0),
 	energyRecord(std::vector<double>()),
 	incubationDays(0),
 	incubationBouts(std::vector<int>()),
@@ -26,17 +27,16 @@ Parent::Parent(Sex sex_, std::mt19937* randGen_):
 	firstBout(true)
 {
 	/*
-	Males begin the breeding season in the foraging state,
-	while females begin the breeding season in the incubating state
+	Individuals begin in a random state
 	*/
 	this->state = State::incubating;
 	this->previousDayState = State::incubating;
 
-	if (sex == Sex::male) {
+	if ((double)rand() / RAND_MAX <= 0.5) {
 		this->state = State::foraging;
 		this->previousDayState = State::foraging;
 		didOverlap = true;
-	}		
+	}
 }
 
 void Parent::parentDay()
@@ -119,11 +119,11 @@ bool Parent::stopIncubating()
 {
 	// Deterministic boolean minimum threshold
 	if (this->energy < minEnergyThresh) {
-		if (shouldCompensate && !didOverlap && reactDelay < REACT_DELAY) {
-			reactDelay++;
+		if (shouldCompensate && !didOverlap && currReactDelay < reactDelay) {
+			currReactDelay++;
 		} else {
 			didOverlap = false;
-			reactDelay = 0;
+			currReactDelay = 0;
 			return true;
 		}
 	}
@@ -134,10 +134,10 @@ bool Parent::stopForaging()
 {
 	// Deterministic boolean maximum threshold
 	if (this->energy > maxEnergyThresh && this->foragingDays > 1) {
-		if (shouldRetaliate && !didOverlap && reactDelay < REACT_DELAY) {
-			reactDelay++;
+		if (shouldRetaliate && !didOverlap && currReactDelay < reactDelay) {
+			currReactDelay++;
 		} else {
-			reactDelay = 0;
+			currReactDelay = 0;
 			return true;
 		}
 	}
