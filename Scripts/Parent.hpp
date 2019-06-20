@@ -3,6 +3,7 @@
 #include <vector>
 #include <random>
 #include <chrono>
+#include <iostream>
 
 enum class Sex { male, female };
 enum class State { incubating, foraging };
@@ -41,7 +42,10 @@ public:
 	void setMaxEnergyThresh(double maxEnergyThresh_) { this->maxEnergyThresh = maxEnergyThresh_; }
 	void setMinEnergyThresh(double minEnergyThresh_) { this->minEnergyThresh = minEnergyThresh_; }
 	void setForagingDistribution(double foragingMean_, double foragingSD_);
-
+	void setShouldCompensate(bool shouldCompensate_) { this->shouldCompensate = shouldCompensate_; }
+	void setShouldRetaliate(bool shouldRetaliate_) { this->shouldRetaliate = shouldRetaliate_; }
+	void setDidOverlap(bool didOverlap_) { this-> didOverlap = didOverlap_; }
+	
 	// Getters
 	Sex getSex() { return this->sex; }
 	bool isAlive() { return this->alive; }
@@ -63,7 +67,6 @@ public:
 	std::vector<int> getIncubationBouts() { return this->incubationBouts; }
 	std::vector<int> getForagingBouts() { return this->foragingBouts; }
 
-
 private:
 		/*
 		Parameters for the mean and standard deviation for foraging,
@@ -71,7 +74,7 @@ private:
 		Montevecchi et al. (1992) for Newfoundland parameters
 		*/
    		constexpr static double FORAGING_MEAN = 162;
-    		constexpr static double FORAGING_SD = 47;
+    	constexpr static double FORAGING_SD = 47;
 
 		/*
 		Initial energy buffer at the beginning of the incubation season (kJ)
@@ -103,6 +106,7 @@ private:
 		*/
 		constexpr static double MIN_ENERGY_THRESHOLD = FORAGING_METABOLISM;
 		
+		constexpr static int REACT_DELAY = 1;
 	   	/*
 	   	A day of incubation behavior while in the incubating state.
 	   	While in the nesting burrow, the adult loses a set amount of energy
@@ -122,8 +126,8 @@ private:
 	   	*/
 	  	void forage();
 
-	    	// State change functions.
-	    	// @ret TRUE if should change
+	    // State change functions.
+	    // @ret TRUE if should change
 	   	bool stopIncubating();
 	   	bool stopForaging();
 
@@ -142,7 +146,6 @@ private:
 
 	   	double maxEnergyThresh;
 	   	double minEnergyThresh;
-
 	
 	   	double foragingMean;
 	   	double foragingSD;
@@ -150,13 +153,19 @@ private:
 		// Normal distribution to draw stochastic foraging energy intakes
 	   	std::normal_distribution<double> foragingDistribution;
 
+	   	bool shouldCompensate;
+	   	bool shouldRetaliate;
+	   	bool didOverlap;
+
+	   	int reactDelay;
+
 	   	std::vector<double> energyRecord;	// energy values across all days
 
-	   	int incubationDays;			// current consecutive inc. days
+	   	int incubationDays;					// current consecutive inc. days
 	   	std::vector<int> incubationBouts;	// incubation bout record
 
-	   	int foragingDays;			// current consecutive forg. days
+	   	int foragingDays;					// current consecutive forg. days
 	   	std::vector<int> foragingBouts;		// foraging bout record
 
-	   	bool firstBout;				// is it the adult's first bout?
+	   	bool firstBout;						// is it the adult's first bout?
 };
