@@ -11,7 +11,7 @@
 #include "Parent.hpp"
 
 // The number of iterations for each model or parameter set of a given model
-constexpr static int ITERATIONS = 100000;
+constexpr static int ITERATIONS = 10000;
 
 constexpr static char OUTPUT_FNAME_STANDARD[] = "sims_standard.txt";
 constexpr static char OUTPUT_FNAME_NOOVERLAP[] = "sims_noOverlap.txt";
@@ -69,7 +69,7 @@ int main()
 			 v_minEnergyThresh,
 			 v_foragingMean);
 
-	std::cout << "\n" << "Done with STANDARD model run";
+	std::cout << "\n" << "Done with STANDARD model run\n";
 	std::cout << "Beginning NO_OVERLAP model run" << "\n\n";
 
 	runModel(ITERATIONS, 
@@ -79,7 +79,7 @@ int main()
 			 v_minEnergyThresh,
 			 v_foragingMean);
 
-	std::cout << "\n" << "Done with NO_OVERLAP model run";
+	std::cout << "\n" << "Done with NO_OVERLAP model run\n";
 	std::cout << "Beginning COMPENSATION model run" << "\n\n";
 
 	runModel(ITERATIONS, 
@@ -89,7 +89,7 @@ int main()
 			 v_minEnergyThresh,
 			 v_foragingMean);
 
-	std::cout << "\n" << "Done with COMPENSATION model run" "\n";
+	std::cout << "\n" << "Done with COMPENSATION model run\n";
 	std::cout << "Beginning RETALIATION model run" << "\n\n";
 
 	runModel(ITERATIONS, 
