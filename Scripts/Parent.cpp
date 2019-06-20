@@ -14,6 +14,10 @@ Parent::Parent(Sex sex_, std::mt19937* randGen_):
 	foragingSD(FORAGING_SD),
 	foragingDistribution(std::normal_distribution<double>(foragingMean, 
 							      foragingSD)),
+	shouldCompensate(false),
+	shouldRetaliate(false),
+	didOverlap(false),
+	reactDelay(0),
 	energyRecord(std::vector<double>()),
 	incubationDays(0),
 	incubationBouts(std::vector<int>()),
@@ -25,12 +29,13 @@ Parent::Parent(Sex sex_, std::mt19937* randGen_):
 	Males begin the breeding season in the foraging state,
 	while females begin the breeding season in the incubating state
 	*/
-	this->state = State::foraging;
-	this->previousDayState = State::foraging;
+	this->state = State::incubating;
+	this->previousDayState = State::incubating;
 
-	if (sex == Sex::female) {
-		this->state = State::incubating;
-		this->previousDayState = State::incubating;
+	if (sex == Sex::male) {
+		this->state = State::foraging;
+		this->previousDayState = State::foraging;
+		didOverlap = true;
 	}		
 }
 
@@ -54,26 +59,26 @@ void Parent::parentDay()
 
 void Parent::changeState()
 {
-	if (this->state == State::incubating) {\
+	if (this->state == State::incubating) {
 		if (!firstBout) {
 			this->incubationBouts.push_back(this->incubationDays);
 		}
+
 		this->incubationDays = 0;
 		this->state = State::foraging;
+
+		firstBout = false;
+		didOverlap = false;
+
 	} else if (this->state == State::foraging) {
-		/* 
-		NOTE when an adult begins in the foraging state with BASE energy
-		(like males in the current build), we want to drop this first 
-		errant 1-day record
-		*/
 		if (!firstBout) {
 			this->foragingBouts.push_back(this->foragingDays);
 		}
 		this->foragingDays = 0;
 		this->state = State::incubating;
-	}
 
-	firstBout = false;
+		firstBout = false;
+	}
 }
 
 void Parent::incubate()
@@ -114,7 +119,13 @@ bool Parent::stopIncubating()
 {
 	// Deterministic boolean minimum threshold
 	if (this->energy < minEnergyThresh) {
-		return true;
+		if (shouldCompensate && !didOverlap && reactDelay < REACT_DELAY) {
+			reactDelay++;
+		} else {
+			didOverlap = false;
+			reactDelay = 0;
+			return true;
+		}
 	}
 	return false;
 }
@@ -123,7 +134,12 @@ bool Parent::stopForaging()
 {
 	// Deterministic boolean maximum threshold
 	if (this->energy > maxEnergyThresh && this->foragingDays > 1) {
-		return true;
+		if (shouldRetaliate && !didOverlap && reactDelay < REACT_DELAY) {
+			reactDelay++;
+		} else {
+			reactDelay = 0;
+			return true;
+		}
 	}
 	return false;
 }
