@@ -645,9 +645,9 @@ void printDailyInfo(Parent& pf, Parent& pm, Egg& egg) {
 	std::string maleState = pm.getStrState();
 
 	std::cout << "On day " << days << " of " << maxDays
-			  << " with egg neglect " << eggNeglect << ".///"
-			  << " Female is " << femaleState
-			  << " with " << femaleEnergy << " energy.///"
-			  << " Male is " << maleState
-			  << " with " << maleEnergy << " energy.///\n";
+	   	  << " with egg neglect " << eggNeglect << ".///"
+	   	  << " Female is " << femaleState
+	   	  << " with " << femaleEnergy << " energy.///"
+	   	  << " Male is " << maleState
+	   	  << " with " << maleEnergy << " energy.///\n";
 }
