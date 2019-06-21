@@ -4,7 +4,8 @@
 library(tidyverse)
 library(extrafont)
 
-setwd("~/Desktop/LHSP")
+setwd("C://Users/Liam/Documents/LHSP")
+# setwd("~/Desktop/LHSP")
 
 theme_lt <- theme_bw() +
 		theme(panel.grid = element_blank(),
@@ -57,7 +58,7 @@ data <- bind_rows(standard, noOverlap, overlapRand,
 ############################################################
 overlapComparison <- ggplot(subset(data, foragingMean==160 & modelGroup=="regular")) +
 			geom_line(aes(x=model, y=hatchRate, group=strategy), colour="lightgray") +
-			geom_boxplot(aes(x=model, y=hatchRate), width=0.5) +
+			geom_boxplot(aes(x=model, y=hatchRate), width=0.25) +
 			scale_x_discrete(labels=c("noOverlap" = "Ignore mate",
 						  "standard" = "Orderly switching",
 						  "overlapRand" = "Random switching")) +
@@ -69,7 +70,7 @@ overlapComparison <- ggplot(subset(data, foragingMean==160 & modelGroup=="regula
 			      				 margin=margin(t=15),
 			      				 color="black"))
 
-ggsave(overlapComparison, filename="Figures/overlapComparison.png", width=9, height=8, unit="in")
+ggsave(overlapComparison, filename="Figures/overlapComparison.png", width=9, height=6, unit="in")
 
 ############################################################
 ### Foraging mean comparisons
@@ -89,7 +90,7 @@ standardForagingMean <- ggplot(subset(data, model=="standard")) +
 				ylab("Success rate") +
 				theme_lt
 
-ggsave(standardForagingMean, filename="Figures/standardForagingMean.png", width=8, height=8, unit="in")
+ggsave(standardForagingMean, filename="Figures/standardForagingMean.png", width=6, height=6, unit="in")
 
 ############################################################
 ### Retaliation and Compensation
@@ -97,7 +98,7 @@ ggsave(standardForagingMean, filename="Figures/standardForagingMean.png", width=
 
 reactionStrats <- ggplot(subset(data, (model=="standard" | modelGroup %in% c("compensation", "retaliation")) & foragingMean==160)) +
 			geom_line(aes(x=model, y=hatchRate, group=strategy), colour="lightgray") +
-			geom_boxplot(aes(x=model, y=hatchRate), width=0.5) +
+			geom_boxplot(aes(x=model, y=hatchRate), width=0.25) +
 			scale_x_discrete(limits=c("retaliation2", "retaliation", "standard", "compensation", "compensation2"),
 				         labels=c("Retaliation\n(2d)", "Retaliate\n(1d)", "Normal", "Compensate\n(1d)", "Compensate\n(2d)")) +
 			ylab("Success rate") +
@@ -114,14 +115,11 @@ ggsave(reactionStrats, filename="Figures/reactionStrats.png", width=11, height=6
 ############################################################
 
 ggplot(subset(data, model=="standard" & foragingMean %in% c(142, 151, 160))) +
-	geom_point(aes(x=gEnergy_F, y=hatchRate), colour="black") +
-	geom_point(aes(x=gEnergy_M, y=hatchRate), colour="cornflowerblue") +
+	geom_point(aes(x=gEnergy_F, y=hatchRate), colour="black", alpha=0.8) +
 	geom_smooth(aes(x=gEnergy_F, y=hatchRate), colour="black", se=FALSE) +
-	geom_smooth(aes(x=gEnergy_M, y=hatchRate), colour="cornflowerblue", se=FALSE) +
 	ylab("Success rate") +
 	xlab("Geometric mean parental energy") +
 	facet_grid(facets=vars(foragingMean)) +
-	coord_flip() +
 	theme_lt
 
 
@@ -131,4 +129,6 @@ ggplot(subset(data, model=="standard" & foragingMean %in% c(142, 151, 160))) +
 
 ggplot(subset(data, model=="standard")) +
 	geom_line(aes(x=foragingMean, y=hatchRate/gEnergy_F, group=strategy)) +
+	geom_smooth(aes(x=foragingMean, y=hatchRate/gEnergy_F))
+foragingMean, y=hatchRate/gEnergy_F, group=strategy)) +
 	geom_smooth(aes(x=foragingMean, y=hatchRate/gEnergy_F))
