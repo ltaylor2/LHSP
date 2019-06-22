@@ -1,8 +1,8 @@
 
 <p>
-Email: 	   liam.taylor@yale.edu
-Twitter:   @LUlyssesT
-Website:   ltaylor2.github.io
+Email: 	   liam.taylor@yale.edu<br>
+Twitter:   @LUlyssesT<br>
+Website:   ltaylor2.github.io<br>
 <br>
 The main branch of this repository currently hosts the code version from the American Ornithological Society 2019 Conference in Anchorage, Alaska.
 </p>
