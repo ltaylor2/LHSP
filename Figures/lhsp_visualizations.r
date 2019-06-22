@@ -5,8 +5,7 @@ library(tidyverse)
 library(broom)
 library(extrafont)
 
-setwd("C://Users/Liam/Documents/LHSP")
-# setwd("~/Desktop/LHSP")
+setwd("~/Desktop/LHSP")
 
 theme_lt <- theme_bw() +
 		theme(panel.grid = element_blank(),
@@ -119,7 +118,10 @@ ggsave(standardForagingMean, filename="Figures/standardForagingMean.png", width=
 
 
 neglect <- ggplot(subset(data, model=="standard" & foragingMean==160)) +
-			geom_point(aes(x=totNeglect, y=hatchRate)) +
+			geom_point(aes(x=totNeglect, y=hatchRate), colour="black") +
+			geom_line(aes(x=totNeglect, y=hatchRate, group=minEnergyThresh), colour="lightgray") +
+			geom_line(aes(x=totNeglect, y=hatchRate, group=maxEnergyThresh), colour="cornflowerblue") +
+			geom_point(aes(x=totNeglect, y=hatchRate), colour="black") +
 			xlab("Total egg neglect (days)") +
 			ylab("Success rate") +
 			theme_lt
@@ -148,12 +150,13 @@ tradeoffs <- ggplot(toDF) +
 				geom_point(aes(x=gEnergy_F, y=hatchRate), colour="lightgray") +
 				geom_smooth(aes(x=gEnergy_F, y=hatchRate), colour="black", se=FALSE) +
 				scale_x_continuous(breaks=seq(0, 1000, by=200), limits=c(-10, 1010)) +
+				scale_y_continuous(breaks=c(0.00, 0.50, 1.0)) +
 				ylab("Success rate") +
 				xlab("Parent energy") +
 				facet_grid(facets=vars(fLabel)) +
 				theme_lt +
 				theme(strip.text = element_text(size=theme_lt$axis.text.size, family="Gill Sans MT"),
-					  strip.background = element_rect(fill="white", colour="black"),
+				strip.background = element_rect(fill="white", colour="black"),
 					  panel.spacing = unit(0.25, "in"))
 
 ggsave(tradeoffs, filename="Figures/tradeoffs.png", width=6, height=6, unit="in")
@@ -198,7 +201,6 @@ buffering <- ggplot(deltas) +
 				guides(colour=FALSE) +
 				theme_lt
 
-
 ggsave(buffering, filename="Figures/buffering.png", width=6, height=6)
 
 ############################################################
@@ -209,7 +211,7 @@ spDF <- data %>%
 			subset(model=="standard" & (strategy=="50--400"))
 
 
-sub1 <- ggplot(spDF) +
+bufferSub1 <- ggplot(spDF) +
 			geom_point(aes(x=foragingMean, y=hatchRate), colour="lightgray") +
 			geom_smooth(aes(x=foragingMean, y=hatchRate, group=strategy), colour="black", method="lm", se=FALSE) +
 			geom_hline(aes(yintercept=max(hatchRate)), colour="blue", linetype="dashed") +
@@ -220,9 +222,9 @@ sub1 <- ggplot(spDF) +
 				  axis.ticks = element_blank(),
 				  axis.title = element_text(size=15))
 
-ggsave(sub1, filename="Figures/subplot1.png", width=3, height=3)
+ggsave(bufferSub1, filename="Figures/bufferSub1.png", width=3, height=3)
 
-sub2 <- ggplot(spDF) +
+bufferSub2 <- ggplot(spDF) +
 			geom_point(aes(x=foragingMean, y=gEnergy_F), colour="lightgray") +
 			geom_smooth(aes(x=foragingMean, y=gEnergy_F), colour="black", method="lm", se=FALSE) +
 			xlab("Environmental condition") +
@@ -232,4 +234,4 @@ sub2 <- ggplot(spDF) +
 				  axis.ticks = element_blank(),
 				  axis.title = element_text(size=15))
 
-ggsave(sub2, filename="Figures/subplot2.png", width=3, height=3)
+ggsave(bufferSub2, filename="Figures/bufferSub2.png", width=3, height=3)
