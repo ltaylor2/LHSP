@@ -42,3 +42,78 @@ double vectorVar(std::vector<int>& v)
 
 	return sqSum / items;
 }
+
+int isolateHatchResults(std::vector<std::string> results, std::string key)
+{
+	int ret = 0;
+	for (unsigned int i = 0; i < results.size(); i++) {
+		if (results[i].compare(key) == 0) {
+			ret++;
+		}
+	}
+	return ret;
+}
+
+
+std::vector<double> paramVector(const double p[3]) 
+{
+	double min = p[0];
+	double max = p[1];
+	double by = p[2];
+
+	std::vector<double> ret;
+	for (double i = min; i <= max; i+=by) {
+		ret.push_back(i);
+	}
+
+	return ret;
+}
+
+
+void printBoutInfo(std::string fname, std::string model, std::string tag, std::vector<int> v) 
+{
+	std::ofstream of;
+	of.open("Output/" + fname, std::ofstream::app);
+
+	for (unsigned int i = 0; i < v.size(); i++) {
+		of << model << "," << tag << "," << v[i] << "\n";
+	}
+
+	of.close();
+}
+
+std::string checkSeasonSuccess(Parent& pf, Parent& pm, Egg& egg) 
+{
+	if (egg.isHatched() && egg.isAlive() && pm.isAlive() && pf.isAlive()) {
+		return "success";
+	} else if ((!egg.isHatched() || !egg.isAlive()) && (!pm.isAlive() || !pf.isAlive())) {
+		return "allFail";
+	} else if (!pm.isAlive() || !pf.isAlive()) {
+		return "parentFail";
+	} else if (!egg.isHatched() && egg.isAlive()) {
+		return "eggTimeFail";
+	} else if (!egg.isAlive()) {
+		return "eggColdFail";
+	}
+
+	return "unknownFail";
+}
+
+void printDailyInfo(Parent& pf, Parent& pm, Egg& egg) {
+	int days = egg.getIncubationDays();
+	double maxDays = egg.getMaxHatchDays();
+	int eggNeglect = egg.getTotNeg();
+
+	double femaleEnergy = pf.getEnergy();
+	std::string femaleState = pf.getStrState();
+
+	double maleEnergy = pm.getEnergy();
+	std::string maleState = pm.getStrState();
+
+	std::cout << "On day " << days << " of " << maxDays
+	   	  << " with egg neglect " << eggNeglect << ".///"
+	   	  << " Female is " << femaleState
+	   	  << " with " << femaleEnergy << " energy.///"
+	   	  << " Male is " << maleState
+	   	  << " with " << maleEnergy << " energy.///\n";
+}

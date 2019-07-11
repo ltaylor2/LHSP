@@ -41,8 +41,10 @@ Parent::Parent(Sex sex_, std::mt19937* randGen_):
 
 void Parent::parentDay()
 {
+	// Record energy values for each day
 	energyRecord.push_back(this->energy);
 	
+	// Did the parent die?
 	if (this->energy <= 0) {
 		this->alive = false;
 	}
@@ -56,11 +58,12 @@ void Parent::parentDay()
 
 }
 
-
 void Parent::changeState()
 {
+	// Switch from incubating to foraging
 	if (this->state == State::incubating) {
 		if (!firstBout) {
+			// Record bout lengths for all but first bout
 			this->incubationBouts.push_back(this->incubationDays);
 		}
 
@@ -68,10 +71,15 @@ void Parent::changeState()
 		this->state = State::foraging;
 
 		firstBout = false;
+
+		// Overlap values are overwritten if the overlap
+		// actually occurs in the breadingSeason() function.
 		didOverlap = false;
 
+	// Switch from foraging to incubating
 	} else if (this->state == State::foraging) {
 		if (!firstBout) {
+			// Record bout lengths for all but first bout
 			this->foragingBouts.push_back(this->foragingDays);
 		}
 		this->foragingDays = 0;
@@ -96,6 +104,12 @@ void Parent::incubate()
 	this->previousDayState = State::incubating;
 }
 
+/*
+Foraging behavior.
+Parents lose energy to (heightened) metabolism,
+and have the change to gain energy as a draw from
+a random distribution.
+*/
 void Parent::forage()
 {
 	this->foragingDays++;
@@ -115,18 +129,26 @@ void Parent::forage()
 	this->previousDayState = State::foraging;
 }
 
+
 bool Parent::stopIncubating() 
 {
 	// Deterministic boolean minimum threshold
 	if (this->energy < minEnergyThresh) {
+		/*
+		If the parent should compensate, stay an extra day regardless
+		of energy level.
+		*/
 		if (shouldCompensate && !didOverlap && currReactDelay < reactDelay) {
 			currReactDelay++;
 		} else {
 			didOverlap = false;
 			currReactDelay = 0;
+
+			// Stop incubating
 			return true;
 		}
 	}
+	// Don't stop incubating
 	return false;
 }
 
@@ -138,20 +160,15 @@ bool Parent::stopForaging()
 			currReactDelay++;
 		} else {
 			currReactDelay = 0;
+
+			// Stop foraging
 			return true;
 		}
 	}
+	// Don't stop foraging
 	return false;
 }
 
-void Parent::setForagingDistribution(double foragingMean_, double foragingSD_)
-{ 
-	this->foragingMean = foragingMean_;
-	this->foragingSD = foragingSD_;
-
-	this->foragingDistribution = 
-		std::normal_distribution<double>(foragingMean_, foragingSD_); 
-}
 
 std::string Parent::getStrState() {
 	// Why oh why do I not know an easier way to convert enums to strings?
@@ -163,4 +180,13 @@ std::string Parent::getStrState() {
 	}
 
 	return s;
+}
+
+void Parent::setForagingDistribution(double foragingMean_, double foragingSD_)
+{ 
+	this->foragingMean = foragingMean_;
+	this->foragingSD = foragingSD_;
+
+	this->foragingDistribution = 
+		std::normal_distribution<double>(foragingMean_, foragingSD_); 
 }
