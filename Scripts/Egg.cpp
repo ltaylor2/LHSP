@@ -1,5 +1,9 @@
 #include "Egg.hpp"
 
+/*
+Constructor (see Egg.hpp file).
+C++11 initialization of instance variables.
+*/
 Egg::Egg():
 	alive(true),
 	hatched(false),
@@ -12,6 +16,10 @@ Egg::Egg():
 	maxNegCounter(0)
 {}
 
+/*
+Egg behavior for a single day.
+@param incubated is the egg incubated for the day?
+*/
 void Egg::eggDay(bool incubated)
 {
 
@@ -26,6 +34,8 @@ void Egg::eggDay(bool incubated)
 		totNegCounter++;
 		if (currNegCounter > maxNegCounter) {
 			this->maxNegCounter = currNegCounter;
+
+			// Eggs which exceed the maximum neglect streak value die completely. 
 			if (maxNegCounter > NEGLECT_MAX) {
 				this->alive = false;
 			}
@@ -39,5 +49,6 @@ void Egg::eggDay(bool incubated)
 		this->hatched = true;
 	}
 
+	// Keeping track of all days (incubated or not)
 	currDays++;
 }
