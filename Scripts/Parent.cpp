@@ -27,12 +27,12 @@ Parent::Parent(Sex sex_, std::mt19937* randGen_):
 	firstBout(true)
 {
 	/*
-	Individuals begin in a random state
+	Male begin the incubation period incubating, females begin foraging 
 	*/
 	this->state = State::incubating;
 	this->previousDayState = State::incubating;
 
-	if ((double)rand() / RAND_MAX <= 0.5) {
+	if (this->sex == Sex::female) {
 		this->state = State::foraging;
 		this->previousDayState = State::foraging;
 		didOverlap = true;

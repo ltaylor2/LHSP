@@ -4,6 +4,7 @@
 #include <random>
 #include <chrono>
 #include <iostream>
+tested
 
 enum class Sex { male, female };
 enum class State { incubating, foraging };
@@ -86,7 +87,6 @@ private:
 	*/ 
 	constexpr static double BASE_ENERGY = 766;
 
-
 	/*
 	Metabolic rate requirements while incubating and foraging (kJ/day)
 	From Ricklefs et al. (1986) 
@@ -135,9 +135,9 @@ private:
 	Parents stop incubating if their energy falls
 	below a hunger (minEnergy) threshold.
 	*/
-       	bool stopIncubating();
+    bool stopIncubating();
 
-       	/*
+    /*
 	Tests to see if the parent should stop foraging.
 	Parents stop foraging if their energy rises above
 	a satiation (maxEnergy) threshold.

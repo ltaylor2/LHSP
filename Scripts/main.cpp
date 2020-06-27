@@ -1,4 +1,5 @@
 #include <iostream>
+#include <thread>
 #include <fstream>
 #include <string>
 #include <vector>
@@ -13,16 +14,17 @@
 // TODO Make key global constants cmd line input parameters
 
 // The number of iterations for each model or parameter set of a given model
-constexpr static int ITERATIONS = 10000;
+constexpr static int ITERATIONS = 1000;
 
 // Unique (will overwrite) output file for each model run,
 // Sent to runModel()
-constexpr static char OUTPUT_FNAME_STANDARD[] = "sims_standard.txt";
+constexpr static char OUTPUT_DIR[] = "/home/lut2/project/LHSP/Output/";
+constexpr static char OUTPUT_FNAME_STANDARD[] = "sims_default.txt";
 constexpr static char OUTPUT_FNAME_OVERLAPRAND[] = "sims_overlapRand.txt";
 constexpr static char OUTPUT_FNAME_NOOVERLAP[] = "sims_noOverlap.txt";
-constexpr static char OUTPUT_FNAME_COMPENSATE[] = "sims_compensate.txt";
+constexpr static char OUTPUT_FNAME_COMPENSATE[] = "sims_compensate1.txt";
 constexpr static char OUTPUT_FNAME_COMPENSATE2[] = "sims_compensate2.txt";
-constexpr static char OUTPUT_FNAME_RETALIATE[] = "sims_retaliate.txt";
+constexpr static char OUTPUT_FNAME_RETALIATE[] = "sims_retaliate1.txt";
 constexpr static char OUTPUT_FNAME_RETALIATE2[] = "sims_retaliate2.txt";
 
 // Vectors that define the {min, max, by} values for 
@@ -31,7 +33,7 @@ constexpr static char OUTPUT_FNAME_RETALIATE2[] = "sims_retaliate2.txt";
 // and then send to runModel()
 constexpr static double P_MAX_ENERGY_THRESH[] = {0, 1000, 50};
 constexpr static double P_MIN_ENERGY_THRESH[] = {0, 1000, 50};
-constexpr static double P_FORAGING_MEAN[] = {130, 160, 3};
+constexpr static double P_FORAGING_MEAN[] = {130, 166, 3};
 
 // Need a single, static random generator device to let us only seed once
 static std::mt19937* randGen;
@@ -165,93 +167,107 @@ int main()
 	std::vector<double> v_minEnergyThresh = paramVector(P_MIN_ENERGY_THRESH);
 	std::vector<double> v_foragingMean = paramVector(P_FORAGING_MEAN);
 
-	std::cout << "Beginning STANDARD model run" << std::endl;
-
 	// Standard breeding season
-	runModel(ITERATIONS, 
-		 *breedingSeason, 
-		 OUTPUT_FNAME_STANDARD,
-		 v_maxEnergyThresh,
-		 v_minEnergyThresh,
-		 v_foragingMean);
-
-	std::cout << std::endl << "Done with STANDARD model run" << std::endl;
-	std::cout << "Beginning OVERLAP_RAND model run\n\n";
+	std::thread default_thread(runModel,
+		 					   ITERATIONS, 
+		 					   *breedingSeason, 
+		 					   OUTPUT_FNAME_STANDARD,
+					    	   v_maxEnergyThresh,
+		 					   v_minEnergyThresh,
+					    	   v_foragingMean);
+	std::cout << "Initiated DEFAULT Model Thread\n";
 
 	// Breeding season where partners switch randomly upon overlap
-	runModel(ITERATIONS, 
-		 *breedingSeason_overlapRand, 
-		 OUTPUT_FNAME_OVERLAPRAND,
-		 v_maxEnergyThresh,
-		 v_minEnergyThresh,
-		 v_foragingMean);
-
-	std::cout << std::endl << "Done with OVERLAP_RAND model run" << std::endl;
-	std::cout << "Beginning NO_OVERLAP model run\n\n";
+	std::thread overlapRand_thread(runModel,
+							 	   ITERATIONS, 
+							       *breedingSeason_overlapRand, 
+							       OUTPUT_FNAME_OVERLAPRAND,
+								   v_maxEnergyThresh,
+								   v_minEnergyThresh,
+								   v_foragingMean);
+	std::cout << "Initiated OVERLAP_RAND Model Thread\n";
 
 	/*
 	Breeding season where partners ignore one another,
 	just going about their business
 	*/
-	runModel(ITERATIONS, 
-			 *breedingSeason_noOverlap,
-			 OUTPUT_FNAME_NOOVERLAP,
-			 v_maxEnergyThresh,
-			 v_minEnergyThresh,
-			 v_foragingMean);
-
-	std::cout << std::endl << "Done with NO_OVERLAP model run" << std::endl;
-	std::cout << "Beginning COMPENSATION model run" << "\n\n";
+	std::thread noOverlap_thread(runModel,
+			 					 ITERATIONS, 
+			 					 *breedingSeason_noOverlap,
+			 					 OUTPUT_FNAME_NOOVERLAP,
+			 					 v_maxEnergyThresh,
+			 					 v_minEnergyThresh,
+			 					 v_foragingMean);
+	std::cout << "Initiated NO_OVERLAP Model Thread\n";
 
 	/*
 	Breeding season where a mate compensates (for one day)
 	by incubating longer iff its partner did not overlap last
 	incubation bout
 	*/
-	runModel(ITERATIONS, 
-		 *breedingSeason_compensate, 
-		 OUTPUT_FNAME_COMPENSATE,
-		 v_maxEnergyThresh,
-		 v_minEnergyThresh,
-		 v_foragingMean);
-
-	std::cout << "\n" << "Done with COMPENSATION model run\n";
-	std::cout << "Beginning COMPENSATION*2 model run" << "\n\n";
+	std::thread compensate1_thread(runModel,
+								   ITERATIONS, 
+								   *breedingSeason_compensate, 
+								   OUTPUT_FNAME_COMPENSATE,
+								   v_maxEnergyThresh,
+								   v_minEnergyThresh,
+								   v_foragingMean);
+	std::cout << "Initiated COMPENSATE_1 Model Thread\n";
 
 	// Compensation but for two days instead of one
-	runModel(ITERATIONS, 
-			 *breedingSeason_compensate2, 
-			 OUTPUT_FNAME_COMPENSATE2,
-			 v_maxEnergyThresh,
-			 v_minEnergyThresh,
-			 v_foragingMean);
-
-
-	std::cout << "\n" << "Done with COMPENSATION*2 model run\n";
-	std::cout << "Beginning RETALIATION model run" << "\n\n";
+	std::thread compensate2_thread(runModel,
+			 					   ITERATIONS, 
+			 					   *breedingSeason_compensate2, 
+			 					   OUTPUT_FNAME_COMPENSATE2,
+			 					   v_maxEnergyThresh,
+			 					   v_minEnergyThresh,
+			 					   v_foragingMean);
+	std::cout << "Initiated COMPENSATE_2 Model Thread\n";
 
 	/*
 	Breeding season where a mate retaliates (for one day)
 	by foraging longer iff its partner did not overlap laste
 	incubation bout 
 	*/ 
-	runModel(ITERATIONS, 
-		 *breedingSeason_retaliate, 
-		 OUTPUT_FNAME_RETALIATE,
-		 v_maxEnergyThresh,
-		 v_minEnergyThresh,
-		 v_foragingMean);
-
-	std::cout << "\n" << "Done with RETALIATION model run\n";
-	std::cout << "Beginning RETALIATION*2 model run" << "\n\n";
+	std::thread retaliate1_thread(runModel,
+		 						 ITERATIONS, 
+		 						 *breedingSeason_retaliate, 
+		 						 OUTPUT_FNAME_RETALIATE,
+		 						 v_maxEnergyThresh,
+		 						 v_minEnergyThresh,
+		 						 v_foragingMean);
+	std::cout << "Initiated RETALIATE_1 Model Thread\n";
 
 	// Retaliation but for two days instead of one
-	runModel(ITERATIONS, 
-		 *breedingSeason_retaliate2, 
-		 OUTPUT_FNAME_RETALIATE2,
-		 v_maxEnergyThresh,
-		 v_minEnergyThresh,
-		 v_foragingMean);
+	std::thread retaliate2_thread(runModel,
+		 						  ITERATIONS, 
+		 						  *breedingSeason_retaliate2, 
+		 						  OUTPUT_FNAME_RETALIATE2,
+		 						  v_maxEnergyThresh,
+		 						  v_minEnergyThresh,
+		 						  v_foragingMean);
+	std::cout << "Initiated RETALIATE_2 Model Thread\n";
+
+	default_thread.join();
+	std::cout << "Ended DEFAULT Model Thread\n";
+
+	overlapRand_thread.join();
+	std::cout << "Ended OVERLAP_RAND Model Thread\n";
+
+	noOverlap_thread.join();
+	std::cout << "Ended NO_OVERLAP Model Thread\n";
+
+	compensate1_thread.join();
+	std::cout << "Ended COMPENSATE_1 Model Thread\n";
+
+	compensate2_thread.join();
+	std::cout << "Ended COMPENSATE_2 Model Thread\n";
+
+	retaliate1_thread.join();
+	std::cout << "Ended RETALIATE_1 Model Thread\n";
+
+	retaliate2_thread.join();
+	std::cout << "Ended RETALIATE_2 Model Thread\n";
 
 	// Report output and exit
 	auto endTime = std::chrono::system_clock::now();
@@ -267,43 +283,45 @@ int main()
 }
 
 void runModel(int iterations, 
-	      void (*modelFunc)(Parent&, Parent&, Egg&), 
-	      std::string outfileName,
-	      std::vector<double> v_maxEnergyThresh,
-	      std::vector<double> v_minEnergyThresh,
-	      std::vector<double> v_foragingMean)
+	          void (*modelFunc)(Parent&, Parent&, Egg&), 
+	          std::string outfileName,
+	          std::vector<double> v_maxEnergyThresh,
+	          std::vector<double> v_minEnergyThresh,
+	          std::vector<double> v_foragingMean)
 {
 	// Start formatted output
 	std::ofstream outfile;
-	outfile.open("../Output/" + outfileName, std::ofstream::trunc);
+	outfile.open(OUTPUT_DIR + outfileName, std::ofstream::trunc);
 
 	// Header column for CSV format
 	outfile << "iterations" << ","
-		<< "maxEnergyThresh" << ","
-		<< "minEnergyThresh" << ","
-		<< "foragingMean" << ","
+			<< "maxEnergyThresh_F" << ","
+			<< "minEnergyThresh_F" << ","
+			<< "maxEnergyThresh_M" << ","
+			<< "minEnergyThresh_M" << ","
+			<< "foragingMean" << ","
 	    	<< "numSuccess" << ","
 	    	<< "numAllFail" << ","
        		<< "numParentFail" << ","
-		<< "numEggTimeFail" << ","
-		<< "numEggColdFail" << ","
-		<< "hatchDays" << ","
-		<< "totNeglect" << ","
-		<< "maxNeglect" << ","
-		<< "endEnergy_F" << ","
-		<< "meanEnergy_F" << ","
-		<< "varEnergy_F" << ","
-		<< "endEnergy_M" << ","
-		<< "meanEnergy_M" << ","
-		<< "varEnergy_M" << ","
-		<< "meanIncBout_F" << ","
-		<< "varIncBout_F" << ","
-		<< "meanForagingBout_F" << ","
-		<< "varForagingBout_F" << ","
-		<< "meanIncBout_M" << ","
-		<< "varIncBout_M" << ","
-		<< "meanForagingBout_M" << ","
-		<< "varForagingBout_M" << std::endl;
+			<< "numEggTimeFail" << ","
+			<< "numEggColdFail" << ","
+			<< "hatchDays" << ","
+			<< "totNeglect" << ","
+			<< "maxNeglect" << ","
+			<< "endEnergy_F" << ","
+			<< "meanEnergy_F" << ","
+			<< "varEnergy_F" << ","
+			<< "endEnergy_M" << ","
+			<< "meanEnergy_M" << ","
+			<< "varEnergy_M" << ","
+			<< "meanIncBout_F" << ","
+			<< "varIncBout_F" << ","
+			<< "meanForagingBout_F" << ","
+			<< "varForagingBout_F" << ","
+			<< "meanIncBout_M" << ","
+			<< "varIncBout_M" << ","
+			<< "meanForagingBout_M" << ","
+			<< "varForagingBout_M" << std::endl;
 
 	/*
 	Initialize output objects to store records from each parameter combo iteration
@@ -345,7 +363,7 @@ void runModel(int iterations,
 	std::vector<double> meanIncubationBouts_M = std::vector<double>();
 	std::vector<double> varIncubationBouts_M  = std::vector<double>();
 	std::vector<double> meanForagingBouts_M   = std::vector<double>();
-	std::vector<double> varForagingBouts_M   = std::vector<double>();
+	std::vector<double> varForagingBouts_M    = std::vector<double>();
 
 	/*
 	Total parameter space being searched
@@ -354,38 +372,44 @@ void runModel(int iterations,
 	So this space is reduced to that array 
 	*/
 	int totParamIterations = v_maxEnergyThresh.size() * 
-				 v_minEnergyThresh.size() * 
-				 v_foragingMean.size();
-	int paramIteration = 1;	// current parameter information
+				 			 v_minEnergyThresh.size() * 
+				 			 v_maxEnergyThresh.size() * 
+ 				 			 v_minEnergyThresh.size() * 
+				 			 v_foragingMean.size();
 
-	// For every maxEnergy vvalue
+	int currParamIteration = 0;
+	// For every maxEnergy value
 	for (unsigned int a = 0; a < v_maxEnergyThresh.size(); a++) {
-		double maxEnergyThresh = v_maxEnergyThresh[a];
+		double maxEnergyThresh_F = v_maxEnergyThresh[a];
 
 	// (then) for every minEnergy value
 	for (unsigned int b = 0; b < v_minEnergyThresh.size(); b++) {
-	    double minEnergyThresh = v_minEnergyThresh[b];
+	    double minEnergyThresh_F = v_minEnergyThresh[b];
+
+	for (unsigned int c = 0; c < v_maxEnergyThresh.size(); c++) {
+		double maxEnergyThresh_M = v_maxEnergyThresh[c];
+
+	for (unsigned int d = 0; d < v_minEnergyThresh.size(); d++) {
+		double minEnergyThresh_M = v_minEnergyThresh[d];
 
 	// (then, then) for every foraging mean value
-	for (unsigned int c = 0; c < v_foragingMean.size(); c++) {
-		double foragingMean = v_foragingMean[c];
+	for (unsigned int e = 0; e < v_foragingMean.size(); e++) {
+		double foragingMean = v_foragingMean[e];
 
-		// This is one set of parameters to test
-	    paramIteration++;	
+		// Mildly helpful progress update
+		currParamIteration++;
+		if (currParamIteration % (totParamIterations/10) == 0) {
+			std::cout << "Approximate progress of " 
+					  << outfileName
+					  << ": "
+					  << round((double)currParamIteration / totParamIterations*100) << "%" << std::endl;
+		}
 
 	    // Skip if hunger >= satiation (doesn't make sense!)
-	    if (minEnergyThresh >= maxEnergyThresh) {
+	    if (minEnergyThresh_F >= maxEnergyThresh_F | minEnergyThresh_M >= maxEnergyThresh_M) {
 	      	continue;
 	    }
 	    
-	    // Helpful output, but not TOO helpful
-		if (paramIteration % (totParamIterations/100) == 0) {
-			std::cout << "Searching parameter space of size " 
-		                  << totParamIterations
-		                  << " on combo " << paramIteration
-		                  << " (" << iterations << " iters per combo)\n";
-		}
-
 		// Replicate every parameter combination by i iterations
         for (int i = 0; i < iterations; i++) {
 
@@ -397,11 +421,11 @@ void runModel(int iterations,
 			Parent pm = Parent(Sex::male, randGen);
 
 			// Set both parent's parameters according to the new combo
-			pf.setMaxEnergyThresh(maxEnergyThresh);
-			pf.setMinEnergyThresh(minEnergyThresh);
+			pf.setMaxEnergyThresh(maxEnergyThresh_F);
+			pf.setMinEnergyThresh(minEnergyThresh_F);
 			pf.setForagingDistribution(foragingMean, pf.getForagingSD());
-			pm.setMaxEnergyThresh(maxEnergyThresh);
-			pm.setMinEnergyThresh(minEnergyThresh);
+			pm.setMaxEnergyThresh(maxEnergyThresh_M);
+			pm.setMinEnergyThresh(minEnergyThresh_M);
 			pm.setForagingDistribution(foragingMean, pm.getForagingSD());
 
 			// Run the given breeding season model function,
@@ -466,63 +490,67 @@ void runModel(int iterations,
         double meanMeanForagingBout_M = vectorMean(meanForagingBouts_M);			// Arith. mean of mean foraging bout length (male)
         double meanVarForagingBout_M  = vectorMean(varForagingBouts_M);				// Arith. mean of variance in foraging bout length (male)
 
-        // Write output in CSV formatted               	// All summarized across all iterations for these parameters
-	outfile << iterations << ","			// Number of iterations for this parameter combo
-		<< maxEnergyThresh << ","		// Max energy threshold (satiation) for both parents
-		<< minEnergyThresh << ","		// Min energy threshold (hunger) for both parents
-		<< foragingMean << ","			// Mean of foraging intake normal distribution for both parents
-	    	<< numSuccess << ","			// # successful breeding iterations (egg hatched, both parents lived)
-	    	<< numAllFail << ","			// # total failure iterations (egg died or failed to hatch, parent(s) died)
-      		<< numParentFail << ","			// # parent death iterations (one or both parents)
-		<< numEggTimeFail << ","		// # egg hatch fail iterations (reached time limit, too much total neglect)
-		<< numEggColdFail << ","		// # egg cold fail iterations (too much consecutive neglect)
-		<< meanHatchDays << ","			// Mean egg age when season ended 
-		<< meanTotNeglect << ","		// Mean total neglect across the season
-		<< meanMaxNeglect << ","		// Mean maximum neglect streak
-		<< meanEndEnergy_F << ","		// Mean final energy (female)
-		<< meanMeanEnergy_F << ","		// Mean of mean energy across season (female)
-		<< meanVarEnergy_F << ","		// Mean of variance in energy across season (female)
-		<< meanEndEnergy_M << ","		// Mean final energy (male)
-		<< meanMeanEnergy_M << ","		// Mean of mean energy across season (male)
-		<< meanVarEnergy_M << ","		// Mean of variance in energy across season (male)
-		<< meanMeanIncBout_F << ","		// Mean of mean incubation bout length (female)
-		<< meanVarIncBout_F << ","		// Mean of variance in incubation bout length (female) 
-		<< meanMeanForagingBout_F << ","	// Mean of mean foraging bout length (female)
-		<< meanVarForagingBout_F << ","		// Mean of variance in foraging bout length (male)
-		<< meanMeanIncBout_M << ","		// Mean of mean incubation bout length (male)
-		<< meanVarIncBout_M << ","		// Mean of variance in incubation bout length (male)
-		<< meanMeanForagingBout_M << ","	// Mean of mean foraging bout length (male) 
-		<< meanVarForagingBout_M << std::endl;  // Mean of variance in foraging bout length (male)
+   		// Write output in CSV formatted        		// All summarized across all iterations for these parameters
+		outfile << iterations << ","					// Number of iterations for this parameter combo
+				<< maxEnergyThresh_F << ","				// Max energy threshold (satiation) for female parent
+				<< minEnergyThresh_F << ","				// Min energy threshold (hunger) for female parent
+				<< maxEnergyThresh_M << ","				// Max energy threshold (satiation) for male parent
+				<< minEnergyThresh_M << ","				// Min energy threshold (hunger) for male parent
+				<< foragingMean << ","					// Mean of foraging intake normal distribution for both parents
+	    		<< numSuccess << ","					// # successful breeding iterations (egg hatched, both parents lived)
+	    		<< numAllFail << ","					// # total failure iterations (egg died or failed to hatch, parent(s) died)
+      			<< numParentFail << ","					// # parent death iterations (one or both parents)
+				<< numEggTimeFail << ","				// # egg hatch fail iterations (reached time limit, too much total neglect)
+				<< numEggColdFail << ","				// # egg cold fail iterations (too much consecutive neglect)
+				<< meanHatchDays << ","					// Mean egg age when season ended 
+				<< meanTotNeglect << ","				// Mean total neglect across the season
+				<< meanMaxNeglect << ","				// Mean maximum neglect streak
+				<< meanEndEnergy_F << ","				// Mean final energy (female)
+				<< meanMeanEnergy_F << ","				// Mean of mean energy across season (female)
+				<< meanVarEnergy_F << ","				// Mean of variance in energy across season (female)
+				<< meanEndEnergy_M << ","				// Mean final energy (male)
+				<< meanMeanEnergy_M << ","				// Mean of mean energy across season (male)
+				<< meanVarEnergy_M << ","				// Mean of variance in energy across season (male)
+				<< meanMeanIncBout_F << ","				// Mean of mean incubation bout length (female)
+				<< meanVarIncBout_F << ","				// Mean of variance in incubation bout length (female) 
+				<< meanMeanForagingBout_F << ","		// Mean of mean foraging bout length (female)
+				<< meanVarForagingBout_F << ","			// Mean of variance in foraging bout length (male)
+				<< meanMeanIncBout_M << ","				// Mean of mean incubation bout length (male)
+				<< meanVarIncBout_M << ","				// Mean of variance in incubation bout length (male)
+				<< meanMeanForagingBout_M << ","		// Mean of mean foraging bout length (male) 
+				<< meanVarForagingBout_M << std::endl;  // Mean of variance in foraging bout length (male)
 
-	// Clear all output storage vectors for next param combo
-	hatchResults.clear();
-        hatchDays.clear();
-        totNeglect.clear();
-        maxNeglect.clear();
-        
-      	energy_F.clear();
-      	endEnergy_F.clear();
-      	meanEnergy_F.clear();
-      	varEnergy_F.clear();
+		// Clear all output storage vectors for next param combo
+		hatchResults.clear();
+	    hatchDays.clear();
+	    totNeglect.clear();
+	    maxNeglect.clear();
+	        
+		energy_F.clear();
+		endEnergy_F.clear();
+		meanEnergy_F.clear();
+		varEnergy_F.clear();
 
-        energy_M.clear();
-        endEnergy_M.clear();
-      	meanEnergy_M.clear();
-      	varEnergy_M.clear();
+		energy_M.clear();
+    	endEnergy_M.clear();
+   		meanEnergy_M.clear();
+    	varEnergy_M.clear();
 
-      	meanIncubationBouts_F.clear();
-      	varIncubationBouts_F.clear();
+  		meanIncubationBouts_F.clear();
+   		varIncubationBouts_F.clear();
 
-      	meanForagingBouts_F.clear();
-      	varForagingBouts_F.clear();
+   		meanForagingBouts_F.clear();
+   		varForagingBouts_F.clear();
 
-      	meanIncubationBouts_M.clear();
-      	varIncubationBouts_M.clear();
+   		meanIncubationBouts_M.clear();
+   		varIncubationBouts_M.clear();
 
-      	meanForagingBouts_M.clear();
-      	varForagingBouts_M.clear();
+   		meanForagingBouts_M.clear();
+   		varForagingBouts_M.clear();
 
 	}	// ENDING PARAMETER LOOPS
+	}
+	}
 	}
 	}
 
