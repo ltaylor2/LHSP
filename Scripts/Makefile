@@ -1,15 +1,15 @@
-CXXFLAGS=-g -std=c++11 -Wall -pedantic
+CXXFLAGS=-g -std=c++11 -pthread
 BIN=lhsp
 
 SRC=$(wildcard *.cpp)
 OBJ=$(SRC:%.cpp=%.o)
 
 all: $(OBJ)
-	$(CXX) -o $(BIN) $^
+	$(CXX) -pthread -o $(BIN) $^
 
 %.o: %.c
 	$(CXX) $@ -c $<
 
 clean:
 	rm -f *.o
-	rm $(BIN)
+	rm -f $(BIN)
