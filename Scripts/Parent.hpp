@@ -4,7 +4,6 @@
 #include <random>
 #include <chrono>
 #include <iostream>
-tested
 
 enum class Sex { male, female };
 enum class State { incubating, foraging };
