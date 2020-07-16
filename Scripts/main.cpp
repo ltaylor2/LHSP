@@ -6,6 +6,7 @@
 #include <random>
 #include <chrono>
 #include <unistd.h>
+#include <getopt.h>
 
 #include "Util.hpp"
 #include "Egg.hpp"
@@ -150,7 +151,7 @@ takes the address of the correct behavioral breeding season model
 as its second parameter.
 Make sure to send the correct OUTPUT_FNAME to each runModel() call!
 */
-int main()
+int main(int argc, char** argv)
 {
 	// Record model timing to help me know which computer is the fanciest
 	auto startTime = std::chrono::system_clock::now();
@@ -160,126 +161,238 @@ int main()
 	std::mt19937 r = std::mt19937(seed);
 	randGen = &r;
 
-	std::cout << "\n\n\nBeginning model runs\n\n\n";
+	int iterations = -1;
+	std::string care = "";
+	std::string behavior = "";
+	double minHunger = -1;
+	double maxHunger = -1;
+	double stepHunger = -1;
+	double minSatiation = -1;
+	double maxSatiation = -1;
+	double stepSatiation = -1;
+	double minEnvironment = -1;
+	double maxEnvironment = -1;
+	double stepEnvironment = -1;
+	std::string outfile = "";
 
-	// Generate a vector of parameter values from {min, max, by} arrays
-	std::vector<double> v_maxEnergyThresh = paramVector(P_MAX_ENERGY_THRESH);
-	std::vector<double> v_minEnergyThresh = paramVector(P_MIN_ENERGY_THRESH);
-	std::vector<double> v_foragingMean = paramVector(P_FORAGING_MEAN);
+	static struct option options[] = {
+		{"iterations", required_argument, NULL, 'i'},
+		{"care", required_argument, NULL, 'c'},
+		{"behavior", required_argument, NULL, 'b'},
+		{"hunger", required_argument, NULL, 'h'},
+		{"satiation", required_argument, NULL, 's'},
+		{"environment", required_argument, NULL, 'e'},
+		{"outfile", required_argument, NULL, 'o'}
+	};
 
-	// Standard breeding season
-	std::thread default_thread(runModel,
-		 					   ITERATIONS, 
-		 					   *breedingSeason, 
-		 					   OUTPUT_FNAME_STANDARD,
-					    	   v_maxEnergyThresh,
-		 					   v_minEnergyThresh,
-					    	   v_foragingMean);
-	std::cout << "Initiated DEFAULT Model Thread\n";
+	int c = 0;
+	int optIndex = 0;
+	std::string s = "";
+	int firstDelim = -1;
+	int secondDelim = -1;
+	while ((c = getopt_long(argc, argv, "icbhseo:", options, &optIndex)) != -1) {
+		switch(c) {
+		case 'i':
+			iterations = atoi(optarg);
+			break;
+		case 'c': 
+			care = (std::string)optarg;
+			break;
+		case 'b': 
+			behavior = (std::string)optarg;
+			break;
+		case 'h': 
+			s = std::string(optarg);
+			firstDelim = s.find(',');
+			secondDelim = s.find(",", firstDelim+1);
+			minHunger = stod(s.substr(0, firstDelim));
+			maxHunger = stod(s.substr(firstDelim+1, secondDelim));
+			stepHunger = stod(s.substr(secondDelim+1, s.length()));
+			break;
+		case 's': 
+			s = std::string(optarg);
+			firstDelim = s.find(",");
+			secondDelim = s.find(",", firstDelim+1);
+			minSatiation = stod(s.substr(0, firstDelim));
+			maxSatiation = stod(s.substr(firstDelim+1, secondDelim));
+			stepSatiation = stod(s.substr(secondDelim+1, s.length()));
+			break;
+		case 'e': 
+			s = std::string(optarg);
+			firstDelim = s.find(",");
+			secondDelim = s.find(",", firstDelim+1);
+			minEnvironment = stod(s.substr(0, firstDelim));
+			maxEnvironment = stod(s.substr(firstDelim+1, secondDelim));
+			stepEnvironment = stod(s.substr(secondDelim+1, s.length()));
+			break;
+		case 'o': 
+			outfile = std::string(optarg);
+			break;
+		}
+	}
+	if (iterations == -1 ||
+		care == "" ||
+		behavior == "" ||
+		minEnvironment == -1 ||
+		maxEnvironment == -1 ||
+		stepEnvironment == -1 ||
+		outfile == "") {
 
-	// Breeding season where partners switch randomly upon overlap
-	std::thread overlapRand_thread(runModel,
-							 	   ITERATIONS, 
-							       *breedingSeason_overlapRand, 
-							       OUTPUT_FNAME_OVERLAPRAND,
-								   v_maxEnergyThresh,
-								   v_minEnergyThresh,
-								   v_foragingMean);
-	std::cout << "Initiated OVERLAP_RAND Model Thread\n";
+		std::cerr << "Missing a required argument."
+				  << std::endl 
+				  << "Specification requires: "
+				  << std::endl
+				  << "\t --iterations (int)"
+				  << std::endl
+				  << "\t --care (uniparental | bi-supplemental | bi-provisioned | biparental)"
+				  << std::endl
+				  << "\t --behavior (standard | rand-switch | overlap | retaliation | compensation)"
+				  << std::endl
+				  << "\t --hunger (min,max,step)"
+				  << std::endl
+				  << "\t --satiation (min,max,step)"
+				  << std::endl
+				  << "\t --environment (min,max,step)"
+				  << std::endl
+				  << "\t --outfile (char)"
+				  << std::endl;
+		exit(-1);
+	} else {
+		std::cout << "Incubation model with "
+				  << care << " care, "
+				  << behavior << " behavior, "
+				  << "and " << iterations << " iterations per season."
+				  << std::endl
+				  << "Stepping through parameters:"
+				  << std::endl
+				  << "\tHunger: {" << minHunger << "," << maxHunger << "," << stepHunger << "}"
+				  << std::endl
+				  << "\tSatiation: {" << minSatiation << "," << maxSatiation << "," << stepSatiation << "}"
+				  << std::endl
+				  << "\tEnvironment: {" << minEnvironment << "," << maxEnvironment << "," << stepEnvironment << "}"
+				  << std::endl
+				  << "Writing results to file" << outfile
+				  << std::endl
+				  << "Beginning run! Hang tight." << std::endl << std::endl;  
+	}
+	// // Generate a vector of parameter values from {min, max, by} arrays
+	// std::vector<double> v_maxEnergyThresh = paramVector(P_MAX_ENERGY_THRESH);
+	// std::vector<double> v_minEnergyThresh = paramVector(P_MIN_ENERGY_THRESH);
+	// std::vector<double> v_foragingMean = paramVector(P_FORAGING_MEAN);
 
-	/*
-	Breeding season where partners ignore one another,
-	just going about their business
-	*/
-	std::thread noOverlap_thread(runModel,
-			 					 ITERATIONS, 
-			 					 *breedingSeason_noOverlap,
-			 					 OUTPUT_FNAME_NOOVERLAP,
-			 					 v_maxEnergyThresh,
-			 					 v_minEnergyThresh,
-			 					 v_foragingMean);
-	std::cout << "Initiated NO_OVERLAP Model Thread\n";
+	// // Standard breeding season
+	// std::thread default_thread(runModel,
+	// 	 					   ITERATIONS, 
+	// 	 					   *breedingSeason, 
+	// 	 					   OUTPUT_FNAME_STANDARD,
+	// 				    	   v_maxEnergyThresh,
+	// 	 					   v_minEnergyThresh,
+	// 				    	   v_foragingMean);
+	// std::cout << "Initiated DEFAULT Model Thread\n";
 
-	/*
-	Breeding season where a mate compensates (for one day)
-	by incubating longer iff its partner did not overlap last
-	incubation bout
-	*/
-	std::thread compensate1_thread(runModel,
-								   ITERATIONS, 
-								   *breedingSeason_compensate, 
-								   OUTPUT_FNAME_COMPENSATE,
-								   v_maxEnergyThresh,
-								   v_minEnergyThresh,
-								   v_foragingMean);
-	std::cout << "Initiated COMPENSATE_1 Model Thread\n";
+	// // Breeding season where partners switch randomly upon overlap
+	// std::thread overlapRand_thread(runModel,
+	// 						 	   ITERATIONS, 
+	// 						       *breedingSeason_overlapRand, 
+	// 						       OUTPUT_FNAME_OVERLAPRAND,
+	// 							   v_maxEnergyThresh,
+	// 							   v_minEnergyThresh,
+	// 							   v_foragingMean);
+	// std::cout << "Initiated OVERLAP_RAND Model Thread\n";
 
-	// Compensation but for two days instead of one
-	std::thread compensate2_thread(runModel,
-			 					   ITERATIONS, 
-			 					   *breedingSeason_compensate2, 
-			 					   OUTPUT_FNAME_COMPENSATE2,
-			 					   v_maxEnergyThresh,
-			 					   v_minEnergyThresh,
-			 					   v_foragingMean);
-	std::cout << "Initiated COMPENSATE_2 Model Thread\n";
+	// /*
+	// Breeding season where partners ignore one another,
+	// just going about their business
+	// */
+	// std::thread noOverlap_thread(runModel,
+	// 		 					 ITERATIONS, 
+	// 		 					 *breedingSeason_noOverlap,
+	// 		 					 OUTPUT_FNAME_NOOVERLAP,
+	// 		 					 v_maxEnergyThresh,
+	// 		 					 v_minEnergyThresh,
+	// 		 					 v_foragingMean);
+	// std::cout << "Initiated NO_OVERLAP Model Thread\n";
 
-	/*
-	Breeding season where a mate retaliates (for one day)
-	by foraging longer iff its partner did not overlap laste
-	incubation bout 
-	*/ 
-	std::thread retaliate1_thread(runModel,
-		 						 ITERATIONS, 
-		 						 *breedingSeason_retaliate, 
-		 						 OUTPUT_FNAME_RETALIATE,
-		 						 v_maxEnergyThresh,
-		 						 v_minEnergyThresh,
-		 						 v_foragingMean);
-	std::cout << "Initiated RETALIATE_1 Model Thread\n";
+	// /*
+	// Breeding season where a mate compensates (for one day)
+	// by incubating longer iff its partner did not overlap last
+	// incubation bout
+	// */
+	// std::thread compensate1_thread(runModel,
+	// 							   ITERATIONS, 
+	// 							   *breedingSeason_compensate, 
+	// 							   OUTPUT_FNAME_COMPENSATE,
+	// 							   v_maxEnergyThresh,
+	// 							   v_minEnergyThresh,
+	// 							   v_foragingMean);
+	// std::cout << "Initiated COMPENSATE_1 Model Thread\n";
 
-	// Retaliation but for two days instead of one
-	std::thread retaliate2_thread(runModel,
-		 						  ITERATIONS, 
-		 						  *breedingSeason_retaliate2, 
-		 						  OUTPUT_FNAME_RETALIATE2,
-		 						  v_maxEnergyThresh,
-		 						  v_minEnergyThresh,
-		 						  v_foragingMean);
-	std::cout << "Initiated RETALIATE_2 Model Thread\n";
+	// // Compensation but for two days instead of one
+	// std::thread compensate2_thread(runModel,
+	// 		 					   ITERATIONS, 
+	// 		 					   *breedingSeason_compensate2, 
+	// 		 					   OUTPUT_FNAME_COMPENSATE2,
+	// 		 					   v_maxEnergyThresh,
+	// 		 					   v_minEnergyThresh,
+	// 		 					   v_foragingMean);
+	// std::cout << "Initiated COMPENSATE_2 Model Thread\n";
 
-	default_thread.join();
-	std::cout << "Ended DEFAULT Model Thread\n";
+	// /*
+	// Breeding season where a mate retaliates (for one day)
+	// by foraging longer iff its partner did not overlap laste
+	// incubation bout 
+	// */ 
+	// std::thread retaliate1_thread(runModel,
+	// 	 						 ITERATIONS, 
+	// 	 						 *breedingSeason_retaliate, 
+	// 	 						 OUTPUT_FNAME_RETALIATE,
+	// 	 						 v_maxEnergyThresh,
+	// 	 						 v_minEnergyThresh,
+	// 	 						 v_foragingMean);
+	// std::cout << "Initiated RETALIATE_1 Model Thread\n";
 
-	overlapRand_thread.join();
-	std::cout << "Ended OVERLAP_RAND Model Thread\n";
+	// // Retaliation but for two days instead of one
+	// std::thread retaliate2_thread(runModel,
+	// 	 						  ITERATIONS, 
+	// 	 						  *breedingSeason_retaliate2, 
+	// 	 						  OUTPUT_FNAME_RETALIATE2,
+	// 	 						  v_maxEnergyThresh,
+	// 	 						  v_minEnergyThresh,
+	// 	 						  v_foragingMean);
+	// std::cout << "Initiated RETALIATE_2 Model Thread\n";
 
-	noOverlap_thread.join();
-	std::cout << "Ended NO_OVERLAP Model Thread\n";
+	// default_thread.join();
+	// std::cout << "Ended DEFAULT Model Thread\n";
 
-	compensate1_thread.join();
-	std::cout << "Ended COMPENSATE_1 Model Thread\n";
+	// overlapRand_thread.join();
+	// std::cout << "Ended OVERLAP_RAND Model Thread\n";
 
-	compensate2_thread.join();
-	std::cout << "Ended COMPENSATE_2 Model Thread\n";
+	// noOverlap_thread.join();
+	// std::cout << "Ended NO_OVERLAP Model Thread\n";
 
-	retaliate1_thread.join();
-	std::cout << "Ended RETALIATE_1 Model Thread\n";
+	// compensate1_thread.join();
+	// std::cout << "Ended COMPENSATE_1 Model Thread\n";
 
-	retaliate2_thread.join();
-	std::cout << "Ended RETALIATE_2 Model Thread\n";
+	// compensate2_thread.join();
+	// std::cout << "Ended COMPENSATE_2 Model Thread\n";
 
-	// Report output and exit
-	auto endTime = std::chrono::system_clock::now();
-	std::chrono::duration<double> runTime = endTime - startTime;
+	// retaliate1_thread.join();
+	// std::cout << "Ended RETALIATE_1 Model Thread\n";
 
-	// Congrats you survived! I hope the storm-petrels did too.
-	std::cout << "All model output written" 
-		  	  << std::endl
-		      << "Runtime in "
-		      << runTime.count() << " s."
-	  	      << std::endl;
-	return 0;
+	// retaliate2_thread.join();
+	// std::cout << "Ended RETALIATE_2 Model Thread\n";
+
+	// // Report output and exit
+	// auto endTime = std::chrono::system_clock::now();
+	// std::chrono::duration<double> runTime = endTime - startTime;
+
+	// // Congrats you survived! I hope the storm-petrels did too.
+	// std::cout << "All model output written" 
+	// 	  	  << std::endl
+	// 	      << "Runtime in "
+	// 	      << runTime.count() << " s."
+	//   	      << std::endl;
+	// return 0;
 }
 
 void runModel(int iterations, 
