@@ -23,7 +23,7 @@ constexpr static char OUTPUT_FNAME_BI[] = "sims_bi.txt";
 
 constexpr static double P_MAX_ENERGY_THRESH[] = {0, 1000, 200};
 constexpr static double P_MIN_ENERGY_THRESH[] = {0, 1000, 200};
-constexpr static double P_FORAGING_MEAN[] = {100, 200, 10};
+constexpr static double P_FORAGING_MEAN[] = {130, 200, 10};
 
 // Need a single, static random generator device to let us only seed once
 static std::mt19937* randGen;
@@ -268,9 +268,18 @@ void runModel(int iterations,
 			varEnergy_F.push_back(vectorVar(energy_F));					      // Variance in energy across season (female)
 
 			energy_M = pm.getEnergyRecord();							            // Full energy record (male)
-			endEnergy_M.push_back(energy_M[energy_M.size()-1]);			  // Final energy value (male)
-			meanEnergy_M.push_back(vectorMean(energy_M));				      // Arith. mean energy across season (male)
-			varEnergy_M.push_back(vectorVar(energy_M));					      // Variance in enegy across season (male)
+
+      // uniparental runs don't accumulate an energy record for the male, so just push
+      //   the starting energy
+      if (energy_M.size() == 0) {
+        endEnergy_M.push_back(pm.getEnergy());
+        meanEnergy_M.push_back(pm.getEnergy());
+        varEnergy_M.push_back(0);
+      } else {
+        endEnergy_M.push_back(energy_M[energy_M.size()-1]);			  // Final energy value (male)
+			  meanEnergy_M.push_back(vectorMean(energy_M));				      // Arith. mean energy across season (male)
+			  varEnergy_M.push_back(vectorVar(energy_M));					      // Variance in enegy across season (male)
+      }
 
 			std::vector<int> currIncubationBouts_F = pf.getIncubationBouts();	// Incubation bout lengths (female)
 			std::vector<int> currForagingBouts_F = pf.getForagingBouts();		  // Foraging bout lengths (female)
@@ -389,6 +398,7 @@ void breedingSeason_uni(Parent& pf, Parent& pm, Egg& egg)
 
 	// The female pays the initial cost of the egg
 	pf.setEnergy(pf.getEnergy() - egg.getEggCost());
+
 
 	/*
 	main breeding season loop, which ticks forward in DAYS
