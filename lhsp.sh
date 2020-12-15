@@ -1,9 +1,9 @@
 #!/bin/bash
-#SBATCH -p general
-#SBATCH -c 10
+#SBATCH -p scavenge
+#SBATCH -c 3
 #SBATCH --mem-per-cpu 6000
-#SBATCH -t 20:00:00 
-#SBATCH -J lhspSims 
+#SBATCH -t 5:00:00
+#SBATCH -J lhspSims
 #SBATCH -o lhsp_system.out
 #SBATCH -e lhsp_error.out
 #SBATCH --mail-type ALL
