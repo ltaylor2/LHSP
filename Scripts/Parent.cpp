@@ -3,6 +3,7 @@
 Parent::Parent(Sex sex_, std::mt19937* randGen_):
 	sex(sex_),
 	alive(true),
+  isSupplemental(false),
 	randGen(randGen_),
 	energy(BASE_ENERGY),
 	baseEnergy(BASE_ENERGY),
@@ -12,13 +13,8 @@ Parent::Parent(Sex sex_, std::mt19937* randGen_):
 	minEnergyThresh(MIN_ENERGY_THRESHOLD),
 	foragingMean(FORAGING_MEAN),
 	foragingSD(FORAGING_SD),
-	foragingDistribution(std::normal_distribution<double>(foragingMean, 
-							      foragingSD)),
-	shouldCompensate(false),
-	shouldRetaliate(false),
-	didOverlap(false),
-	reactDelay(REACT_DELAY),
-	currReactDelay(0),
+	foragingDistribution(std::normal_distribution<double>(foragingMean,
+							         foragingSD)),
 	energyRecord(std::vector<double>()),
 	incubationDays(0),
 	incubationBouts(std::vector<int>()),
@@ -27,7 +23,7 @@ Parent::Parent(Sex sex_, std::mt19937* randGen_):
 	firstBout(true)
 {
 	/*
-	Male begin the incubation period incubating, females begin foraging 
+	Male begin the incubation period incubating, females begin foraging
 	*/
 	this->state = State::incubating;
 	this->previousDayState = State::incubating;
@@ -43,19 +39,38 @@ void Parent::parentDay()
 {
 	// Record energy values for each day
 	energyRecord.push_back(this->energy);
-	
+
 	// Did the parent die?
 	if (this->energy <= 0) {
 		this->alive = false;
 	}
 
-	// Act out state behavior
-	if (this->state == State::incubating) {
-		incubate();
-	} else if (this->state == State::foraging) {
-		forage();
-	}
+  // If this is a supplemental foraging parent, foraging deliveries are returned separately
+  if (this->isSupplemental) {
+    // reset delivered energy for each day
+    //    (stays 0 if the parent is still foraging)
+    this->deliveredEnergy = 0;
 
+    // Supplemental parents forage every day
+    forage();
+
+    // If the parent has hit the satitation threshold at the end of its last foraging bout,
+    //  it returns to the nest to drop off food (here we use the normal "incubating")
+    //  state from the full parental model as a key, extract the energy from the parent,
+    //  and then send it back on its way
+    if (this->state == State::incubating) {
+      this->deliveredEnergy = this->energy - this->minEnergyThresh;
+      this->energy = this->minEnergyThresh;
+      changeState();
+    }
+  }
+  else {
+    if (this->state == State::incubating) {
+      incubate();
+	  } else if (this->state == State::foraging) {
+		  forage();
+	  }
+  }
 }
 
 void Parent::changeState()
@@ -130,42 +145,27 @@ void Parent::forage()
 }
 
 
-bool Parent::stopIncubating() 
+bool Parent::stopIncubating()
 {
 	// Deterministic boolean minimum threshold
-	if (this->energy < minEnergyThresh) {
-		/*
-		If the parent should compensate, stay an extra day regardless
-		of energy level.
-		*/
-		if (shouldCompensate && !didOverlap && currReactDelay < reactDelay) {
-			currReactDelay++;
-		} else {
-			didOverlap = false;
-			currReactDelay = 0;
-
-			// Stop incubating
-			return true;
-		}
+	if (this->energy <= minEnergyThresh) {
+    // Stop incubating
+		return true;
 	}
+
 	// Don't stop incubating
 	return false;
 }
 
-bool Parent::stopForaging() 
+bool Parent::stopForaging()
 {
 	// Deterministic boolean maximum threshold
-	if (this->energy > maxEnergyThresh && this->foragingDays > 1) {
-		if (shouldRetaliate && !didOverlap && currReactDelay < reactDelay) {
-			currReactDelay++;
-		} else {
-			currReactDelay = 0;
-
-			// Stop foraging
-			return true;
-		}
+	if (this->energy >= maxEnergyThresh && this->foragingDays > 1) {
+    // Stop foraging
+    return true;
 	}
-	// Don't stop foraging
+
+  // Don't stop foraging
 	return false;
 }
 
@@ -183,10 +183,10 @@ std::string Parent::getStrState() {
 }
 
 void Parent::setForagingDistribution(double foragingMean_, double foragingSD_)
-{ 
+{
 	this->foragingMean = foragingMean_;
 	this->foragingSD = foragingSD_;
 
-	this->foragingDistribution = 
-		std::normal_distribution<double>(foragingMean_, foragingSD_); 
+	this->foragingDistribution =
+		std::normal_distribution<double>(foragingMean_, foragingSD_);
 }

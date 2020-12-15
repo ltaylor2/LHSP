@@ -16,7 +16,7 @@ class Parent {
 
 public:
 
-	/* 
+	/*
 	Constructor
 	@param sex_ sex of the bird (enum, male or female)
 	@param randGen_ ptr to a single-seeded random number device
@@ -28,7 +28,7 @@ public:
 	If incubating, incubate.
 	If foraging, forage.
 	See individual functions for state-specific details.
-	*/	
+	*/
 	void parentDay();
 
 	/*
@@ -36,7 +36,7 @@ public:
 	thresholds for state changes have actually been tested.
 	*/
 	void changeState();
-	
+
 	// Setters
 	void setState(State state_) { this->state = state_ ; }
 	void setEnergy(double energy_) { this->energy = energy_; }
@@ -46,10 +46,10 @@ public:
 	void setMaxEnergyThresh(double maxEnergyThresh_) { this->maxEnergyThresh = maxEnergyThresh_; }
 	void setMinEnergyThresh(double minEnergyThresh_) { this->minEnergyThresh = minEnergyThresh_; }
 	void setForagingDistribution(double foragingMean_, double foragingSD_);
-	void setShouldCompensate(bool shouldCompensate_) { this->shouldCompensate = shouldCompensate_; }
-	void setShouldRetaliate(bool shouldRetaliate_) { this->shouldRetaliate = shouldRetaliate_; }
 	void setDidOverlap(bool didOverlap_) { this->didOverlap = didOverlap_; }
-	void setReactDelay(int reactDelay_) { this->reactDelay = reactDelay_; }
+  void setSupplementalParent(bool isSupplemental_) { this->isSupplemental = isSupplemental_; }
+
+  void receiveEnergy(double delivery_) { this->energy = this->energy + delivery_; }
 
 	// Getters
 	Sex getSex() { return this->sex; }
@@ -70,6 +70,8 @@ public:
 	std::vector<int> getIncubationBouts() { return this->incubationBouts; }
 	std::vector<int> getForagingBouts() { return this->foragingBouts; }
 
+  double deliverEnergy() { return this->deliveredEnergy; }
+
 private:
 	/*
 	Parameters for the mean and standard deviation for foraging,
@@ -83,19 +85,19 @@ private:
 	Initial energy buffer at the beginning of the incubation season (kJ)
 	Derived from the mean energy adults had at the beginning of observed
 	incubation bouts in Ricklefs et al. (1986)
-	*/ 
+	*/
 	constexpr static double BASE_ENERGY = 766;
 
 	/*
 	Metabolic rate requirements while incubating and foraging (kJ/day)
-	From Ricklefs et al. (1986) 
+	From Ricklefs et al. (1986)
 	and further discussion in Montevecchi et al. (1992)
 	*/
 	constexpr static double INCUBATING_METABOLISM = 52;
 	constexpr static double FORAGING_METABOLISM = 123;
 
-	/* 
-	The deterministic threshold above which foraging ceases 
+	/*
+	The deterministic threshold above which foraging ceases
 	(at the end of the day), here equaling the mean amount of energy at
 	which parents were found to start incubating (BASE_ENERGY)
 	*/
@@ -107,78 +109,49 @@ private:
 	foraging for a day.
 	*/
 	constexpr static double MIN_ENERGY_THRESHOLD = FORAGING_METABOLISM;
-	
+
 	constexpr static int REACT_DELAY = 1;
 
-   	/*
-   	A day of incubation behavior while in the incubating state.
-   	While in the nesting burrow, the adult loses a set amount of energy
-   	to metabolism, and can gain no energy.
-   	Incubation deterministically stops when the energy of the 
-   	adult passes below a strict threshold
-   	*/
-   	void incubate();
+	void incubate();
+	void forage();
 
-   	/*
-   	A day of foraging behavior while in the foraging state.
-   	On the foraging grounds, the adult loses a set amount
-   	of energy to metabolism, but gains a stochastic amount of energy
-   	from a normal distribution of metabolic intake values.
-   	foraging deterministically stops when the energy of the adult
-   	passes above strict threshold.
-   	*/
-  	void forage();
+  bool stopIncubating();
+ 	bool stopForaging();
 
-	/*
-	Tests to see if the parent should stop incubating.
-	Parents stop incubating if their energy falls
-	below a hunger (minEnergy) threshold.
-	*/
-    bool stopIncubating();
+  Sex sex;				                  // individual's sex
+  bool alive;				                // is the parent alive?
+  bool isSupplemental;              // is this a supplemental (foraging delivery) parent?
+	std::mt19937* randGen;			      // ptr to random device
 
-    /*
-	Tests to see if the parent should stop foraging.
-	Parents stop foraging if their energy rises above
-	a satiation (maxEnergy) threshold.
-	*/
-   	bool stopForaging();
+  State state;				              // current state
+  State previousDayState;			      // state during the previous day
 
-   	Sex sex;				// individual's sex
-   	bool alive;				// is the parent alive?
-	std::mt19937* randGen;			// ptr to random device
+  double energy;				            // current energy value (kJ)
 
-   	State state;				// current state
-   	State previousDayState;			// state during the previous day
+  double baseEnergy;			          // starting energy value
+  double incubatingMetabolism;		  // daily metabolism cost for incubation
+  double foragingMetabolism;		    // daily metabolism cost for foraging
 
-   	double energy;				// current energy value (kJ)
+  double maxEnergyThresh;			      // satiation threshold (foraging->incubating)
+  double minEnergyThresh;			      // hunger threshold (incubating->foraging)
 
-   	double baseEnergy;			// starting energy value
-   	double incubatingMetabolism;		// daily metabolism cost for incubation
-   	double foragingMetabolism;		// daily metabolism cost for foraging
+  double foragingMean;			        // mean for distribution of foraging intake values
+  double foragingSD;                // standard deviation for distribution of foraging intake values
 
-   	double maxEnergyThresh;			// satiation threshold (foraging->incubating)
-   	double minEnergyThresh;			// hunger threshold (incubating->foraging)
-
-   	double foragingMean;			// mean for distribution of foraging intake values
-   	double foragingSD;			// standard deviation for distribution of foraging intake values
+  double deliveredEnergy;           // The delivered energy at the end of a foraging bout.
 
 	// Normal distribution to draw stochastic foraging energy intakes
-   	std::normal_distribution<double> foragingDistribution;
+  std::normal_distribution<double> foragingDistribution;
 
-   	bool shouldCompensate;			// is the parent set for a compensation meta-strategy?
-   	bool shouldRetaliate;			// is the parent set for a retaliation meta-strategy?
-   	bool didOverlap;			// did the last incubation bout end in an overlap?
+  bool didOverlap;			            // did the last incubation bout end in an overlap?
+  
+  std::vector<double> energyRecord;	// energy values across all days
 
-   	int reactDelay;				// how long of an additional delay for compensation but retaliation?
-   	int currReactDelay;			// how is the current delay for a compensating or retaliating parent?
+  int incubationDays;			          // current consecutive incubation days
+  std::vector<int> incubationBouts;	// incubation bout record
 
-   	std::vector<double> energyRecord;	// energy values across all days
+  int foragingDays;			            // current consecutive foraging days
+  std::vector<int> foragingBouts;		// foraging bout record
 
-   	int incubationDays;			// current consecutive incubation days
-   	std::vector<int> incubationBouts;	// incubation bout record
-
-   	int foragingDays;			// current consecutive foraging days
-   	std::vector<int> foragingBouts;		// foraging bout record
-
-   	bool firstBout;				// is it the adult's first bout?
+  bool firstBout;				            // is it the adult's first bout?
 };
