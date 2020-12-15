@@ -21,9 +21,9 @@ constexpr static char OUTPUT_FNAME_UNI[] = "sims_uni.txt";
 constexpr static char OUTPUT_FNAME_SEMI[] = "sims_semi.txt";
 constexpr static char OUTPUT_FNAME_BI[] = "sims_bi.txt";
 
-constexpr static double P_MAX_ENERGY_THRESH[] = {0, 1000, 200};
-constexpr static double P_MIN_ENERGY_THRESH[] = {0, 1000, 200};
-constexpr static double P_FORAGING_MEAN[] = {130, 200, 10};
+constexpr static double P_MAX_ENERGY_THRESH[] = {0, 1000, 50};
+constexpr static double P_MIN_ENERGY_THRESH[] = {0, 1000, 50};
+constexpr static double P_FORAGING_MEAN[] = {130, 330, 10};
 
 // Need a single, static random generator device to let us only seed once
 static std::mt19937* randGen;
