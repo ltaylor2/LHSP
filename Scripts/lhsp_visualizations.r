@@ -11,8 +11,8 @@ setwd("/home/lut2/project/LHSP/")
 
 theme_lt <- theme_bw() +
 		theme(panel.grid = element_blank(),
-		      axis.text = element_text(size=10, family="Sans"),
-		      axis.title = element_text(size=12, family="Sans"),
+		      axis.text = element_text(size=10),
+		      axis.title = element_text(size=12),
 		      axis.title.y = element_text(angle=90, margin=margin(r=15)),
 		      axis.title.x = element_text(margin=margin(t=15)))
 
@@ -30,6 +30,8 @@ resultsBi <- read_csv("Output/sims_bi.txt", col_names=TRUE) %>%
 
 resultsAll <- bind_rows(resultsUni, resultsSemi, resultsBi) %>%
 	         mutate(hatchRate = numSuccess/iterations,
+                  deathRate = numParentFail/iterations,
+                  failRate = (numAllFail+numEggTimeFail+numEggColdFail)/iterations,
                   gEnergy_F = meanEnergy_F - varEnergy_F / (2*meanEnergy_F),
                   gEnergy_M = meanEnergy_M - varEnergy_M / (2*meanEnergy_M),
                   gEnergy_OVERALL = gEnergy_F + gEnergy_M / 2,
@@ -40,28 +42,111 @@ resultsAll <- bind_rows(resultsUni, resultsSemi, resultsBi) %>%
                   strategy_OVERALL = paste(strategy_F, strategy_M, sep="--"),
                   ID = paste(strategy_OVERALL, model, sep="---"))
 
-resultsBest <- resultsAll %>%
-            select(strategy_OVERALL, model, ID, foragingMean, gEnergy_F, hatchRate) %>%
-            filter(foragingMean < 300) %>%
-            group_by(model, foragingMean) %>%
-            top_n(50, hatchRate) %>%
-            sample_n(50, replace=FALSE)
+resultsMeans <- resultsAll %>%
+             select(model, foragingMean, meanEnergy_F, varEnergy_F, failRate, deathRate, totNeglect, maxNeglect, hatchRate) %>%
+             filter(foragingMean < 300) %>%
+             group_by(model, foragingMean) %>%
+             summarize_all(mean, na.rm=TRUE)
 
-plot_hatchRate <- ggplot(resultsBest) +
-               geom_point(aes(x=foragingMean, y=hatchRate, color=model), alpha=0.5) +
-               geom_smooth(aes(x=foragingMean, y=hatchRate, color=model), alpha=0.8, method="loess") +
-               scale_color_colorblind() +
-               theme_lt
+plot_totNeglect <- ggplot(resultsMeans) +
+                geom_point(aes(x=foragingMean, y=totNeglect, color=model), alpha=0.5) +
+                geom_line(aes(x=foragingMean, y=totNeglect, color=model), alpha=0.8) +
+                geom_vline(aes(xintercept=163), linetype="dashed", colour="lightgray") +
+                scale_color_colorblind() +
+                ggtitle("Total egg neglect") +
+                guides(color=FALSE) +
+                theme_lt +
+                theme(axis.title.y=element_blank(),
+                      axis.text.y=element_blank(),
+                      axis.ticks.y=element_blank(),
+                      axis.ticks.x=element_blank(),
+                      axis.text.x=element_blank(),
+                      axis.title.x=element_blank())
 
-plot_energyF <- ggplot(resultsBest) +
-             geom_point(aes(x=foragingMean, y=gEnergy_F, color=model), alpha=0.5) +
-             geom_smooth(aes(x=foragingMean, y=gEnergy_F, color=model), alpha=0.8, method="loess") +
+plot_meanF <- ggplot(resultsMeans) +
+             geom_point(aes(x=foragingMean, y=meanEnergy_F, color=model), alpha=0.5) +
+             geom_line(aes(x=foragingMean, y=meanEnergy_F, color=model), alpha=0.8) +
+             geom_vline(aes(xintercept=163), linetype="dashed", colour="lightgray") +
              scale_color_colorblind() +
-             theme_lt
+             ggtitle("Mean female energy") +
+             guides(color=FALSE) +
+             theme_lt +
+             theme(axis.title.y=element_blank(),
+                   axis.text.y=element_blank(),
+                   axis.ticks.y=element_blank(),
+                   axis.ticks.x=element_blank(),
+                   axis.text.x=element_blank(),
+                   axis.title.x=element_blank())
 
-plots <- plot_grid(plot_hatchRate, plot_energyF, nrow=2)
+plot_varF <- ggplot(resultsMeans) +
+             geom_point(aes(x=foragingMean, y=varEnergy_F, color=model), alpha=0.5) +
+             geom_line(aes(x=foragingMean, y=varEnergy_F, color=model), alpha=0.8) +
+             geom_vline(aes(xintercept=163), linetype="dashed", colour="lightgray") +
+             scale_color_colorblind(breaks=c("uni", "semi", "bi"),
+                                    labels=c("uni"="Female only", "semi"="Female + Male provisioning", "bi"="Biparental")) +
+             ggtitle("Variance female energy") +
+             guides(color=guide_legend(fill=NA)) +
+             theme_lt +
+             theme(axis.title.y=element_blank(),
+                   axis.text.y=element_blank(),
+                   axis.ticks.y=element_blank(),
+                   axis.ticks.x=element_blank(),
+                   axis.text.x=element_blank(),
+                   axis.title.x=element_blank(),
+                   legend.title=element_blank(),
+                   legend.position=c(0.2, 0.6),
+                   legend.margin=margin(0))
 
-ggsave(plots, file="Figures/preview.png", width=6, height=6, unit="in")
+plot_fail <- ggplot(resultsMeans) +
+          geom_point(aes(x=foragingMean, y=failRate, color=model), alpha=0.5) +
+          geom_line(aes(x=foragingMean, y=failRate, color=model), alpha=0.8) +
+          geom_vline(aes(xintercept=163), linetype="dashed", colour="lightgray") +
+          scale_y_continuous(limits=c(0, 1)) +
+          scale_color_colorblind() +
+          ggtitle("Egg failure rate") +
+          guides(color=FALSE) +
+          theme_lt +
+          theme(axis.title.y=element_blank(),
+                axis.text.y=element_blank(),
+                axis.ticks.y=element_blank(),
+                axis.ticks.x=element_blank(),
+                axis.text.x=element_blank(),
+                axis.title.x=element_blank())
+
+plot_death <- ggplot(resultsMeans) +
+             geom_point(aes(x=foragingMean, y=deathRate, color=model), alpha=0.5) +
+             geom_line(aes(x=foragingMean, y=deathRate, color=model), alpha=0.8) +
+             geom_vline(aes(xintercept=163), linetype="dashed", colour="lightgray") +
+             scale_y_continuous(limits=c(0, 1)) +
+             scale_color_colorblind() +
+             ggtitle("Parent death rate") +
+             guides(color=FALSE) +
+             theme_lt +
+             theme(axis.title.y=element_blank(),
+                   axis.text.y=element_blank(),
+                   axis.ticks.y=element_blank(),
+                   axis.ticks.x=element_blank(),
+                   axis.text.x=element_blank(),
+                   axis.title.x=element_blank())
+
+plot_hatchRate <- ggplot(resultsMeans) +
+               geom_point(aes(x=foragingMean, y=hatchRate, color=model), alpha=0.5) +
+               geom_line(aes(x=foragingMean, y=hatchRate, color=model), alpha=0.8) +
+               geom_vline(aes(xintercept=163), linetype="dashed", colour="lightgray") +
+               scale_y_continuous(limits=c(0, 1)) +
+               scale_color_colorblind() +
+               ggtitle("Hatch rate") +
+               guides(color=FALSE) +
+               xlab("Mean foraging calories per day (\"Environmental Condition\")") +
+               theme_lt +
+               theme(axis.title.y=element_blank(),
+                     axis.text.y=element_blank(),
+                     axis.ticks.y=element_blank())
+
+
+plots <- plot_grid(plot_totNeglect, plot_meanF, plot_varF, plot_fail, plot_death, plot_hatchRate, nrow=6)
+
+ggsave(plots, file="Figures/lhsp_preview.png", width=6, height=10, unit="in")
 
 
 
