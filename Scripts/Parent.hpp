@@ -144,7 +144,7 @@ private:
   std::normal_distribution<double> foragingDistribution;
 
   bool didOverlap;			            // did the last incubation bout end in an overlap?
-  
+
   std::vector<double> energyRecord;	// energy values across all days
 
   int incubationDays;			          // current consecutive incubation days

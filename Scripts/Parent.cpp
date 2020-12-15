@@ -31,7 +31,6 @@ Parent::Parent(Sex sex_, std::mt19937* randGen_):
 	if (this->sex == Sex::female) {
 		this->state = State::foraging;
 		this->previousDayState = State::foraging;
-		didOverlap = true;
 	}
 }
 
@@ -86,10 +85,6 @@ void Parent::changeState()
 		this->state = State::foraging;
 
 		firstBout = false;
-
-		// Overlap values are overwritten if the overlap
-		// actually occurs in the breadingSeason() function.
-		didOverlap = false;
 
 	// Switch from foraging to incubating
 	} else if (this->state == State::foraging) {
