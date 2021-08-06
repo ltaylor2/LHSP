@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH -p scavenge
-#SBATCH -c 3
-#SBATCH --mem-per-cpu 6000
+#SBATCH -c 4
+#SBATCH --mem-per-cpu 5000
 #SBATCH -t 12:00:00
 #SBATCH -J lhspSims
 #SBATCH -o lhsp_system.out

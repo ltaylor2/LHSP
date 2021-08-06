@@ -13,13 +13,14 @@
 
 // TODO Make key global constants cmd line input parameters
 
-constexpr static int ITERATIONS = 10;
+constexpr static int ITERATIONS = 10000;
 
 // Unique (will overwrite) output file for each model run,
 constexpr static char OUTPUT_DIR[] = "/home/liam/Documents/LHSP/Output/";
 constexpr static char OUTPUT_FNAME_UNI[] = "sims_uni.txt";
 constexpr static char OUTPUT_FNAME_SEMI[] = "sims_semi.txt";
 constexpr static char OUTPUT_FNAME_BI[] = "sims_bi.txt";
+constexpr static char OUTPUT_FNAME_BINC[] = "sims_binc.txt";
 
 constexpr static double P_MAX_ENERGY_THRESH[] = {0, 1000, 50};
 constexpr static double P_MIN_ENERGY_THRESH[] = {0, 1000, 50};
@@ -39,6 +40,7 @@ void runModel(int iterations,
 void breedingSeason_uni(Parent& pf, Parent& pm, Egg& egg);
 void breedingSeason_semi(Parent& pf, Parent& pm, Egg& egg);
 void breedingSeason_bi(Parent& pf, Parent& pm, Egg& egg);
+void breedingSeason_binc(Parent& pf, Parent& pm, Egg& egg);
 
 int main()
 {
@@ -85,6 +87,17 @@ int main()
 					    	        v_foragingMean);
 	std::cout << "Initiated BI Model Thread\n";
 
+
+  std::thread binc_thread(runModel,
+		 					            ITERATIONS,
+		 					            *breedingSeason_binc,
+		 					            OUTPUT_FNAME_BINC,
+					    	          v_maxEnergyThresh,
+		 					            v_minEnergyThresh,
+					    	          v_foragingMean);
+	std::cout << "Initiated BINC Model Thread\n";
+
+
 	uni_thread.join();
 	std::cout << "Ended UNI Model Thread\n";
 
@@ -93,6 +106,9 @@ int main()
 
   bi_thread.join();
 	std::cout << "Ended BI Model Thread\n";
+
+	binc_thread.join();
+	std::cout << "Ended BINC Model Thread\n";
 
 	// Report output and exit
 	auto endTime = std::chrono::system_clock::now();
@@ -519,5 +535,37 @@ void breedingSeason_bi(Parent& pf, Parent& pm, Egg& egg)
 				}
 			}
 		}
+	}
+}
+
+void breedingSeason_binc(Parent& pf, Parent& pm, Egg& egg)
+{
+
+	// The female pays the initial cost of the egg
+	pf.setEnergy(pf.getEnergy() - egg.getEggCost());
+
+	/*
+	main breeding season loop, which ticks forward in DAYS
+	Breeding season lasts until the egg hatches succesfully, or
+ 	if the egg hits the hard cut-off of incubation days due to
+ 	accumulated neglect
+	*/
+  while (!egg.isHatched() && (egg.getIncubationDays() <= egg.getMaxHatchDays())) {
+
+		// Check if either is incubating
+		bool incubated = false;
+		if (pf.getState() == State::incubating || pm.getState() == State::incubating) {
+
+			incubated = true;
+		}
+
+		// Egg behavior based on incubation
+		egg.eggDay(incubated);
+
+		// Parent behavior, including state change
+		pf.parentDay();
+		pm.parentDay();
+
+		// No overlap condition!
 	}
 }
