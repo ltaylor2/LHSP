@@ -7,7 +7,7 @@ library(broom)
 library(cowplot)
 library(ggthemes)
 
-setwd("/home/lut2/project/LHSP/")
+setwd("~/Documents/LHSP/")
 
 theme_lt <- theme_bw() +
 		theme(panel.grid = element_blank(),
