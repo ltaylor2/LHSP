@@ -13,7 +13,7 @@
 
 // TODO Make key global constants cmd line input parameters
 
-constexpr static int ITERATIONS = 10000;
+constexpr static int ITERATIONS = 1000;
 
 // Unique (will overwrite) output file for each model run,
 constexpr static char OUTPUT_DIR[] = "/home/liam/Documents/LHSP/Output/";
