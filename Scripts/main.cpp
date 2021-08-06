@@ -13,10 +13,10 @@
 
 // TODO Make key global constants cmd line input parameters
 
-constexpr static int ITERATIONS = 1000;
+constexpr static int ITERATIONS = 10;
 
 // Unique (will overwrite) output file for each model run,
-constexpr static char OUTPUT_DIR[] = "/home/lut2/project/LHSP/Output/";
+constexpr static char OUTPUT_DIR[] = "/home/liam/Documents/LHSP/Output/";
 constexpr static char OUTPUT_FNAME_UNI[] = "sims_uni.txt";
 constexpr static char OUTPUT_FNAME_SEMI[] = "sims_semi.txt";
 constexpr static char OUTPUT_FNAME_BI[] = "sims_bi.txt";
