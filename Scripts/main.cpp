@@ -16,11 +16,11 @@
 constexpr static int ITERATIONS = 1000;
 
 // Unique (will overwrite) output file for each model run,
-constexpr static char OUTPUT_DIR[] = "/home/liam/Documents/LHSP/Output/";
+constexpr static char OUTPUT_DIR[] = "/home/lut2/project/LHSP/Output/";
 constexpr static char OUTPUT_FNAME_UNI[] = "sims_uni.txt";
-constexpr static char OUTPUT_FNAME_SEMI[] = "sims_semi.txt";
-constexpr static char OUTPUT_FNAME_BI[] = "sims_bi.txt";
-constexpr static char OUTPUT_FNAME_BINC[] = "sims_binc.txt";
+constexpr static char OUTPUT_FNAME_SUP[] = "sims_sup.txt";
+constexpr static char OUTPUT_FNAME_BIU[] = "sims_biu.txt";
+constexpr static char OUTPUT_FNAME_BIC[] = "sims_bic.txt";
 
 constexpr static double P_MAX_ENERGY_THRESH[] = {0, 1000, 50};
 constexpr static double P_MIN_ENERGY_THRESH[] = {0, 1000, 50};
@@ -38,9 +38,9 @@ void runModel(int iterations,
 	            std::vector<double> v_foragingMean);
 
 void breedingSeason_uni(Parent& pf, Parent& pm, Egg& egg);
-void breedingSeason_semi(Parent& pf, Parent& pm, Egg& egg);
-void breedingSeason_bi(Parent& pf, Parent& pm, Egg& egg);
-void breedingSeason_binc(Parent& pf, Parent& pm, Egg& egg);
+void breedingSeason_sup(Parent& pf, Parent& pm, Egg& egg);
+void breedingSeason_biu(Parent& pf, Parent& pm, Egg& egg);
+void breedingSeason_bic(Parent& pf, Parent& pm, Egg& egg);
 
 int main()
 {
@@ -69,46 +69,46 @@ int main()
 					    	         v_foragingMean);
 	std::cout << "Initiated UNI Model Thread\n";
 
-  std::thread semi_thread(runModel,
-		 					            ITERATIONS,
-		 					            *breedingSeason_semi,
-		 					            OUTPUT_FNAME_SEMI,
-					    	          v_maxEnergyThresh,
-		 					            v_minEnergyThresh,
-					    	          v_foragingMean);
-	std::cout << "Initiated SEMI Model Thread\n";
+  std::thread sup_thread(runModel,
+		 					           ITERATIONS,
+		 					           *breedingSeason_sup,
+		 					           OUTPUT_FNAME_SUP,
+					    	         v_maxEnergyThresh,
+		 					           v_minEnergyThresh,
+					    	         v_foragingMean);
+	std::cout << "Initiated SUP Model Thread\n";
 
-  std::thread bi_thread(runModel,
-		 					          ITERATIONS,
-		 					          *breedingSeason_bi,
-		 					          OUTPUT_FNAME_BI,
-					    	        v_maxEnergyThresh,
-		 					          v_minEnergyThresh,
-					    	        v_foragingMean);
-	std::cout << "Initiated BI Model Thread\n";
+  std::thread biu_thread(runModel,
+		 					           ITERATIONS,
+		 					           *breedingSeason_biu,
+		 					           OUTPUT_FNAME_BIU,
+					    	         v_maxEnergyThresh,
+		 					           v_minEnergyThresh,
+					    	         v_foragingMean);
+	std::cout << "Initiated BIU Model Thread\n";
 
 
-  std::thread binc_thread(runModel,
-		 					            ITERATIONS,
-		 					            *breedingSeason_binc,
-		 					            OUTPUT_FNAME_BINC,
-					    	          v_maxEnergyThresh,
-		 					            v_minEnergyThresh,
-					    	          v_foragingMean);
-	std::cout << "Initiated BINC Model Thread\n";
+  std::thread bic_thread(runModel,
+		 					           ITERATIONS,
+		 					           *breedingSeason_bic,
+		 					           OUTPUT_FNAME_BIC,
+					    	         v_maxEnergyThresh,
+		 					           v_minEnergyThresh,
+					    	         v_foragingMean);
+	std::cout << "Initiated BIC Model Thread\n";
 
 
 	uni_thread.join();
 	std::cout << "Ended UNI Model Thread\n";
 
-  semi_thread.join();
-	std::cout << "Ended SEMI Model Thread\n";
+  sup_thread.join();
+	std::cout << "Ended SUP Model Thread\n";
 
-  bi_thread.join();
-	std::cout << "Ended BI Model Thread\n";
+  biu_thread.join();
+	std::cout << "Ended BIU Model Thread\n";
 
-	binc_thread.join();
-	std::cout << "Ended BINC Model Thread\n";
+	bic_thread.join();
+	std::cout << "Ended BIC Model Thread\n";
 
 	// Report output and exit
 	auto endTime = std::chrono::system_clock::now();
@@ -141,9 +141,8 @@ void runModel(int iterations,
 			    << "maxEnergyThresh_M" << ","
 			    << "minEnergyThresh_M" << ","
 			    << "foragingMean" << ","
-	    	  << "numSuccess" << ","
+	    	  << "numHatched" << ","
 	    	  << "numAllFail" << ","
-       	  << "numParentFail" << ","
 			    << "numEggTimeFail" << ","
 			    << "numEggColdFail" << ","
 			    << "hatchDays" << ","
@@ -152,9 +151,11 @@ void runModel(int iterations,
 			    << "endEnergy_F" << ","
 			    << "meanEnergy_F" << ","
 			    << "varEnergy_F" << ","
+			    << "meanDeadCounter_F" << ","
 			    << "endEnergy_M" << ","
 			    << "meanEnergy_M" << ","
 			    << "varEnergy_M" << ","
+			    << "meanDeadCounter_M" << ","
 			    << "meanIncBout_F" << ","
 			    << "varIncBout_F" << ","
 			    << "meanForagingBout_F" << ","
@@ -183,16 +184,18 @@ void runModel(int iterations,
 	std::vector<int> maxNeglect      = std::vector<int>();
 
 	// Female energy parameters to track
-	std::vector<double> energy_F     = std::vector<double>();
-	std::vector<double> endEnergy_F  = std::vector<double>();
-	std::vector<double> meanEnergy_F = std::vector<double>();
-	std::vector<double> varEnergy_F  = std::vector<double>();
+	std::vector<double> energy_F       = std::vector<double>();
+	std::vector<double> endEnergy_F    = std::vector<double>();
+	std::vector<double> meanEnergy_F   = std::vector<double>();
+	std::vector<double> varEnergy_F    = std::vector<double>();
+	std::vector<int> deadCounters_F 	 = std::vector<int>();
 
 	// Male energy parameters to track
-	std::vector<double> energy_M     = std::vector<double>();
-	std::vector<double> endEnergy_M  = std::vector<double>();
-	std::vector<double> meanEnergy_M = std::vector<double>();
-	std::vector<double> varEnergy_M  = std::vector<double>();
+	std::vector<double> energy_M       = std::vector<double>();
+	std::vector<double> endEnergy_M    = std::vector<double>();
+	std::vector<double> meanEnergy_M   = std::vector<double>();
+	std::vector<double> varEnergy_M    = std::vector<double>();
+	std::vector<int> deadCounters_M 	 = std::vector<int>();
 
 	// Female bouts-length information to track
 	std::vector<double> meanIncubationBouts_F = std::vector<double>();
@@ -222,16 +225,12 @@ void runModel(int iterations,
 	// For every maxEnergy value
 	for (unsigned int a = 0; a < v_maxEnergyThresh.size(); a++) {
 		double maxEnergyThresh_F = v_maxEnergyThresh[a];
+		double maxEnergyThresh_M = v_maxEnergyThresh[a];
 
 	// (then) for every minEnergy value
 	for (unsigned int b = 0; b < v_minEnergyThresh.size(); b++) {
 	    double minEnergyThresh_F = v_minEnergyThresh[b];
-
-	for (unsigned int c = 0; c < v_maxEnergyThresh.size(); c++) {
-		double maxEnergyThresh_M = v_maxEnergyThresh[c];
-
-	for (unsigned int d = 0; d < v_minEnergyThresh.size(); d++) {
-		double minEnergyThresh_M = v_minEnergyThresh[d];
+	    double minEnergyThresh_M = v_minEnergyThresh[b];
 
 	// (then, then) for every foraging mean value
 	for (unsigned int e = 0; e < v_foragingMean.size(); e++) {
@@ -282,6 +281,7 @@ void runModel(int iterations,
 			endEnergy_F.push_back(energy_F[energy_F.size()-1]);			  // Final energy value (female)
 			meanEnergy_F.push_back(vectorMean(energy_F));				      // Arithmetic mean energy across season (female)
 			varEnergy_F.push_back(vectorVar(energy_F));					      // Variance in energy across season (female)
+			deadCounters_F.push_back(pf.getDeadCounter());
 
 			energy_M = pm.getEnergyRecord();							            // Full energy record (male)
 
@@ -291,10 +291,12 @@ void runModel(int iterations,
         endEnergy_M.push_back(pm.getEnergy());
         meanEnergy_M.push_back(pm.getEnergy());
         varEnergy_M.push_back(0);
+        deadCounters_M.push_back(0);
       } else {
         endEnergy_M.push_back(energy_M[energy_M.size()-1]);			  // Final energy value (male)
 			  meanEnergy_M.push_back(vectorMean(energy_M));				      // Arith. mean energy across season (male)
 			  varEnergy_M.push_back(vectorVar(energy_M));					      // Variance in enegy across season (male)
+      	deadCounters_M.push_back(pm.getDeadCounter());
       }
 
 			std::vector<int> currIncubationBouts_F = pf.getIncubationBouts();	// Incubation bout lengths (female)
@@ -317,9 +319,8 @@ void runModel(int iterations,
     }
 
     // Calculate Summary results across all iterations of parameter combos  		      // All summarized across all iterations for these parameters
-    int numSuccess                = isolateHatchResults(hatchResults, "success");		  // # iteration successful hatch w/ living parents
+    int numHatched                = isolateHatchResults(hatchResults, "hatched");		  // # iteration successful hatch w/ living parents
     int numAllFail                = isolateHatchResults(hatchResults, "allFail");		  // # iterations where parent(s) died and egg failed
-    int numParentFail             = isolateHatchResults(hatchResults, "parentFail");	// # iterations parent(s) died
     int numEggTimeFail            = isolateHatchResults(hatchResults, "eggTimeFail");	// # iterations parents lived but egg failed from time limit
     int numEggColdFail            = isolateHatchResults(hatchResults, "eggColdFail");	// # iterations parents lived but egg failed from consecutive neglect
     double meanHatchDays          = vectorMean(hatchDays);					                  // Arith. mean egg age (across iterations)
@@ -328,9 +329,11 @@ void runModel(int iterations,
     double meanEndEnergy_F        = vectorMean(endEnergy_F);				                  // Arith. mean final energy (female)
     double meanMeanEnergy_F       = vectorMean(meanEnergy_F);				                  // Arith. mean of mean energies (female)
     double meanVarEnergy_F        = vectorMean(varEnergy_F);				                  // Arith. mean of variance in energy (female)
+    double meanDeadCounter_F		  = vectorMean(deadCounters_F);												// Arith. mean days dead (female)
     double meanEndEnergy_M        = vectorMean(endEnergy_M);				                  // Arith. mean of final energy (male)
     double meanMeanEnergy_M       = vectorMean(meanEnergy_M);				                  // Arith. mean of mean energies (male)
     double meanVarEnergy_M        = vectorMean(varEnergy_M);				                  // Arith. mean of variance in energy (male)
+    double meanDeadCounter_M			= vectorMean(deadCounters_M);												// Arith. mean days dead (male)
     double meanMeanIncBout_F      = vectorMean(meanIncubationBouts_F);			          // Arith. mean of mean incubation bout length (female)
     double meanVarIncBout_F       = vectorMean(varIncubationBouts_F);			            // Arith. mean of variance in incubation bout lengths (female)
     double meanMeanForagingBout_F = vectorMean(meanForagingBouts_F);			            // Arith. mean of mean foraging bout length (female)
@@ -347,9 +350,8 @@ void runModel(int iterations,
             << maxEnergyThresh_M << ","		          // Max energy threshold (satiation) for male parent
             << minEnergyThresh_M << ","		          // Min energy threshold (hunger) for male parent
             << foragingMean << ","				          // Mean of foraging intake normal distribution for both parents
-            << numSuccess << ","					          // # successful breeding iterations (egg hatched, both parents lived)
+            << numHatched << ","					          // # successful breeding iterations (egg hatched, both parents lived)
             << numAllFail << ","					          // # total failure iterations (egg died or failed to hatch, parent(s) died)
-            << numParentFail << ","				          // # parent death iterations (one or both parents)
             << numEggTimeFail << ","			          // # egg hatch fail iterations (reached time limit, too much total neglect)
             << numEggColdFail << ","			          // # egg cold fail iterations (too much consecutive neglect)
             << meanHatchDays << ","				          // Mean egg age when season ended
@@ -358,9 +360,11 @@ void runModel(int iterations,
             << meanEndEnergy_F << ","			          // Mean final energy (female)
             << meanMeanEnergy_F << ","		          // Mean of mean energy across season (female)
             << meanVarEnergy_F << ","			          // Mean of variance in energy across season (female)
+            << meanDeadCounter_F << ","							// Mean days dead (female)
             << meanEndEnergy_M << ","			          // Mean final energy (male)
             << meanMeanEnergy_M << ","		          // Mean of mean energy across season (male)
             << meanVarEnergy_M << ","			          // Mean of variance in energy across season (male)
+            << meanDeadCounter_M << ","							// Mean days dead (male)
             << meanMeanIncBout_F << ","		          // Mean of mean incubation bout length (female)
             << meanVarIncBout_F << ","		          // Mean of variance in incubation bout length (female)
             << meanMeanForagingBout_F << ","		    // Mean of mean foraging bout length (female)
@@ -380,11 +384,13 @@ void runModel(int iterations,
 		endEnergy_F.clear();
 		meanEnergy_F.clear();
 		varEnergy_F.clear();
+		deadCounters_F.clear();
 
 		energy_M.clear();
     endEnergy_M.clear();
    	meanEnergy_M.clear();
     varEnergy_M.clear();
+    deadCounters_M.clear();
 
   	meanIncubationBouts_F.clear();
    	varIncubationBouts_F.clear();
@@ -401,8 +407,6 @@ void runModel(int iterations,
 	}	// ENDING PARAMETER LOOPS
 	}
 	}
-	}
-	}
 
 	// Close file and exit
 	outfile.close();
@@ -414,8 +418,8 @@ void breedingSeason_uni(Parent& pf, Parent& pm, Egg& egg)
 
 	// The female pays the initial cost of the egg
 	pf.setEnergy(pf.getEnergy() - egg.getEggCost());
-
-
+	pf.setState(State::incubating);
+	
 	/*
 	main breeding season loop, which ticks forward in DAYS
 	Breeding season lasts until the egg hatches succesfully, or
@@ -437,13 +441,16 @@ void breedingSeason_uni(Parent& pf, Parent& pm, Egg& egg)
   }
 }
 
-void breedingSeason_semi(Parent& pf, Parent& pm, Egg& egg)
+void breedingSeason_sup(Parent& pf, Parent& pm, Egg& egg)
 {
 
 	// The female pays the initial cost of the egg
 	pf.setEnergy(pf.getEnergy() - egg.getEggCost());
 
   pm.setSupplementalParent(true);
+
+  pf.setState(State::incubating);
+  pm.setState(State::foraging);
 
 	/*
 	main breeding season loop, which ticks forward in DAYS
@@ -471,7 +478,39 @@ void breedingSeason_semi(Parent& pf, Parent& pm, Egg& egg)
   }
 }
 
-void breedingSeason_bi(Parent& pf, Parent& pm, Egg& egg)
+void breedingSeason_biu(Parent& pf, Parent& pm, Egg& egg)
+{
+
+	// The female pays the initial cost of the egg
+	pf.setEnergy(pf.getEnergy() - egg.getEggCost());
+
+	/*
+	main breeding season loop, which ticks forward in DAYS
+	Breeding season lasts until the egg hatches succesfully, or
+ 	if the egg hits the hard cut-off of incubation days due to
+ 	accumulated neglect
+	*/
+  while (!egg.isHatched() && (egg.getIncubationDays() <= egg.getMaxHatchDays())) {
+
+		// Check if either is incubating
+		bool incubated = false;
+		if (pf.getState() == State::incubating || pm.getState() == State::incubating) {
+
+			incubated = true;
+		}
+
+		// Egg behavior based on incubation
+		egg.eggDay(incubated);
+
+		// Parent behavior, including state change
+		pf.parentDay();
+		pm.parentDay();
+
+		// No overlap condition!
+	}
+}
+
+void breedingSeason_bic(Parent& pf, Parent& pm, Egg& egg)
 {
 
 	// The female pays the initial cost of the egg
@@ -535,37 +574,5 @@ void breedingSeason_bi(Parent& pf, Parent& pm, Egg& egg)
 				}
 			}
 		}
-	}
-}
-
-void breedingSeason_binc(Parent& pf, Parent& pm, Egg& egg)
-{
-
-	// The female pays the initial cost of the egg
-	pf.setEnergy(pf.getEnergy() - egg.getEggCost());
-
-	/*
-	main breeding season loop, which ticks forward in DAYS
-	Breeding season lasts until the egg hatches succesfully, or
- 	if the egg hits the hard cut-off of incubation days due to
- 	accumulated neglect
-	*/
-  while (!egg.isHatched() && (egg.getIncubationDays() <= egg.getMaxHatchDays())) {
-
-		// Check if either is incubating
-		bool incubated = false;
-		if (pf.getState() == State::incubating || pm.getState() == State::incubating) {
-
-			incubated = true;
-		}
-
-		// Egg behavior based on incubation
-		egg.eggDay(incubated);
-
-		// Parent behavior, including state change
-		pf.parentDay();
-		pm.parentDay();
-
-		// No overlap condition!
 	}
 }

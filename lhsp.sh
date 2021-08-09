@@ -1,11 +1,11 @@
 #!/bin/bash
-#SBATCH -p scavenge
+#SBATCH -p general 
 #SBATCH -c 4
 #SBATCH --mem-per-cpu 5000
 #SBATCH -t 12:00:00
 #SBATCH -J lhspSims
-#SBATCH -o lhsp_system.out
-#SBATCH -e lhsp_error.out
+#SBATCH -o sysOut_lhsp.txt
+#SBATCH -e errOut_lhsp.txt
 #SBATCH --mail-type ALL
 
 cd /home/lut2/project/LHSP/Scripts
