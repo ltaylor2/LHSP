@@ -156,7 +156,6 @@ void Parent::forage()
 	this->previousDayState = State::foraging;
 }
 
-
 bool Parent::stopIncubating()
 {
 	// Deterministic boolean minimum threshold
@@ -181,6 +180,15 @@ bool Parent::stopForaging()
 	return false;
 }
 
+void Parent::pushLastBout()
+{
+	if (this->state == State::incubating) {
+		this->incubationBouts.push_back(this->incubationDays);
+	} else if (this->state == State::foraging) {
+		this->foragingBouts.push_back(this->foragingDays);
+	}
+	return;
+}
 
 std::string Parent::getStrState() {
 	// Why oh why do I not know an easier way to convert enums to strings?
