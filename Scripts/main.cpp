@@ -13,7 +13,7 @@
 
 // TODO Make key global constants cmd line input parameters
 
-constexpr static int ITERATIONS = 1000;
+constexpr static int ITERATIONS = 10000;
 
 // Unique (will overwrite) output file for each model run,
 constexpr static char OUTPUT_DIR[] = "/home/lut2/project/LHSP/Output/";
@@ -439,6 +439,9 @@ void breedingSeason_uni(Parent& pf, Parent& pm, Egg& egg)
 		// Parent behavior, including state change
 		pf.parentDay();
   }
+
+  pf.pushLastBout();
+
 }
 
 void breedingSeason_sup(Parent& pf, Parent& pm, Egg& egg)
@@ -476,6 +479,8 @@ void breedingSeason_sup(Parent& pf, Parent& pm, Egg& egg)
 		// Parent behavior, including state change
 		pf.parentDay();
   }
+  pf.pushLastBout();
+  pm.pushLastBout();
 }
 
 void breedingSeason_biu(Parent& pf, Parent& pm, Egg& egg)
@@ -508,6 +513,9 @@ void breedingSeason_biu(Parent& pf, Parent& pm, Egg& egg)
 
 		// No overlap condition!
 	}
+
+	pf.pushLastBout();
+	pm.pushLastBout();
 }
 
 void breedingSeason_bic(Parent& pf, Parent& pm, Egg& egg)
@@ -575,4 +583,6 @@ void breedingSeason_bic(Parent& pf, Parent& pm, Egg& egg)
 			}
 		}
 	}
+	pf.pushLastBout();
+	pm.pushLastBout();
 }

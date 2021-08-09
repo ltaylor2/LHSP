@@ -37,6 +37,8 @@ public:
         */
         void changeState();
 
+        void pushLastBout();
+        
         // Setters
         void setState(State state_) { this->state = state_ ; }
         void setEnergy(double energy_) { this->energy = energy_; }
