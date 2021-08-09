@@ -7,7 +7,7 @@ library(broom)
 library(cowplot)
 library(ggthemes)
 
-setwd("~/Documents/LHSP/")
+setwd("/home/lut2/project/LHSP")
 
 theme_lt <- theme_bw() +
 		theme(panel.grid = element_blank(),
@@ -20,15 +20,18 @@ theme_lt <- theme_bw() +
 ### Data input
 ############################################################
 resultsUni <- read_csv("Output/sims_uni.txt", col_names=TRUE) %>%
-		       mutate(model="uni")
+           mutate(model="uni")
 
-resultsSemi  <- read_csv("Output/sims_semi.txt", col_names=TRUE) %>%
-		         mutate(model="semi")
+resultsSup  <- read_csv("Output/sims_sup.txt", col_names=TRUE) %>%
+            mutate(model="sup")
 
-resultsBi <- read_csv("Output/sims_bi.txt", col_names=TRUE) %>%
-		      mutate(model="bi")
+resultsBiu <- read_csv("Output/sims_biu.txt", col_names=TRUE) %>%
+            mutate(model="biu")
 
-resultsAll <- bind_rows(resultsUni, resultsSemi, resultsBi) %>%
+resultsBic <- read_csv("Output/sims_bic.txt", col_names=TRUE) %>%
+            mutate(model="bic")
+
+resultsAll <- bind_rows(resultsUni, resultsSup, resultsBiu, resultsBic) %>%
 	         mutate(hatchRate = numSuccess/iterations,
                   deathRate = numParentFail/iterations,
                   failRate = (numAllFail+numEggTimeFail+numEggColdFail)/iterations,
@@ -82,8 +85,8 @@ plot_varF <- ggplot(resultsMeans) +
              geom_point(aes(x=foragingMean, y=varEnergy_F, color=model), alpha=0.5) +
              geom_line(aes(x=foragingMean, y=varEnergy_F, color=model), alpha=0.8) +
              geom_vline(aes(xintercept=163), linetype="dashed", colour="lightgray") +
-             scale_color_colorblind(breaks=c("uni", "semi", "bi"),
-                                    labels=c("uni"="Female only", "semi"="Female + Male provisioning", "bi"="Biparental")) +
+             scale_color_colorblind(breaks=c("uni", "sup", "biu", "bic"),
+                                    labels=c("uni"="Female only", "sup"="Female + Male provisioning", "biu"="Biparental uncoordinated", "bic"="Biparental coordinated")) +
              ggtitle("Variance female energy") +
              guides(color=guide_legend(fill=NA)) +
              theme_lt +
@@ -94,6 +97,7 @@ plot_varF <- ggplot(resultsMeans) +
                    axis.text.x=element_blank(),
                    axis.title.x=element_blank(),
                    legend.title=element_blank(),
+                   legend.text=element_text(size=3),
                    legend.position=c(0.2, 0.6),
                    legend.margin=margin(0))
 
