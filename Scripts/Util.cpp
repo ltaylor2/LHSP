@@ -26,7 +26,6 @@ double vectorVar(std::vector<double>& v)
 		sqSum += pow(v[i]-mean, 2);
 	}
 
-
 	return sqSum / items;
 }
 
@@ -84,18 +83,15 @@ void printBoutInfo(std::string fname, std::string model, std::string tag, std::v
 
 std::string checkSeasonSuccess(Parent& pf, Parent& pm, Egg& egg) 
 {
-	if (egg.isHatched() && egg.isAlive() && pm.isAlive() && pf.isAlive()) {
-		return "success";
-	} else if ((!egg.isHatched() || !egg.isAlive()) && (!pm.isAlive() || !pf.isAlive())) {
+	if (egg.isHatched() && egg.isAlive()) {
+		return "hatched";
+	} else if (!egg.isHatched() && !egg.isAlive()) {
 		return "allFail";
-	} else if (!pm.isAlive() || !pf.isAlive()) {
-		return "parentFail";
-	} else if (!egg.isHatched() && egg.isAlive()) {
+	} else if (!egg.isHatched()) {
 		return "eggTimeFail";
 	} else if (!egg.isAlive()) {
 		return "eggColdFail";
-	}
-
+	} 
 	return "unknownFail";
 }
 

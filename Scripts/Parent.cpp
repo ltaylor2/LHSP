@@ -2,8 +2,7 @@
 
 Parent::Parent(Sex sex_, std::mt19937* randGen_):
 	sex(sex_),
-	alive(true),
-  isSupplemental(false),
+  	isSupplemental(false),
 	randGen(randGen_),
 	energy(BASE_ENERGY),
 	baseEnergy(BASE_ENERGY),
@@ -20,7 +19,8 @@ Parent::Parent(Sex sex_, std::mt19937* randGen_):
 	incubationBouts(std::vector<int>()),
 	foragingDays(0),
 	foragingBouts(std::vector<int>()),
-	firstBout(true)
+	firstBout(true),
+	deadCounter(0)
 {
 	/*
 	Male begin the incubation period incubating, females begin foraging
@@ -36,40 +36,57 @@ Parent::Parent(Sex sex_, std::mt19937* randGen_):
 
 void Parent::parentDay()
 {
-	// Record energy values for each day
-	energyRecord.push_back(this->energy);
+
+	if (this->state != State::dead) {
+		// Record energy values for each day
+		energyRecord.push_back(this->energy);
+	}
 
 	// Did the parent die?
 	if (this->energy <= 0) {
-		this->alive = false;
+		this->state = State::dead;
+
+		if (this->previousDayState == State::incubating) {
+			this->incubationBouts.push_back(this->incubationDays);
+		}
+		else if (this->previousDayState == State::foraging) {
+			this->foragingBouts.push_back(this->foragingDays);
+		}
+		this->previousDayState = State::dead;
 	}
 
-  // If this is a supplemental foraging parent, foraging deliveries are returned separately
-  if (this->isSupplemental) {
-    // reset delivered energy for each day
-    //    (stays 0 if the parent is still foraging)
-    this->deliveredEnergy = 0;
+	if (this->state != State::dead) {
+	  // If this is a supplemental foraging parent, foraging deliveries are returned separately
+	  if (this->isSupplemental) {
+	    // reset delivered energy for each day
+	    //    (stays 0 if the parent is still foraging)
+	    this->deliveredEnergy = 0;
 
-    // Supplemental parents forage every day
-    forage();
+	    // Supplemental parents forage every day
+	    forage();
 
-    // If the parent has hit the satitation threshold at the end of its last foraging bout,
-    //  it returns to the nest to drop off food (here we use the normal "incubating")
-    //  state from the full parental model as a key, extract the energy from the parent,
-    //  and then send it back on its way
-    if (this->state == State::incubating) {
-      this->deliveredEnergy = this->energy - this->minEnergyThresh;
-      this->energy = this->minEnergyThresh;
-      changeState();
-    }
-  }
-  else {
-    if (this->state == State::incubating) {
-      incubate();
-	  } else if (this->state == State::foraging) {
-		  forage();
+	    // If the parent has hit the satitation threshold at the end of its last foraging bout,
+	    //  it returns to the nest to drop off food (here we use the normal "incubating")
+	    //  state from the full parental model as a key, extract the energy from the parent,
+	    //  and then send it back on its way
+	    if (this->state == State::incubating) {
+	      this->deliveredEnergy = this->energy - this->minEnergyThresh;
+	      this->energy = this->minEnergyThresh;
+	      changeState();
+	    }
 	  }
-  }
+
+	  else {
+	    if (this->state == State::incubating) {
+	      incubate();
+	    } else if (this->state == State::foraging) {
+	      forage();
+	    }
+	  }
+	} 
+	else {
+		this->deadCounter++;
+	}
 }
 
 void Parent::changeState()
@@ -124,12 +141,12 @@ void Parent::forage()
 {
 	this->foragingDays++;
 
+	// Lose energy to metabolism
+	this->energy -= foragingMetabolism;
+
 	// Gain metabolic intake given normal distribution of energy outcomes
 	double foragingEnergy = foragingDistribution(*randGen);
 	this->energy += foragingEnergy;
-
-	// Lose energy to metabolism
-	this->energy -= foragingMetabolism;
 
 	// Foraging -> Incubating depending on energy
 	if (stopForaging()) {
@@ -144,7 +161,7 @@ bool Parent::stopIncubating()
 {
 	// Deterministic boolean minimum threshold
 	if (this->energy <= minEnergyThresh) {
-    // Stop incubating
+    	// Stop incubating
 		return true;
 	}
 
@@ -156,11 +173,11 @@ bool Parent::stopForaging()
 {
 	// Deterministic boolean maximum threshold
 	if (this->energy >= maxEnergyThresh && this->foragingDays > 1) {
-    // Stop foraging
-    return true;
+    		// Stop foraging
+    		return true;
 	}
 
-  // Don't stop foraging
+  	// Don't stop foraging
 	return false;
 }
 
@@ -172,6 +189,8 @@ std::string Parent::getStrState() {
 		s = "Incubating";
 	} else if (this->state == State::foraging) {
 		s = "Foraging";
+	} else if (this->state == State::dead) {
+		s = "Dead";
 	}
 
 	return s;
@@ -183,5 +202,5 @@ void Parent::setForagingDistribution(double foragingMean_, double foragingSD_)
 	this->foragingSD = foragingSD_;
 
 	this->foragingDistribution =
-		std::normal_distribution<double>(foragingMean_, foragingSD_);
+	std::normal_distribution<double>(foragingMean_, foragingSD_);
 }
