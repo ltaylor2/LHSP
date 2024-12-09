@@ -1,7 +1,7 @@
 library(tidyverse)
 library(acss)
 
-SIMS_RESULTS <- "Output/sims_2024-12-09_00-16-06.csv"
+SIMS_RESULTS <- "Output/sims_2024-12-09_14-45-26.csv"
 
 summarizeSubset <- function(df, didHatch) {
 
@@ -11,6 +11,7 @@ summarizeSubset <- function(df, didHatch) {
     min_energy_thresh_m <- unique(df$Min_Energy_Thresh_M)
     foraging_condition_mean <- unique(df$Foraging_Condition_Mean)
     foraging_condition_sd <- unique(df$Foraging_Condition_SD)
+    foraging_condition_kick <- unique(df$Foraging_Condition_Kick)
 
     n = nrow(df)
 
@@ -37,6 +38,7 @@ summarizeSubset <- function(df, didHatch) {
                   Min_Energy_Thresh_M = min_energy_thresh_m,
                   Foraging_Condition_Mean = foraging_condition_mean,
                   Foraging_Condition_SD = foraging_condition_sd,
+                  Foraging_Condition_Kick = foraging_condition_kick,
                   Did_Hatch = didHatch,
                   N = n,
                   End_Energy_F = end_energy_f,
@@ -59,8 +61,12 @@ CHUNK_summaries <- function(chunk, pos) {
     min_energy_thresh_m <- unique(chunk$Min_Energy_Thresh_M)
     foraging_condition_mean <- unique(chunk$Foraging_Condition_Mean)
     foraging_condition_sd <- unique(chunk$Foraging_Condition_SD)
+    foraging_condition_kick <- unique(df$Foraging_Condition_Kick)
 
-    if (any(map_lgl(list(max_energy_thresh_f, min_energy_thresh_f, max_energy_thresh_m, min_energy_thresh_m, foraging_condition_mean, foraging_condition_sd), ~ length(.) > 1))) {
+    if (any(map_lgl(list(max_energy_thresh_f, min_energy_thresh_f, 
+                         max_energy_thresh_m, min_energy_thresh_m, 
+                         foraging_condition_mean, foraging_condition_sd, foraging_condition_kicked), 
+                    ~ length(.) > 1))) {
         return("ERROR")
     }
 
@@ -80,3 +86,32 @@ results_summarized <- read_csv_chunked(SIMS_RESULTS,
                                        chunk_size=1000)
 
 write_csv(results_summarized, "Output/processed_results_summarized.csv")
+
+CHUNK_subset <- function(chunk, pos) {
+    filter(chunk, Foraging_Condition_Mean == 150, Iterations== 1)
+}
+
+results_subset <- read_csv_chunked(SIMS_RESULTS,
+                                   DataFrameCallback$new(CHUNK_subset),
+                                   chunk_size=1000)
+
+
+temp <- results_subset |>
+     mutate(Strategy = paste0(Min_Energy_Thresh_F, "-", Max_Energy_Thresh_F, "/", Min_Energy_Thresh_M, "-", Max_Energy_Thresh_M)) |>
+     select(Strategy, Foraging_Condition_Mean, Foraging_Condition_Kick, Season_History) |>
+     separate(Season_History, into=as.character(-1:60), sep="") |>
+     pivot_longer(cols=as.character(-1:60), names_to="Day", values_to="State") |>
+     filter(Day != "-1") |>
+     mutate(Day = as.numeric(Day))
+
+plot_raster <- ggplot(temp) +
+            geom_raster(aes(x=Day, y=Strategy, fill=State)) +
+            scale_fill_manual(values=c("M"="lightblue", "F"="darkblue", "N"="red", "NA"="lightgray")) +
+            facet_wrap(facet=vars(Foraging_Condition_Kick)) +
+            theme_minimal() +
+            theme(axis.title.y=element_blank(),
+                  axis.text.y=element_blank(),
+                  strip.background=element_rect(fill="white", colour="white"),
+                  panel.background=element_rect(fill="white"),
+                  plot.background=element_rect(fill="white"))
+ggsave(plot_raster, filename="Output/plot_raster_temp.png", width=3, height=10)

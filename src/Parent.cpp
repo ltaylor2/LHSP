@@ -86,6 +86,10 @@ void Parent::forage()
 
 	// Gain metabolic intake given normal distribution of energy outcomes
 	double foragingEnergy = foragingDistribution(*randGen);
+    if (foragingEnergy < 0) {
+        foragingEnergy = 0;
+    }
+    
 	this->energy += foragingEnergy;
 
 	// Foraging -> Incubating depending on energy
