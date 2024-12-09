@@ -82,7 +82,7 @@ void runModel(int iterations,
 	outfile.open(outfileName, std::ofstream::trunc);
 
 	// Header column for CSV format
-	outfile << "Iterations" << ","
+	outfile << "Iteration" << ","
             << "Min_Energy_Thresh_F" << ","
 			<< "Max_Energy_Thresh_F" << ","
             << "Min_Energy_Thresh_M" << ","
@@ -272,9 +272,9 @@ std::string breedingSeason(Parent& pf, Parent& pm, Egg& egg, bool kick)
         // if there is a kick in the season, kick the foraging environment for days 20-23
         if (kick) {
             if (egg.getIncubationDays() == 20) {
-                pf.setForagingDistribution(0, foragingSD_F_original);
-                pm.setForagingDistribution(0, foragingSD_M_original);
-            } else if (egg.getIncubationDays() == 23) {
+                pf.setForagingDistribution(0, 0);
+                pm.setForagingDistribution(0, 0);
+            } else if (egg.getIncubationDays() >= 22) {
                 pf.setForagingDistribution(foragingMean_F_original, foragingSD_F_original);
                 pm.setForagingDistribution(foragingMean_M_original, foragingSD_M_original);
             }
