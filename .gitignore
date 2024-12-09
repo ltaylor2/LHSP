@@ -1,1 +1,3 @@
 Output/sims*
+*.o
+lhsp
