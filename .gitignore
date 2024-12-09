@@ -1,3 +1,4 @@
 Output/sims*
 *.o
 lhsp
+slurm*
