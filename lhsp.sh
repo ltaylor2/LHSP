@@ -3,6 +3,7 @@
 #SBATCH -N 1
 #SBATCH -n 1
 
+/home/l.taylor/Documents/LHSP/src
 make clean
 make
 ./lhsp
