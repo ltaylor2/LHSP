@@ -11,8 +11,6 @@
 #include "Egg.hpp"
 #include "Parent.hpp"
 
-// TODO Make key global constants cmd line input parameters
-
 constexpr static int ITERATIONS = 1000;
 
 constexpr static double P_MAX_ENERGY_THRESH[] = {200, 900, 100};
@@ -208,7 +206,7 @@ void runModel(int iterations,
 		bool dead_M = !pm.isAlive();                                // Is the male alive?
 
         // Send formatted output
-        outfile << iterations << ","
+        outfile << i << ","
                 << maxEnergyThresh_F << ","
                 << minEnergyThresh_F << ","
                 << maxEnergyThresh_M << ","
