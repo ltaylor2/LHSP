@@ -13,8 +13,8 @@
 
 constexpr static int ITERATIONS = 1000;
 
-constexpr static double P_MAX_ENERGY_THRESH[] = {400, 1000, 100};
-constexpr static double P_MIN_ENERGY_THRESH[] = {400, 1000, 100};
+constexpr static double P_MAX_ENERGY_THRESH[] = {200, 1000, 100};
+constexpr static double P_MIN_ENERGY_THRESH[] = {200, 1000, 100};
 constexpr static double P_FORAGING_MEAN[] = {130, 180, 10};
 
 // Need a single, static random generator device to let us only seed once
@@ -23,8 +23,8 @@ static std::mt19937* randGen;
 // Function prototypes
 void runModel(int iterations,
 	          std::string outfileName,
-	          std::vector<double> v_maxEnergyThresh,
 	          std::vector<double> v_minEnergyThresh,
+	          std::vector<double> v_maxEnergyThresh,
 	          std::vector<double> v_foragingMean);
 
 std::string breedingSeason(Parent& pf, Parent& pm, Egg& egg, bool kick);
@@ -45,16 +45,16 @@ int main()
     std::string outfileName = std::string("../Output/sims_") + timeStr + std::string(".csv");
 
 	// Generate a vector of parameter values from {min, max, by} arrays
-	std::vector<double> v_maxEnergyThresh = paramVector(P_MAX_ENERGY_THRESH);
 	std::vector<double> v_minEnergyThresh = paramVector(P_MIN_ENERGY_THRESH);
+	std::vector<double> v_maxEnergyThresh = paramVector(P_MAX_ENERGY_THRESH);
 	std::vector<double> v_foragingMean    = paramVector(P_FORAGING_MEAN);
 
 	std::cout << "\n\n\nBeginning model runs\n\n\n";
 
     runModel(ITERATIONS, 
              outfileName, 
-             v_maxEnergyThresh, 
              v_minEnergyThresh, 
+             v_maxEnergyThresh, 
              v_foragingMean);
 
 	std::cout << "Ended model runs\n";
@@ -73,8 +73,8 @@ int main()
 
 void runModel(int iterations,
 	          std::string outfileName,
-	          std::vector<double> v_maxEnergyThresh,
 	          std::vector<double> v_minEnergyThresh,
+              std::vector<double> v_maxEnergyThresh,
 	          std::vector<double> v_foragingMean)
 {
 	// Start formatted output
@@ -111,11 +111,19 @@ void runModel(int iterations,
 	minEnergy [hunger] > maxEnergy [satiation],
 	So this space is reduced to that array
 	*/
-	int totParamIterations = v_maxEnergyThresh.size() *
-				 			 v_minEnergyThresh.size() *
-				 			 v_maxEnergyThresh.size() *
- 				 			 v_minEnergyThresh.size() *
-				 			 v_foragingMean.size();
+
+    int energyCombinations = 0;
+    for (unsigned int i = 0; i < v_minEnergyThresh.size(); i++) {
+        for (unsigned int j = 0; j < v_maxEnergyThresh.size(); j++) {
+            double minThresh = v_minEnergyThresh[i];
+            double maxThresh = v_maxEnergyThresh[j];
+            if (maxThresh > minThresh) {
+                energyCombinations++;
+            }
+        }
+    }
+
+	int totParamIterations = energyCombinations * energyCombinations * v_foragingMean.size();
 
 	int currParamIteration = 0;
 
