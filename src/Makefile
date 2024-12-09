@@ -1,11 +1,11 @@
-CXXFLAGS=-g -std=c++11 -pthread
+CXXFLAGS=-g -std=c++11
 BIN=lhsp
 
 SRC=$(wildcard *.cpp)
 OBJ=$(SRC:%.cpp=%.o)
 
 all: $(OBJ)
-	$(CXX) -pthread -o $(BIN) $^
+	$(CXX) -o $(BIN) $^
 
 %.o: %.c
 	$(CXX) $@ -c $<
