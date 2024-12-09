@@ -43,8 +43,8 @@ public:
     void setBaseEnergy(double baseEnergy_) { this->baseEnergy = baseEnergy_; }
     void setIncubatingMetabolism(double incubatingMetabolism_) { this->incubatingMetabolism = incubatingMetabolism_; }
     void setForagingMetabolism(double foragingMetabolism_) { this->foragingMetabolism = foragingMetabolism_; }
-    void setMaxEnergyThresh(double maxEnergyThresh_) { this->maxEnergyThresh = maxEnergyThresh_; }
     void setMinEnergyThresh(double minEnergyThresh_) { this->minEnergyThresh = minEnergyThresh_; }
+    void setMaxEnergyThresh(double maxEnergyThresh_) { this->maxEnergyThresh = maxEnergyThresh_; }
     void setForagingDistribution(double foragingMean_, double foragingSD_);
     void setDidOverlap(bool didOverlap_) { this->didOverlap = didOverlap_; }
 
@@ -54,8 +54,8 @@ public:
     double getbaseEnergy() { return this->baseEnergy; }
     double getIncubatingMetabolism() { return this->incubatingMetabolism; }
     double getForagingMetabolism() { return this->foragingMetabolism; }
-    double getMaxEnergyThresh() { return this->maxEnergyThresh; }
     double getMinEnergyThresh() { return this->minEnergyThresh; }
+    double getMaxEnergyThresh() { return this->maxEnergyThresh; }
     double getForagingMean() { return this->foragingMean; }
     double getForagingSD() { return this->foragingSD; }
 
@@ -91,18 +91,18 @@ private:
     constexpr static double FORAGING_METABOLISM = 123;
 
     /*
-    The deterministic threshold above which foraging ceases
-    (at the end of the day), here equaling the mean amount of energy at
-    which parents were found to start incubating (BASE_ENERGY)
-    */
-    constexpr static double MAX_ENERGY_THRESHOLD = BASE_ENERGY;
-
-    /*
     The deterministc threshold below which incubation ceases
     (at the end of the day), here equaling the metabolic cost of
     foraging for a day.
     */
     constexpr static double MIN_ENERGY_THRESHOLD = FORAGING_METABOLISM;
+
+    /*
+    The deterministic threshold above which foraging ceases
+    (at the end of the day), here equaling the mean amount of energy at
+    which parents were found to start incubating (BASE_ENERGY)
+    */
+    constexpr static double MAX_ENERGY_THRESHOLD = BASE_ENERGY;
 
     void incubate();
     void forage();
@@ -117,8 +117,8 @@ private:
     double baseEnergy;              // starting energy value
     double incubatingMetabolism;    // daily metabolism cost for incubation
     double foragingMetabolism;      // daily metabolism cost for foraging
-    double maxEnergyThresh;         // satiation threshold (foraging->incubating)
     double minEnergyThresh;         // hunger threshold (incubating->foraging)
+    double maxEnergyThresh;         // satiation threshold (foraging->incubating)
 
     double foragingMean;        // mean for distribution of foraging intake values
     double foragingSD;          // standard deviation for distribution of foraging intake values

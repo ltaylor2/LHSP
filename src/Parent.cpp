@@ -7,8 +7,8 @@ Parent::Parent(Sex sex_, std::mt19937* randGen_):
 	baseEnergy(BASE_ENERGY),
 	incubatingMetabolism(INCUBATING_METABOLISM),
 	foragingMetabolism(FORAGING_METABOLISM),
+    minEnergyThresh(MIN_ENERGY_THRESHOLD),
 	maxEnergyThresh(MAX_ENERGY_THRESHOLD),
-	minEnergyThresh(MIN_ENERGY_THRESHOLD),
 	foragingMean(FORAGING_MEAN),
 	foragingSD(FORAGING_SD),
 	foragingDistribution(std::normal_distribution<double>(foragingMean, foragingSD)),
@@ -31,7 +31,7 @@ void Parent::parentDay()
 {
 	if (this->state != State::dead) {
 		// Record energy values for each day
-		energyRecord.push_back(this->energy);
+		this->energyRecord.push_back(this->energy);
 	}
 
 	// Did the parent die?
@@ -61,7 +61,7 @@ void Parent::changeState()
 void Parent::incubate()
 {
 	// Lose energy to metabolism
-	this->energy -= incubatingMetabolism;
+	this->energy -= this->incubatingMetabolism;
 
 	// Incubating -> Foraging depending on energy
 	if (stopIncubating()) {
@@ -82,7 +82,7 @@ void Parent::forage()
 	this->foragingDays++;
 
 	// Lose energy to metabolism
-	this->energy -= foragingMetabolism;
+	this->energy -= this->foragingMetabolism;
 
 	// Gain metabolic intake given normal distribution of energy outcomes
 	double foragingEnergy = foragingDistribution(*randGen);
@@ -99,7 +99,7 @@ void Parent::forage()
 bool Parent::stopIncubating()
 {
 	// Deterministic boolean minimum threshold
-	if (this->energy <= minEnergyThresh) {
+	if (this->energy <= this->minEnergyThresh) {
     	// Stop incubating
 		return true;
 	}
@@ -111,7 +111,7 @@ bool Parent::stopIncubating()
 bool Parent::stopForaging()
 {
 	// Deterministic boolean maximum threshold
-	if (this->energy >= maxEnergyThresh && this->foragingDays > 1) {
+	if (this->energy >= this->maxEnergyThresh && this->foragingDays > 1) {
     		// Stop foraging
     		return true;
 	}
@@ -139,6 +139,5 @@ void Parent::setForagingDistribution(double foragingMean_, double foragingSD_)
 	this->foragingMean = foragingMean_;
 	this->foragingSD = foragingSD_;
 
-	this->foragingDistribution =
-	std::normal_distribution<double>(foragingMean_, foragingSD_);
+	this->foragingDistribution = std::normal_distribution<double>(foragingMean_, foragingSD_);
 }

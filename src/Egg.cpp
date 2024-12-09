@@ -23,7 +23,7 @@ Egg behavior for a single day.
 void Egg::eggDay(bool incubated)
 {
 	// Keeping track of all days (incubated or not)
-	currDays++;
+	this->currDays++;
 
 	// Incubation resets the neglect counter
 	if (incubated) {
@@ -43,11 +43,11 @@ void Egg::eggDay(bool incubated)
 			}
 		}
 
-		hatchDays += NEGLECT_PENALTY;
+		this->hatchDays += NEGLECT_PENALTY;
 	}
 
 	// Egg hatches when it catches up with the required hatching time
-	if (currDays >= hatchDays) {
+	if (this->currDays >= this->hatchDays) {
 		this->hatched = true;
 	}
 }
