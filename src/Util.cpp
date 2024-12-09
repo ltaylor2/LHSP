@@ -53,7 +53,6 @@ int isolateHatchResults(std::vector<std::string> results, std::string key)
 	return ret;
 }
 
-
 std::vector<double> paramVector(const double p[3]) 
 {
 	double min = p[0];
@@ -67,7 +66,6 @@ std::vector<double> paramVector(const double p[3])
 
 	return ret;
 }
-
 
 void printBoutInfo(std::string fname, std::string model, std::string tag, std::vector<int> v) 
 {
@@ -83,16 +81,16 @@ void printBoutInfo(std::string fname, std::string model, std::string tag, std::v
 
 std::string checkSeasonSuccess(Parent& pf, Parent& pm, Egg& egg) 
 {
-	if (egg.isHatched() && egg.isAlive()) {
+	if (!pm.isAlive() || !pf.isAlive()) {
+        return("dead parent");
+    } else if (egg.isAlive() && egg.isHatched()) {
 		return "hatched";
-	} else if (!egg.isHatched() && !egg.isAlive()) {
-		return "allFail";
-	} else if (!egg.isHatched()) {
-		return "eggTimeFail";
 	} else if (!egg.isAlive()) {
-		return "eggColdFail";
-	} 
-	return "unknownFail";
+		return "egg cold fail";
+	} else if (!egg.isHatched()) {
+		return "egg time fail";
+	}
+	return "ERROR";
 }
 
 void printDailyInfo(Parent& pf, Parent& pm, Egg& egg) {

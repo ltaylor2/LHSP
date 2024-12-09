@@ -36,7 +36,7 @@ private:
 	// High number as an upper limit on egg hatching
 	constexpr static double HATCH_DAYS_MAX = 60;
 
-    	// Mean energetic contents of a single egg (kJ) from Montevecchi et al. 1983
+    // Mean energetic contents of a single egg (kJ) from Montevecchi et al. 1983
 	constexpr static double EGG_COST = 69.7;
 
 	/*
@@ -63,11 +63,11 @@ private:
 
 	double eggCost;
 
-	double currDays;	 // egg age (days) 
-	double hatchDays; 	 // current total incubation days required until
+	double currDays;	     // egg age (days) 
+	double hatchDays; 	     // current total incubation days required until
 	double maxHatchDays; 	 // cutoff before hatching fails due to time limit (e.g., breeding window ends)
 
-	int currNegCounter;	 // current consecutive days of neglect
-	int totNegCounter;	 // totals days of neglect
-	int maxNegCounter;	 // maximum consecutive days of neglect
+	int currNegCounter;	      // current consecutive days of neglect
+	int totNegCounter;	      // totals days of neglect
+	int maxNegCounter;	      // maximum consecutive days of neglect
 };
