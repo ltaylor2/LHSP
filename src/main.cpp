@@ -13,8 +13,8 @@
 
 constexpr static int ITERATIONS = 1000;
 
-constexpr static double P_MAX_ENERGY_THRESH[] = {200, 900, 100};
-constexpr static double P_MIN_ENERGY_THRESH[] = {200, 900, 100};
+constexpr static double P_MAX_ENERGY_THRESH[] = {400, 1000, 100};
+constexpr static double P_MIN_ENERGY_THRESH[] = {400, 1000, 100};
 constexpr static double P_FORAGING_MEAN[] = {130, 180, 10};
 
 // Need a single, static random generator device to let us only seed once
@@ -116,7 +116,7 @@ void runModel(int iterations,
 				 			 v_maxEnergyThresh.size() *
  				 			 v_minEnergyThresh.size() *
 				 			 v_foragingMean.size();
-                             
+
 	int currParamIteration = 0;
 
 	// For every minEnergy value (FEMALE)
