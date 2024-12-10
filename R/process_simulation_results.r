@@ -1,7 +1,7 @@
 library(tidyverse)
 library(acss)
 
-SIMS_RESULTS <- "Output/sims_2024-12-09_14-45-26.csv"
+SIMS_RESULTS <- "Output/sims_2024-12-09_18-35-30.csv"
 
 summarizeSubset <- function(df, didHatch) {
 
@@ -61,11 +61,11 @@ CHUNK_summaries <- function(chunk, pos) {
     min_energy_thresh_m <- unique(chunk$Min_Energy_Thresh_M)
     foraging_condition_mean <- unique(chunk$Foraging_Condition_Mean)
     foraging_condition_sd <- unique(chunk$Foraging_Condition_SD)
-    foraging_condition_kick <- unique(df$Foraging_Condition_Kick)
+    foraging_condition_kick <- unique(chunk$Foraging_Condition_Kick)
 
     if (any(map_lgl(list(max_energy_thresh_f, min_energy_thresh_f, 
                          max_energy_thresh_m, min_energy_thresh_m, 
-                         foraging_condition_mean, foraging_condition_sd, foraging_condition_kicked), 
+                         foraging_condition_mean, foraging_condition_sd, foraging_condition_kick), 
                     ~ length(.) > 1))) {
         return("ERROR")
     }
@@ -88,25 +88,27 @@ results_summarized <- read_csv_chunked(SIMS_RESULTS,
 write_csv(results_summarized, "Output/processed_results_summarized.csv")
 
 CHUNK_subset <- function(chunk, pos) {
-    filter(chunk, Foraging_Condition_Mean == 150, Iterations== 1)
+    filter(chunk, Foraging_Condition_Mean == 150, Iteration == 1)
 }
 
 results_subset <- read_csv_chunked(SIMS_RESULTS,
                                    DataFrameCallback$new(CHUNK_subset),
                                    chunk_size=1000)
 
-
 temp <- results_subset |>
      mutate(Strategy = paste0(Min_Energy_Thresh_F, "-", Max_Energy_Thresh_F, "/", Min_Energy_Thresh_M, "-", Max_Energy_Thresh_M)) |>
-     select(Strategy, Foraging_Condition_Mean, Foraging_Condition_Kick, Season_History) |>
+     select(Strategy, Foraging_Condition_Mean, Hatch_Result, Foraging_Condition_Kick, Season_History) |>
      separate(Season_History, into=as.character(-1:60), sep="") |>
+     mutate(Hatch_Result = Hatch_Result == "hatched") |>
      pivot_longer(cols=as.character(-1:60), names_to="Day", values_to="State") |>
      filter(Day != "-1") |>
      mutate(Day = as.numeric(Day))
 
 plot_raster <- ggplot(temp) +
             geom_raster(aes(x=Day, y=Strategy, fill=State)) +
+            geom_point(aes(y=Strategy, x=61, color=Hatch_Result), size=0.5) +
             scale_fill_manual(values=c("M"="lightblue", "F"="darkblue", "N"="red", "NA"="lightgray")) +
+            scale_colour_manual(values=c("TRUE"="blue", "FALSE"="yellow")) +
             facet_wrap(facet=vars(Foraging_Condition_Kick)) +
             theme_minimal() +
             theme(axis.title.y=element_blank(),
