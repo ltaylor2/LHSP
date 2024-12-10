@@ -2,4 +2,3 @@ Output/sims*
 *.o
 lhsp
 slurm*
-Output/processed_results*
