@@ -1,16 +1,30 @@
 # Logistics
 library(tidyverse)
+library(patchwork)
 
 # Read and format data
 dat <- read_csv("Output/processed_results_summarized.csv") |>
-    mutate(Strategy = paste0(Min_Energy_Thresh_F, "-", Max_Energy_Thresh_F, "/", Min_Energy_Thresh_M, "-", Max_Energy_Thresh_M), .before=1)
+    mutate(Strategy_F = paste0(Min_Energy_Thresh_F, "-", Max_Energy_Thresh_F),
+           Strategy_M = paste0(Min_Energy_Thresh_M, "-", Max_Energy_Thresh_M), .before=1) |>
+    mutate(Strategy_Overall = paste0(Strategy_F, "/", Strategy_M), .before=1)
 
-strategyOrder <- dat |> 
+strategyOrder_F <- dat |> 
+                 arrange(Min_Energy_Thresh_F, Max_Energy_Thresh_F) |>
+                 pull(Strategy_F) |>
+                 unique()
+dat$Strategy_F <- factor(dat$Strategy_F, levels=strategyOrder_F)
+
+strategyOrder_M <- dat |> 
+                 arrange(Min_Energy_Thresh_M, Max_Energy_Thresh_M) |>
+                 pull(Strategy_M) |>
+                 unique()
+dat$Strategy_M <- factor(dat$Strategy_M, levels=strategyOrder_M)
+
+strategyOrder_Overall <- dat |> 
               arrange(Min_Energy_Thresh_F, Max_Energy_Thresh_F, Min_Energy_Thresh_M, Max_Energy_Thresh_M) |>
-              pull(Strategy) |>
+              pull(Strategy_Overall) |>
               unique()
-
-dat$Strategy <- factor(dat$Strategy, levels=strategyOrder)
+dat$Strategy_Overall <- factor(dat$Strategy_Overall, levels=strategyOrder_Overall)
 
 # Example strategy
 # example_strategy <- dat |>
@@ -19,66 +33,335 @@ dat$Strategy <- factor(dat$Strategy, levels=strategyOrder)
 #                  mutate(Hatch_Success = N / 1000) |>
 #                  mutate(Diff_From_50 = abs(0.5 - Hatch_Success)) |>
 #                  slice_min(order_by = Diff_From_50) |>
-#                  pull(Strategy)
+#                  pull(Strategy_Overall)
 
 dat_example_strategy <- read_csv("Output/processed_results_example_strategy.csv")
 
-# Plot example for empirical foraging condition
+# Season history examples
 
+exampleCategories <- c("Regular environment\n(150 kJ/day)", 
+                       "Degraded environment\n(140 kJ/day)", 
+                       "Perturbed environment\n(150->0 kJ/day, days 20-22)")
+assignExampleCategory <- function(fMean, fKick) {
+    if (fMean == 150 & fKick == 0) { return (exampleCategories[1]) }
+    if (fMean == 140 & fKick == 0) { return (exampleCategories[2]) }
+    if (fMean == 150 & fKick == 1) { return (exampleCategories[3]) }
+    return("Other")
+}
 example_strings <- dat_example_strategy |>
-                select(Iteration, Hatch_Result, Foraging_Condition_Mean, Foraging_Condition_Kick, Season_History) |>
+                select(Iteration, Hatch_Result, Foraging_Condition_Mean, Foraging_Condition_Kick, Hatch_Days, Season_History) |>
+                mutate(Example_Category = map2_chr(Foraging_Condition_Mean, Foraging_Condition_Kick, assignExampleCategory)) |>
+                filter(Example_Category != "Other") |>
+                mutate(Example_Category = factor(Example_Category, levels=exampleCategories)) |>
                 separate(Season_History, into=as.character(0:61), sep="") |>
-                pivot_longer(cols=-c(Iteration, Hatch_Result, Foraging_Condition_Mean, Foraging_Condition_Kick), names_to="Day", values_to="State") |>
+                pivot_longer(cols=-c(Iteration, Hatch_Result, Example_Category, Foraging_Condition_Mean, Hatch_Days, Foraging_Condition_Kick), names_to="Day", values_to="State") |>
                 filter(Day != 0) |>
                 mutate(Day = as.numeric(Day)) |>
                 filter(!is.na(State))
 
-state_colors <- c("F"="#1f78b4",
-                  "M"="#b2df8a",
-                  "N"="#e41a1c")
+example_strings_cut <- dat_example_strategy |>
+                    select(Iteration, Hatch_Result, Foraging_Condition_Mean, Foraging_Condition_Kick, Hatch_Days, Season_History) |>
+                    filter(Foraging_Condition_Mean == 150) |>
+                    group_by(Hatch_Result) |>
+                    slice_min(n=1, order_by=Hatch_Days, with_ties=FALSE) |>
+                    mutate(Iteration = paste0("I", as.character(Iteration))) |>
+                    separate(Season_History, into=as.character(0:61), sep="") |>
+                    pivot_longer(cols=-c(Iteration, Hatch_Result, Foraging_Condition_Mean, Hatch_Days, Foraging_Condition_Kick), names_to="Day", values_to="State") |>
+                    filter(Day != 0) |>
+                    mutate(Day = as.numeric(Day)) |>
+                    filter(!is.na(State))
 
-plot_iteration_examples_pair <- ggplot(filter(example_strings, Foraging_Condition_Mean==150, Iteration %in% c(1, 3))) +
-                             geom_raster(aes(x=Day, y=Iteration, fill=State, alpha=Hatch_Result=="hatched")) +
-                             scale_fill_manual(values=c(state_colors), na.value="white", 
-                                               labels=c("F"="Female", "M"="Male", "N"="Neglect")) +
-                             scale_y_continuous(breaks=c(1,3), labels=c(1,3)) +
-                             scale_alpha_manual(values=c("TRUE"=1, "FALSE"=0.5)) +
-                             guides(alpha="none") +
-                             theme_classic()
-ggsave(filename="SICB/PLOT_iteration_pair.png", plot_iteration_examples_pair, width=4, height=2)
+state_colors <- c("F"="gray80",
+                  "M"="gray20",
+                  "N"="indianred2")
 
-plot_iteration_examples_nokick <- ggplot(filter(example_strings, Foraging_Condition_Mean==150, !Foraging_Condition_Kick)) +
-                                geom_raster(aes(x=Day, y=Iteration, fill=State, alpha=Hatch_Result=="hatched")) +
-                                scale_fill_manual(values=c(state_colors), na.value="white", 
-                                                  labels=c("F"="Female", "M"="Male", "N"="Neglect")) +
-                                scale_alpha_manual(values=c("TRUE"=1, "FALSE"=0.25)) +
-                                guides(alpha="none") +
-                                theme_classic()
-ggsave(filename="SICB/PLOT_iteration_examples_nokick.png", plot_iteration_examples_nokick, width=4, height=2.5)
+plot_iteration_examples <- ggplot(example_strings_cut) +
+                        geom_raster(aes(x=Day, y=Iteration, fill=State, alpha=Hatch_Result=="hatched")) +
+                        scale_fill_manual(values=c(state_colors), na.value="white", 
+                                          labels=c("F"="Female", "M"="Male", "N"="Neglect")) +
+                        scale_y_discrete(limits=c("I228", "I0", "I298", "I60"),
+                                         labels=c("I228"="Hatched", "I0"="Overall neglect - Fail", 
+                                                  "I298"="Continuous neglect - Fail", "I60"="Dead parent - Fail")) +
+                        scale_alpha_manual(values=c("TRUE"=1, "FALSE"=0.25)) +
+                        guides(alpha="none") +
+                        ylab("Outcome") +
+                        theme_classic()
+ggsave(filename="SICB/PLOT_season_examples.png", plot_iteration_examples, width=4, height=2)
 
-plot_iteration_examples_withkick <- ggplot(filter(example_strings, Foraging_Condition_Mean==150)) +
-                                geom_raster(aes(x=Day, y=Iteration, fill=State, alpha=Hatch_Result=="hatched")) +
-                                facet_wrap(facet=vars(Foraging_Condition_Kick), nrow=2, labeller=as_labeller(c("0"="Regular environment", "1"="Perturbed environment"))) +
-                                scale_fill_manual(values=c(state_colors), na.value="white", 
-                                                  labels=c("F"="Female", "M"="Male", "N"="Neglect")) +
-                                scale_alpha_manual(values=c("TRUE"=1, "FALSE"=0.25)) +
-                                guides(alpha="none") +
-                                theme_classic()
-ggsave(filename="SICB/PLOT_iteration_examples_withkick.png", plot_iteration_examples_withkick, width=4, height=5)
+plot_iteration_examples_all <- ggplot(example_strings) +
+                                 geom_raster(aes(x=Day, y=Iteration, fill=State, alpha=Hatch_Result=="hatched")) +
+                                 facet_wrap(facet=vars(Example_Category), nrow=1) +
+                                 scale_fill_manual(values=c(state_colors), na.value="white", 
+                                                   labels=c("F"="Female", "M"="Male", "N"="Neglect")) +
+                                 scale_alpha_manual(values=c("TRUE"=1, "FALSE"=0)) +
+                                 guides(alpha="none") +
+                                 theme_classic()
+ggsave(filename="SICB/PLOT_iteration_examples_all.png", plot_iteration_examples_all, width=9, height=4)
 
-tempLabelFunction <- function(l) {
-    if (l == "0") { return("Regular environment") }
-    if (l == "1") { return("Perturbed environment") }
-    return(paste(l, "kJ/day"))
-}
-plot_iteration_examples_multiple_environments <- ggplot(example_strings) +
-                                              geom_raster(aes(x=Day, y=Iteration, fill=State, alpha=Hatch_Result=="hatched")) +
-                                              facet_grid(rows=vars(Foraging_Condition_Kick), 
-                                                         cols=vars(Foraging_Condition_Mean), 
-                                                         labeller=tempLabelFunction) +
-                                              scale_fill_manual(values=c(state_colors), na.value="white", 
-                                                                labels=c("F"="Female", "M"="Male", "N"="Neglect")) +
-                                              scale_alpha_manual(values=c("TRUE"=1, "FALSE"=0.25)) +
-                                              guides(alpha="none") +
-                                              theme_classic()
-ggsave(filename="SICB/PLOT_iteration_examples_multipleenvironments.png", plot_iteration_examples_multiple_environments, width=10, height=5)
+# Strategy comparisons in regular environment
+dat_hs <- read_csv("Output/processed_results_hatch_success.csv") |>
+       mutate(Example_Category = map2_chr(Foraging_Condition_Mean, Foraging_Condition_Kick, assignExampleCategory)) |>
+       mutate(Example_Category = factor(Example_Category, levels=exampleCategories)) |>
+       mutate(Strategy_F = paste0(Min_Energy_Thresh_F, "-", Max_Energy_Thresh_F),
+              Strategy_M = paste0(Min_Energy_Thresh_M, "-", Max_Energy_Thresh_M), .before=1) |>
+       mutate(Strategy_Overall = paste0(Strategy_F, "/", Strategy_M), .before=1)
+
+strategyOrder_F <- dat_hs |> 
+                arrange(Min_Energy_Thresh_F, Max_Energy_Thresh_F) |>
+                pull(Strategy_F) |>
+                unique()
+dat_hs$Strategy_F <- factor(dat_hs$Strategy_F, levels=strategyOrder_F)
+
+strategyOrder_M <- dat_hs |> 
+                arrange(Min_Energy_Thresh_M, Max_Energy_Thresh_M) |>
+                pull(Strategy_M) |>
+                unique()
+dat_hs$Strategy_M <- factor(dat_hs$Strategy_M, levels=strategyOrder_M)
+
+strategyOrder_Overall <- dat_hs |> 
+                      arrange(Min_Energy_Thresh_F, Max_Energy_Thresh_F, Min_Energy_Thresh_M, Max_Energy_Thresh_M) |>
+                      pull(Strategy_Overall) |>
+                      unique()
+dat_hs$Strategy_Overall <- factor(dat_hs$Strategy_Overall, levels=strategyOrder_Overall)
+
+plot_strategy_combos <- ggplot(filter(dat_hs, Example_Category != "Other")) +
+                     geom_raster(aes(x=Strategy_F, y=Strategy_M, fill=Success)) +
+                     facet_wrap(facets=vars(Example_Category), nrow=1) +
+                     scale_fill_gradient(low="white", high="black", limits=c(0, 1)) +
+                     xlab("Female strategy") +
+                     ylab("Male strategy") +
+                     guides(fill=guide_legend(title="Hatch success rate")) +
+                     theme_classic() +
+                     theme(axis.text.x=element_blank(),
+                           axis.text.y=element_text(hjust=1),
+                           legend.title=element_text(hjust=0.5),
+                           strip.text=element_text(size=12))
+ggsave(filename="SICB/PLOT_strategy_combos.png", plot_strategy_combos, width=12, height=6)
+
+# Changing environments
+
+best_strategies <- dat_hs |>
+                filter(Foraging_Condition_Mean == 150 & Foraging_Condition_Kick==0) |>
+                slice_max(n=10, order_by=Success) |>
+                pull(Strategy_Overall)
+
+logFit_all <- glm(Success ~ Foraging_Condition_Mean, data=filter(dat_hs, Foraging_Condition_Kick==0), family="quasibinomial")
+switchPoint_all <- -1 * coef(logFit_all)["(Intercept)"] / coef(logFit_all)["Foraging_Condition_Mean"]
+plot_environmental_condition <- ggplot(filter(dat_hs, Foraging_Condition_Kick==0)) +
+                             geom_line(aes(x=Foraging_Condition_Mean, y=Success, group=Strategy_Overall), 
+                                       colour="lightgray", alpha=0.5) +
+                             stat_smooth(aes(x=Foraging_Condition_Mean, y=Success, colour="All"), formula = "y ~ x", method = "glm", 
+                                         method.args = list(family="quasibinomial"), se = FALSE) +
+                             geom_vline(xintercept=switchPoint_all, colour="black", alpha=0.5, linewidth=1.75) + 
+                             scale_colour_manual(values=c("All"="black", "Best"="blue"),
+                                                 labels=c("All"="All", "Best"="Top 10")) +
+                             guides(colour=guide_legend(title="Strategies")) +
+                             xlab("Foraging environment (kJ/day)") +
+                             ylab("Hatch success rate") +
+                             theme_classic() +
+                             theme(legend.key.width=rel(1.5))
+ggsave(filename="SICB/PLOT_environmental_condition.png", plot_environmental_condition, width=6, height=5)
+
+logFit_best <- glm(Success ~ Foraging_Condition_Mean, data=filter(dat_hs, Foraging_Condition_Kick==0, Strategy_Overall %in% best_strategies), family="quasibinomial")
+switchPoint_best <- -1 * coef(logFit_best)["(Intercept)"] / coef(logFit_best)["Foraging_Condition_Mean"]
+plot_environmental_condition_withbest <- ggplot(filter(dat_hs, Foraging_Condition_Kick == 0)) +
+                                      geom_line(aes(x=Foraging_Condition_Mean, y=Success, group=Strategy_Overall), 
+                                                colour="lightgray", alpha=0.5) +
+                                      stat_smooth(aes(x=Foraging_Condition_Mean, y=Success, colour="All"), formula = "y ~ x", method = "glm", 
+                                                  method.args = list(family="quasibinomial"), se = FALSE) +
+                                      stat_smooth(data=filter(dat_hs, Foraging_Condition_Kick==0, Strategy_Overall %in% best_strategies),
+                                                  aes(x=Foraging_Condition_Mean, y=Success, colour="Best"), formula = "y ~ x", method = "glm", 
+                                                  method.args = list(family="quasibinomial"), se = FALSE) +
+                                      geom_vline(xintercept=switchPoint_all, colour="black", alpha=0.5, linewidth=1.75) + 
+                                      geom_vline(xintercept=switchPoint_best, colour="blue", alpha=0.5, linewidth=1.75) + 
+                                      scale_colour_manual(values=c("All"="black", "Best"="blue"),
+                                                          labels=c("All"="All", "Best"="Top 10")) +
+                                      guides(colour=guide_legend(title="Strategies")) +
+                                      xlab("Foraging environment (kJ/day)") +
+                                      ylab("Hatch success rate") +
+                                      theme_classic() +
+                                      theme(legend.key.width=rel(1.5))
+ggsave(filename="SICB/PLOT_environmental_condition_withbest.png", plot_environmental_condition_withbest, width=6, height=5)
+
+logFit_all_perturbed <- glm(Success ~ Foraging_Condition_Mean, data=filter(dat_hs, Foraging_Condition_Kick==1), family="quasibinomial")
+switchPoint_all_perturbed <- -1 * coef(logFit_all_perturbed)["(Intercept)"] / coef(logFit_all_perturbed)["Foraging_Condition_Mean"]
+logFit_best_perturbed <- glm(Success ~ Foraging_Condition_Mean, data=filter(dat_hs, Foraging_Condition_Kick==1, Strategy_Overall %in% best_strategies), family="quasibinomial")
+switchPoint_best_perturbed <- -1 * coef(logFit_best_perturbed)["(Intercept)"] / coef(logFit_best_perturbed)["Foraging_Condition_Mean"]
+plot_environmental_condition_perturbed <- ggplot(filter(dat_hs, Foraging_Condition_Kick==0)) +
+                                       geom_line(data=filter(dat_hs, Foraging_Condition_Kick==1),
+                                                 aes(x=Foraging_Condition_Mean, y=Success, group=Strategy_Overall), 
+                                                 colour="lightgray", alpha=0.25) +
+                                       stat_smooth(data=filter(dat_hs, Foraging_Condition_Kick==1),
+                                                   aes(x=Foraging_Condition_Mean, y=Success, colour="All", linetype="Perturbed"), 
+                                                   formula = "y ~ x", method = "glm", 
+                                                   method.args = list(family="quasibinomial"), se = FALSE) +
+                                       stat_smooth(data=filter(dat_hs, Foraging_Condition_Kick==1, Strategy_Overall %in% best_strategies),
+                                                   aes(x=Foraging_Condition_Mean, y=Success, colour="Best", linetype="Perturbed"), 
+                                                   formula = "y ~ x", method = "glm", 
+                                                   method.args = list(family="quasibinomial"), se = FALSE) +
+                                       geom_vline(xintercept=switchPoint_all, colour="black", alpha=0.5, linewidth=1.75) + 
+                                       geom_vline(xintercept=switchPoint_best, colour="blue", alpha=0.5, linewidth=1.75) + 
+                                       geom_vline(xintercept=switchPoint_all_perturbed, colour="black", alpha=0.5, linewidth=1.2, linetype="dashed") + 
+                                       geom_vline(xintercept=switchPoint_best_perturbed, colour="blue", alpha=0.5, linewidth=1.2, linetype="dashed") + 
+                                       scale_colour_manual(values=c("All"="black", "Best"="blue"),
+                                                           labels=c("All"="All", "Best"="Top 10")) +
+                                       scale_linetype_manual(values=c("Regular"="solid", "Perturbed"="dashed"),
+                                                             limits=c("Perturbed"),
+                                                             labels=c("Environment\nperturbed")) +
+                                       guides(colour=guide_legend(title="Strategies"), 
+                                              linetype=guide_legend(title="",
+                                                                    override.aes=list(colour=c("black")))) +
+                                       xlab("Foraging environment (kJ/day)") +
+                                       ylab("Hatch success rate") +
+                                       theme_classic() +
+                                       theme(legend.key.width=rel(1.5))
+                                      
+ggsave(filename="SICB/PLOT_environmental_condition_perturbed.png", plot_environmental_condition_perturbed, width=6, height=5)
+
+dat_hs_long <- dat_hs |>
+            pivot_longer(cols=c(Fail_Dead_Parent, Fail_Egg_Neglect_Max, Fail_Egg_Neglect_Cumulative, Success),
+                         names_to="Outcome", values_to="Rate")
+
+plot_outcomes <- ggplot(filter(dat_hs_long, Foraging_Condition_Kick == 0)) +
+              stat_smooth(geom="line",
+                          aes(x=Foraging_Condition_Mean, y=Rate, colour=Outcome), 
+                          se=FALSE, method="loess", linewidth=1.2) +
+              scale_colour_manual(values=c("Success"="black",
+                                           "Fail_Egg_Neglect_Max"="#3f3fd6",
+                                           "Fail_Egg_Neglect_Cumulative"="#69c2d8",
+                                           "Fail_Dead_Parent"="#a82a2a"),
+                                  limits=c("Success", 
+                                           "Fail_Egg_Neglect_Max", 
+                                           "Fail_Egg_Neglect_Cumulative",
+                                           "Fail_Dead_Parent"),
+                                   labels=c("Success"="Hatched",
+                                            "Fail_Egg_Neglect_Max"="Fail - Continuous neglect",
+                                            "Fail_Egg_Neglect_Cumulative"="Fail - Overall neglect",
+                                            "Fail_Dead_Parent"="Fail - Dead parent")) +
+              guides(colour=guide_legend(title="Outcome")) +
+              ylab("Outcome rate") +
+              xlab("Foraging environment (kJ/day)") +
+              theme_classic()
+ggsave(filename="SICB/plot_environmental_condition_outcomes.png", plot_outcomes, width=6, height=4)
+
+plot_outcomes_perturbed <- ggplot(dat_hs_long) +
+                        stat_smooth(geom="line",
+                                    aes(x=Foraging_Condition_Mean, y=Rate, colour=Outcome), 
+                                    se=FALSE, method="loess", linewidth=1.2) +
+                        facet_wrap(facets=vars(Foraging_Condition_Kick)) +
+                        scale_colour_manual(values=c("Success"="black",
+                                                     "Fail_Egg_Neglect_Max"="#3f3fd6",
+                                                     "Fail_Egg_Neglect_Cumulative"="#69c2d8",
+                                                     "Fail_Dead_Parent"="#a82a2a"),
+                                            limits=c("Success", 
+                                                     "Fail_Egg_Neglect_Max", 
+                                                     "Fail_Egg_Neglect_Cumulative",
+                                                     "Fail_Dead_Parent"),
+                                             labels=c("Success"="Hatched",
+                                                      "Fail_Egg_Neglect_Max"="Fail - Continuous neglect",
+                                                      "Fail_Egg_Neglect_Cumulative"="Fail - Overall neglect",
+                                                      "Fail_Dead_Parent"="Fail - Dead parent")) +
+                        guides(colour=guide_legend(title="Outcome")) +
+                        ylab("Outcome rate") +
+                        xlab("Foraging environment (kJ/day)") +
+                        theme_classic()
+ggsave(filename="SICB/plot_environmental_condition_outcomes_perturbed.png", plot_outcomes_perturbed, width=6, height=4)
+
+plot_outcomes_best <- ggplot(filter(dat_hs_long, Foraging_Condition_Kick==0)) +
+                   stat_smooth(geom="line",
+                               aes(x=Foraging_Condition_Mean, y=Rate, colour=Outcome, alpha="All"), 
+                               se=FALSE, method="loess", linewidth=1.2) +
+                   stat_smooth(geom="line",
+                               data=filter(dat_hs_long, Foraging_Condition_Kick==0, Strategy_Overall %in% best_strategies),
+                               aes(x=Foraging_Condition_Mean, y=Rate, colour=Outcome, alpha="Best"), 
+                               se=FALSE, method="loess", linewidth=1.2) +
+                   scale_colour_manual(values=c("Success"="black",
+                                                "Fail_Egg_Neglect_Max"="#3f3fd6",
+                                                "Fail_Egg_Neglect_Cumulative"="#69c2d8",
+                                                "Fail_Dead_Parent"="#a82a2a"),
+                                       limits=c("Success", 
+                                                "Fail_Egg_Neglect_Max", 
+                                                "Fail_Egg_Neglect_Cumulative",
+                                                "Fail_Dead_Parent"),
+                                       labels=c("Success"="Hatched",
+                                               "Fail_Egg_Neglect_Max"="Fail - Continuous neglect",
+                                               "Fail_Egg_Neglect_Cumulative"="Fail - Overall neglect",
+                                               "Fail_Dead_Parent"="Fail - Dead parent")) +
+                   scale_alpha_manual(values=c("Best"=1, "All"=0.15)) +
+                   guides(colour=guide_legend(title="Outcome"), alpha="none") +
+                   ylab("Outcome rate") +
+                   xlab("Foraging environment (kJ/day)") +
+                   theme_classic()
+       
+ggsave(filename="SICB/plot_environmental_condition_outcomes_best.png", plot_outcomes_best, width=6, height=4)
+
+entropies <- dat |>
+          filter(Foraging_Condition_Kick==0, Foraging_Condition_Mean==150, Did_Hatch) |>
+          select(Strategy_Overall, Success_150_Scaled_Entropy=Scaled_Entropy)
+
+dat_hs_relation <- dat_hs |>
+                filter(Foraging_Condition_Kick==0, Foraging_Condition_Mean==150 | Foraging_Condition_Mean==140) |>
+                pivot_wider(id_cols=c(Strategy_Overall), names_from=Foraging_Condition_Mean, values_from=c(Success, Fail_Dead_Parent, Fail_Egg_Neglect_Max)) |>
+                left_join(select(filter(dat_hs, Foraging_Condition_Kick==1, Foraging_Condition_Mean==150), Strategy_Overall, Success_Perturbed=Success, Fail_Dead_Parent_Perturbed=Fail_Dead_Parent), by="Strategy_Overall") |>
+                left_join(entropies, by="Strategy_Overall")
+
+plot_success_death_relation <- ggplot(dat_hs_relation) +
+                            geom_point(aes(x=Success_150, y=Fail_Dead_Parent_150), colour="gray") +
+                            geom_smooth(aes(x=Success_150, y=Fail_Dead_Parent_150),
+                                        se=FALSE, colour="black") +
+                            scale_y_continuous(limits=c(0, 0.2)) +
+                            xlab("Hatch success rate\nRegular environment (150 kJ/day)") +
+                            ylab("Parent death rate\nRegular environment (150 kJ/day)") +
+                            theme_classic()
+
+plot_success_death_relation_degraded <- ggplot(dat_hs_relation) +
+                                     geom_point(aes(x=Success_150, y=Fail_Dead_Parent_140), colour="gray") +
+                                     geom_smooth(aes(x=Success_150, y=Fail_Dead_Parent_140),
+                                                 se=FALSE, colour="black") +
+                                     scale_y_continuous(limits=c(0, 0.2)) +
+                                     xlab("Hatch success rate\nRegular environment (150 kJ/day)") +
+                                     ylab("Parent death rate\nDegraded environment (140 kJ/day)") +
+                                     theme_classic()
+
+plots_success_death_relation <- plot_success_death_relation + plot_success_death_relation_degraded +
+                             plot_layout(axes="collect", guides="collect")
+
+ggsave(filename="SICB/plot_success_death_relation.png", plots_success_death_relation, width=10, height=4)
+
+
+# TODO UNDERSTAND PERTURBATION PENALTY DIFFERENCES
+entropies <- dat |>
+          filter(Did_Hatch) |>
+          mutate(Success = N/1000)
+
+ggplot(dat_hs_relation) +
+       geom_point(aes(x=Success_150, y=Success_150_Scaled_Entropy))
+       
+plot_hatch_success_points <- ggplot(dat_hs_relation) +
+                          geom_point(aes(x=Success_150, y=Success_Perturbed), colour="gray") +
+                          geom_smooth(aes(x=Success_150, y=Success_Perturbed), colour="black", se=FALSE) +
+                          geom_abline(slope=1, intercept=0, colour="gray") +
+                          scale_x_continuous(limits=c(0, 1)) +
+                          scale_y_continuous(limits=c(0, 1)) +
+                          xlab("Hatch success rate\nRegular environment (150 kJ/day)") +
+                          ylab("Hatch success rate\nPerturbed environment (150->0 kJ/day, days 20-22)") +
+                          theme_classic()
+ggsave(filename="SICB/plot_hatch_success_points.png", plot_hatch_success_points, width=5, height=5)
+
+plot_hatch_success_differences <- ggplot(dat_hs_relation) +
+                               geom_point(aes(x=Success_150, y=Success_150-Success_Perturbed), colour="gray") +
+                               geom_smooth(aes(x=Success_150, y=Success_150-Success_Perturbed), colour="black", se=FALSE) +
+                               scale_x_continuous(limits=c(0, 1)) +
+                               xlab("Hatch success rate\nRegular environment (150 kJ/day)") +
+                               ylab("Perturbation penalty") +
+                               theme_classic()
+ggsave(filename="SICB/plot_hatch_success_differences.png", plot_hatch_success_differences, width=5, height=5)
+
+
+# TODO UNDERSTAND PERTURBATION PENALTY DIFFERENCES
+entropies <- dat |>
+          filter(Did_Hatch) |>
+          mutate(Success = N/1000)
+
+ggplot(dat_hs_relation) +
+       geom_point(aes(x=Success_150, y=Success_150_Scaled_Entropy))
