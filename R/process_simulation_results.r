@@ -1,7 +1,7 @@
 library(tidyverse)
 library(acss)
 
-SIMS_RESULTS <- "Output/sims_2024-12-09_18-35-30.csv"
+SIMS_RESULTS <- "Output/sims_2024-12-17_22-04-11.csv"
 
 summarizeSubset <- function(df, didHatch) {
     min_energy_thresh_f <- unique(df$Min_Energy_Thresh_F)
@@ -86,6 +86,54 @@ results_summarized <- read_csv_chunked(SIMS_RESULTS,
 
 write_csv(results_summarized, "Output/processed_results_summarized.csv")
 
+
+CHUNK_hatch_success <- function(chunk, pos) {
+    max_energy_thresh_f <- unique(chunk$Max_Energy_Thresh_F)
+    min_energy_thresh_f <- unique(chunk$Min_Energy_Thresh_F)
+    max_energy_thresh_m <- unique(chunk$Max_Energy_Thresh_M)
+    min_energy_thresh_m <- unique(chunk$Min_Energy_Thresh_M)
+    foraging_condition_mean <- unique(chunk$Foraging_Condition_Mean)
+    foraging_condition_sd <- unique(chunk$Foraging_Condition_SD)
+    foraging_condition_kick <- unique(chunk$Foraging_Condition_Kick)
+
+    if (any(map_lgl(list(max_energy_thresh_f, min_energy_thresh_f, 
+                         max_energy_thresh_m, min_energy_thresh_m, 
+                         foraging_condition_mean, foraging_condition_sd, foraging_condition_kick), 
+                    ~ length(.) > 1))) {
+        return("ERROR")
+    }
+
+    if (nrow(chunk) != 1000) {
+        return("ERROR")
+    }
+
+    processed <- chunk |>
+              group_by(Min_Energy_Thresh_F, Max_Energy_Thresh_F,
+                       Min_Energy_Thresh_M, Max_Energy_Thresh_M,
+                       Foraging_Condition_Mean, Foraging_Condition_SD,
+                       Foraging_Condition_Kick, Hatch_Result) |>
+              tally() |>
+              mutate(Rate = n/1000) |>
+              pivot_wider(id_cols=c(Min_Energy_Thresh_F, Max_Energy_Thresh_F, Min_Energy_Thresh_M, Max_Energy_Thresh_M,
+                                    Foraging_Condition_Mean, Foraging_Condition_SD, Foraging_Condition_Kick),
+                          names_from=Hatch_Result, values_from=Rate)
+    return(processed)
+}
+
+results_hatch_success <- read_csv_chunked(SIMS_RESULTS,
+                                          DataFrameCallback$new(CHUNK_hatch_success),
+                                          chunk_size=1000) |>
+                      select(Min_Energy_Thresh_F, Max_Energy_Thresh_F, Min_Energy_Thresh_M, Max_Energy_Thresh_M,
+                             Foraging_Condition_Mean, Foraging_Condition_SD, Foraging_Condition_Kick,
+                             Success="hatched", Fail_Dead_Parent="dead parent", 
+                             Fail_Egg_Neglect_Max="egg cold fail", Fail_Egg_Neglect_Cumulative="egg time fail") |>
+                      mutate(Success = replace_na(Success, 0),
+                             Fail_Dead_Parent = replace_na(Fail_Dead_Parent, 0),
+                             Fail_Egg_Neglect_Max = replace_na(Fail_Egg_Neglect_Max, 0),
+                             Fail_Egg_Neglect_Cumulative = replace_na(Fail_Egg_Neglect_Cumulative, 0))
+                      
+write_csv(results_hatch_success, "Output/processed_results_hatch_success.csv")
+
 CHUNK_example <- function(chunk, pos) {
     filter(chunk, 
            Min_Energy_Thresh_F == 400,
@@ -96,5 +144,5 @@ CHUNK_example <- function(chunk, pos) {
 
 results_example <- read_csv_chunked(SIMS_RESULTS,
                                     DataFrameCallback$new(CHUNK_example),
-                                    chunk_size=100000)
+                                    chunk_size=10000)
 write_csv(results_example, "Output/processed_results_example_strategy.csv")
