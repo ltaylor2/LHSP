@@ -3,7 +3,8 @@ library(tidyverse)
 library(patchwork)
 
 # Read and format data
-dat <- read_csv("Output/processed_results_summarized.csv") |>
+SIMS_VERSION <- "Perturbed3"
+dat <- read_csv(paste0("Output/processed_results_summarized_", SIMS_VERSION, ".csv")) |>
     mutate(Strategy_F = paste0(Min_Energy_Thresh_F, "-", Max_Energy_Thresh_F),
            Strategy_M = paste0(Min_Energy_Thresh_M, "-", Max_Energy_Thresh_M), .before=1) |>
     mutate(Strategy_Overall = paste0(Strategy_F, "/", Strategy_M), .before=1)
@@ -35,7 +36,7 @@ dat$Strategy_Overall <- factor(dat$Strategy_Overall, levels=strategyOrder_Overal
 #                  slice_min(order_by = Diff_From_50) |>
 #                  pull(Strategy_Overall)
 
-dat_example_strategy <- read_csv("Output/processed_results_example_strategy.csv")
+dat_example_strategy <- read_csv(paste0("Output/processed_results_example_strategy_", SIMS_VERSION, ".csv"))
 
 # Season history examples
 
@@ -79,14 +80,14 @@ plot_iteration_examples <- ggplot(example_strings_cut) +
                         geom_raster(aes(x=Day, y=Iteration, fill=State, alpha=Hatch_Result=="hatched")) +
                         scale_fill_manual(values=c(state_colors), na.value="white", 
                                           labels=c("F"="Female", "M"="Male", "N"="Neglect")) +
-                        scale_y_discrete(limits=c("I228", "I0", "I298", "I60"),
-                                         labels=c("I228"="Hatched", "I0"="Overall neglect - Fail", 
-                                                  "I298"="Continuous neglect - Fail", "I60"="Dead parent - Fail")) +
+                        scale_y_discrete(limits=c("I73", "I0", "I48", "I208"),
+                                         labels=c("I73"="Hatched", "I0"="Overall neglect - Fail", 
+                                                  "I48"="Continuous neglect - Fail", "I208"="Dead parent - Fail")) +
                         scale_alpha_manual(values=c("TRUE"=1, "FALSE"=0.25)) +
                         guides(alpha="none") +
                         ylab("Outcome") +
                         theme_classic()
-ggsave(filename="SICB/PLOT_season_examples.png", plot_iteration_examples, width=4, height=2)
+ggsave(filename="SICB/PLOT_season_examples.png", plot_iteration_examples, width=5, height=2)
 
 plot_iteration_examples_all <- ggplot(example_strings) +
                                  geom_raster(aes(x=Day, y=Iteration, fill=State, alpha=Hatch_Result=="hatched")) +
@@ -99,7 +100,7 @@ plot_iteration_examples_all <- ggplot(example_strings) +
 ggsave(filename="SICB/PLOT_iteration_examples_all.png", plot_iteration_examples_all, width=9, height=4)
 
 # Strategy comparisons in regular environment
-dat_hs <- read_csv("Output/processed_results_hatch_success.csv") |>
+dat_hs <- read_csv(paste0("Output/processed_results_hatch_success_", SIMS_VERSION, ".csv")) |>
        mutate(Example_Category = map2_chr(Foraging_Condition_Mean, Foraging_Condition_Kick, assignExampleCategory)) |>
        mutate(Example_Category = factor(Example_Category, levels=exampleCategories)) |>
        mutate(Strategy_F = paste0(Min_Energy_Thresh_F, "-", Max_Energy_Thresh_F),
