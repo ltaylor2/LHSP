@@ -274,7 +274,7 @@ std::string breedingSeason(Parent& pf, Parent& pm, Egg& egg, bool kick)
             if (egg.getIncubationDays() == 20) {
                 pf.setForagingDistribution(0, 0);
                 pm.setForagingDistribution(0, 0);
-            } else if (egg.getIncubationDays() >= 22) {
+            } else if (egg.getIncubationDays() >= 23){
                 pf.setForagingDistribution(foragingMean_F_original, foragingSD_F_original);
                 pm.setForagingDistribution(foragingMean_M_original, foragingSD_M_original);
             }
