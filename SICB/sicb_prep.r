@@ -35,11 +35,9 @@ dat$Strategy_Overall <- factor(dat$Strategy_Overall, levels=strategyOrder_Overal
 #                  mutate(Diff_From_50 = abs(0.5 - Hatch_Success)) |>
 #                  slice_min(order_by = Diff_From_50) |>
 #                  pull(Strategy_Overall)
-
 dat_example_strategy <- read_csv(paste0("Output/processed_results_example_strategy_", SIMS_VERSION, ".csv"))
 
 # Season history examples
-
 exampleCategories <- c("Regular environment\n(150 kJ/day)", 
                        "Degraded environment\n(140 kJ/day)", 
                        "Perturbed environment\n(150->0 kJ/day, days 20-22)")
@@ -90,13 +88,13 @@ plot_iteration_examples <- ggplot(example_strings_cut) +
 ggsave(filename="SICB/PLOT_season_examples.png", plot_iteration_examples, width=5, height=2)
 
 plot_iteration_examples_all <- ggplot(example_strings) +
-                                 geom_raster(aes(x=Day, y=Iteration, fill=State, alpha=Hatch_Result=="hatched")) +
-                                 facet_wrap(facet=vars(Example_Category), nrow=1) +
-                                 scale_fill_manual(values=c(state_colors), na.value="white", 
-                                                   labels=c("F"="Female", "M"="Male", "N"="Neglect")) +
-                                 scale_alpha_manual(values=c("TRUE"=1, "FALSE"=0)) +
-                                 guides(alpha="none") +
-                                 theme_classic()
+                            geom_raster(aes(x=Day, y=Iteration, fill=State, alpha=Hatch_Result=="hatched")) +
+                            facet_wrap(facet=vars(Example_Category), nrow=1) +
+                            scale_fill_manual(values=c(state_colors), na.value="white", 
+                                              labels=c("F"="Female", "M"="Male", "N"="Neglect")) +
+                            scale_alpha_manual(values=c("TRUE"=1, "FALSE"=0)) +
+                            guides(alpha="none") +
+                            theme_classic()
 ggsave(filename="SICB/PLOT_iteration_examples_all.png", plot_iteration_examples_all, width=9, height=4)
 
 # Strategy comparisons in regular environment
@@ -143,7 +141,7 @@ ggsave(filename="SICB/PLOT_strategy_combos.png", plot_strategy_combos, width=12,
 
 best_strategies <- dat_hs |>
                 filter(Foraging_Condition_Mean == 150 & Foraging_Condition_Kick==0) |>
-                slice_max(n=10, order_by=Success) |>
+                slice_max(prop=0.10, order_by=Success) |>
                 pull(Strategy_Overall)
 
 logFit_all <- glm(Success ~ Foraging_Condition_Mean, data=filter(dat_hs, Foraging_Condition_Kick==0), family="quasibinomial")
@@ -297,14 +295,18 @@ plot_outcomes_best <- ggplot(filter(dat_hs_long, Foraging_Condition_Kick==0)) +
 ggsave(filename="SICB/plot_environmental_condition_outcomes_best.png", plot_outcomes_best, width=6, height=4)
 
 entropies <- dat |>
-          filter(Foraging_Condition_Kick==0, Foraging_Condition_Mean==150, Did_Hatch) |>
-          select(Strategy_Overall, Success_150_Scaled_Entropy=Scaled_Entropy)
+          filter(Foraging_Condition_Kick==0, Foraging_Condition_Mean==150) |>
+          mutate(Weighted_Entropy = Scaled_Entropy * N) |>
+          group_by(Strategy_Overall) |> 
+          summarize(Weighted_Entropy = sum(Weighted_Entropy) / 1000)
 
 dat_hs_relation <- dat_hs |>
                 filter(Foraging_Condition_Kick==0, Foraging_Condition_Mean==150 | Foraging_Condition_Mean==140) |>
                 pivot_wider(id_cols=c(Strategy_Overall), names_from=Foraging_Condition_Mean, values_from=c(Success, Fail_Dead_Parent, Fail_Egg_Neglect_Max)) |>
                 left_join(select(filter(dat_hs, Foraging_Condition_Kick==1, Foraging_Condition_Mean==150), Strategy_Overall, Success_Perturbed=Success, Fail_Dead_Parent_Perturbed=Fail_Dead_Parent), by="Strategy_Overall") |>
-                left_join(entropies, by="Strategy_Overall")
+                left_join(entropies, by="Strategy_Overall") |>
+                mutate(Degraded_Penalty = Success_150 - Success_140,
+                       Perturbed_Penalty = Success_150 - Success_Perturbed)
 
 plot_success_death_relation <- ggplot(dat_hs_relation) +
                             geom_point(aes(x=Success_150, y=Fail_Dead_Parent_150), colour="gray") +
@@ -329,40 +331,228 @@ plots_success_death_relation <- plot_success_death_relation + plot_success_death
 
 ggsave(filename="SICB/plot_success_death_relation.png", plots_success_death_relation, width=10, height=4)
 
+# Hatch success penalities in degraded and perturbed environments  
+plot_success_degraded <- ggplot(dat_hs_relation) +
+                      geom_abline(intercept=0, slope=1, colour="gray") +
+                      geom_point(aes(x=Success_150, y=Success_140), colour="gray") +
+                      geom_smooth(aes(x=Success_150, y=Success_140), colour="black", se=FALSE) +
+                      scale_x_continuous(limits=c(0, 1)) +
+                      scale_y_continuous(limits=c(0, 1)) +
+                      xlab("Success in regular environment\n(150 kJ/day)") +
+                      ylab("Success in degraded environment\n(140 kJ/day)") +
+                      theme_classic()
+plot_success_perturbed <- ggplot(dat_hs_relation) +
+                       geom_abline(intercept=0, slope=1, colour="gray") +
+                       geom_point(aes(x=Success_150, y=Success_Perturbed), colour="gray") +
+                       geom_smooth(aes(x=Success_150, y=Success_Perturbed), colour="black", se=FALSE) +
+                       scale_x_continuous(limits=c(0, 1)) +
+                       scale_y_continuous(limits=c(0, 1)) +
+                       xlab("Success in regular environment\n(150 kJ/day)") +
+                       ylab("Success in perturbed environment\n(150->0 kJ/day, days 20-22)") +
+                       theme_classic()
+plots_success_degraded_perturbed <- plot_success_degraded + plot_success_perturbed +
+                                 plot_layout(axes="collect")
+ggsave(filename="SICB/plot_success_degraded_perturbed.png", plots_success_degraded_perturbed, width=7, height=4)
 
-# TODO UNDERSTAND PERTURBATION PENALTY DIFFERENCES
-entropies <- dat |>
-          filter(Did_Hatch) |>
-          mutate(Success = N/1000)
+plot_success_penalty_degraded <- ggplot(dat_hs_relation) +
+                              geom_point(aes(x=Success_150, y=Degraded_Penalty), colour="gray") +
+                              geom_smooth(aes(x=Success_150, y=Degraded_Penalty), colour="black", se=FALSE) +
+                              scale_x_continuous(limits=c(0, 1)) +
+                              scale_y_continuous(limits=c(0, 1)) +
+                              xlab("Success in regular environment\n(150 kJ/day)") +
+                              ylab("Penalty from degraded environment") +
+                              theme_classic()
+plot_success_penalty_perturbed <- ggplot(dat_hs_relation) +
+                              geom_point(aes(x=Success_150, y=Perturbed_Penalty), colour="gray") +
+                              geom_smooth(aes(x=Success_150, y=Perturbed_Penalty), colour="black", se=FALSE) +
+                              scale_x_continuous(limits=c(0, 1)) +
+                              scale_y_continuous(limits=c(0, 1)) +
+                              xlab("Success in regular environment\n(150 kJ/day)") +
+                              ylab("Penalty from perturbed environment") +
+                              theme_classic()
+plots_success_penalty_degraded_perturbed <- plot_success_penalty_degraded + plot_success_penalty_perturbed +
+                                         plot_layout(axes="collect")
+ggsave(filename="SICB/plots_success_penalty_degraded_perturbed.png", plots_success_penalty_degraded_perturbed, width=7, height=4)
 
-ggplot(dat_hs_relation) +
-       geom_point(aes(x=Success_150, y=Success_150_Scaled_Entropy))
-       
-plot_hatch_success_points <- ggplot(dat_hs_relation) +
-                          geom_point(aes(x=Success_150, y=Success_Perturbed), colour="gray") +
-                          geom_smooth(aes(x=Success_150, y=Success_Perturbed), colour="black", se=FALSE) +
-                          geom_abline(slope=1, intercept=0, colour="gray") +
-                          scale_x_continuous(limits=c(0, 1)) +
-                          scale_y_continuous(limits=c(0, 1)) +
-                          xlab("Hatch success rate\nRegular environment (150 kJ/day)") +
-                          ylab("Hatch success rate\nPerturbed environment (150->0 kJ/day, days 20-22)") +
-                          theme_classic()
-ggsave(filename="SICB/plot_hatch_success_points.png", plot_hatch_success_points, width=5, height=5)
+plot_penalities <- ggplot(dat_hs_relation) +
+                geom_point(aes(x=Degraded_Penalty, y=Perturbed_Penalty, size=Success_150), 
+                           colour="black", fill="lightgray", alpha=0.25, shape=21) +
+                geom_smooth(aes(x=Degraded_Penalty, y=Perturbed_Penalty), colour="black", se=FALSE,
+                            method="lm") +
+                scale_x_continuous(limits=c(0, 0.75)) +
+                scale_y_continuous(limits=c(0, 0.60)) +
+                scale_size_continuous(limits=c(0, 1), breaks=seq(0, 1, by=0.25)) +
+                guides(size=guide_legend(title="Success in\nregular environment",
+                                         override.aes=list(alpha=0.5))) +
+                xlab("Degraded penalty") +
+                ylab("Perturbed penalty") +
+                theme_classic()
+ggsave(filename="SICB/plot_penalties.png", plot_penalities, width=7, height=4)
 
-plot_hatch_success_differences <- ggplot(dat_hs_relation) +
-                               geom_point(aes(x=Success_150, y=Success_150-Success_Perturbed), colour="gray") +
-                               geom_smooth(aes(x=Success_150, y=Success_150-Success_Perturbed), colour="black", se=FALSE) +
-                               scale_x_continuous(limits=c(0, 1)) +
-                               xlab("Hatch success rate\nRegular environment (150 kJ/day)") +
-                               ylab("Perturbation penalty") +
-                               theme_classic()
-ggsave(filename="SICB/plot_hatch_success_differences.png", plot_hatch_success_differences, width=5, height=5)
+plot_penalities_top50 <- ggplot(filter(dat_hs_relation, Success_150>0.5)) +
+                      geom_point(aes(x=Degraded_Penalty, y=Perturbed_Penalty, size=Success_150), 
+                                 colour="black", fill="lightgray", alpha=0.25, shape=21) +
+                      geom_smooth(aes(x=Degraded_Penalty, y=Perturbed_Penalty), colour="black", se=FALSE,
+                                  method="lm") +
+                      scale_x_continuous(limits=c(0, 0.75)) +
+                      scale_y_continuous(limits=c(0, 0.60)) +
+                      scale_size_continuous(limits=c(0, 1), breaks=seq(0.50, 1, by=0.25)) +
+                      guides(size=guide_legend(title="Success in\nregular environment",
+                                               override.aes=list(alpha=0.5))) +
+                      xlab("Degraded penalty") +
+                      ylab("Perturbed penalty") +
+                      theme_classic()
+ggsave(filename="SICB/plot_penalties_top50.png", plot_penalities_top50, width=7, height=4)
+
+penalty_lm <- lm(Perturbed_Penalty ~ Degraded_Penalty, data=filter(dat_hs_relation, Success_150>0.5))
+penalty_residuals <- filter(dat_hs_relation, Success_150>0.5) |>
+                  select(Strategy_Overall, Success_150, Degraded_Penalty, Perturbed_Penalty, Success_150_Scaled_Entropy) |>
+                  mutate(Perturbed_Predicted = predict(penalty_lm)) |>
+                  mutate(Perturbed_Penalty_Residual = Perturbed_Penalty - Perturbed_Predicted)
+plot_penalities_residualLines <- ggplot(penalty_residuals) +
+                              geom_point(aes(x=Degraded_Penalty, y=Perturbed_Penalty, size=Success_150), 
+                                         colour="black", fill="lightgray", alpha=0.25, shape=21) +
+                              geom_smooth(aes(x=Degraded_Penalty, y=Perturbed_Penalty), colour="black", se=FALSE,
+                                          method="lm") +
+                              geom_segment(aes(x=Degraded_Penalty, xend=Degraded_Penalty, y=Perturbed_Penalty, yend=Perturbed_Predicted),
+                                           colour="orange", alpha=0.5) +
+                              scale_x_continuous(limits=c(0, 0.75)) +
+                              scale_y_continuous(limits=c(0, 0.60)) +
+                              scale_size_continuous(limits=c(0, 1), breaks=seq(0.50, 1, by=0.25)) +
+                              guides(size=guide_legend(title="Success in\nregular environment",
+                                                       override.aes=list(alpha=0.5))) +
+                              xlab("Degraded penalty") +
+                              ylab("Perturbed penalty") +
+                              theme_classic()
+ggsave(filename="SICB/plot_penalties_residualLines.png", plot_penalities_residualLines, width=7, height=4)
+
+plot_penalties_residualPoints <- ggplot(penalty_residuals) +
+                              geom_hline(yintercept=0, colour="black", alpha=0.5, linewidth=1.75) + 
+                              geom_point(aes(x=Success_150, y=Perturbed_Penalty_Residual), 
+                                         colour="black", fill="orange", alpha=0.25, shape=21) +
+                              geom_smooth(aes(x=Success_150, y=Perturbed_Penalty_Residual), colour="black", se=FALSE) +
+                              xlab("Success in regular environment (150 kJ/day)") +
+                              ylab("Residual of perturbed penalty") +
+                              theme_classic()
+ggsave(filename="SICB/plot_penalties_residualPoints.png", plot_penalties_residualPoints, width=5, height=4)
+
+# Entropies to explain perturbed residual
+plot_penalties_entropies <- ggplot(penalty_residuals) +
+                         geom_point(aes(x=Success_150_Scaled_Entropy, y=Perturbed_Penalty_Residual), 
+                                    colour="black", fill="orange", alpha=0.5, shape=21) +
+                         geom_smooth(aes(x=Success_150_Scaled_Entropy, y=Perturbed_Penalty_Residual), colour="black", se=FALSE) +
+                         xlab("Schedule entropy in regular environment") +
+                         ylab("Residual of perturbed penalty") +
+                         theme_classic()
+ggsave(filename="SICB/plot_penalties_residualPoints_entropies.png", plot_penalties_entropies, width=5, height=4)
+
+plot_degraded_perturbed_penalties <- ggplot(dat_hs_relation) +
+                                  geom_point(aes(x=Success_150-Success_Perturbed, y=Success_150-Success_140, size=Success_150), 
+                                             colour="black", fill="gray", alpha=0.3, shape=21) +
+                                  geom_smooth(aes(x=Success_150-Success_Perturbed, y=Success_150-Success_140), 
+                                              method="lm", colour="black", se=FALSE) +
+                                  guides(size=guide_legend(title="Success in\nregular environment")) +
+                                  xlab("Penalty from degraded environment") +
+                                  ylab("Penalty from perturbed environment") +
+                                  theme_classic()
+ggsave(filename="SICB/plot_degraded_perturbed_penalties.png", plot_degraded_perturbed_penalties, width=7, height=5)
 
 
-# TODO UNDERSTAND PERTURBATION PENALTY DIFFERENCES
-entropies <- dat |>
-          filter(Did_Hatch) |>
-          mutate(Success = N/1000)
+# HERE -- QUANTIFYING SENSITIVITIES, CORRELATING SENSITIVITIES, ASKING IF ENTROPY EXPLAINS ONE AND NOT THE OTHER
+# Sensitivty to degrading and perturbing
 
-ggplot(dat_hs_relation) +
-       geom_point(aes(x=Success_150, y=Success_150_Scaled_Entropy))
+calcSensitivityDegrading <- function(s, segment=FALSE) {
+    strat <- dat_hs |>
+          filter(Strategy_Overall == s, Foraging_Condition_Kick==0)
+    logFit <- glm(Success ~ Foraging_Condition_Mean, data=strat, family="quasibinomial")
+    inflectionPoint <- -1 * logFit$coefficients["(Intercept)"] / logFit$coefficients["Foraging_Condition_Mean"]
+    tangentPoint <- predict(logFit, data.frame(Foraging_Condition_Mean = inflectionPoint), type = "response")
+    maxSlope <- logFit$coefficients["Foraging_Condition_Mean"]/4
+    markSegment <- tibble(x=(inflectionPoint-2):(inflectionPoint+2)) |>
+                mutate(y = tangentPoint + maxSlope * (x - inflectionPoint))
+    if (segment) { return(markSegment) }
+    return(maxSlope)
+}
+
+calcSensitivityPerturbing <- function(s) {
+    dat_hs |>
+          filter(Strategy_Overall == s) |>
+          select(Strategy_Overall, Foraging_Condition_Mean, Foraging_Condition_Kick, Success) |>
+          mutate(Foraging_Condition_Kick=paste0("Kick_", Foraging_Condition_Kick)) |>
+          pivot_wider(id_cols=c(Strategy_Overall, Foraging_Condition_Mean), names_from=Foraging_Condition_Kick, values_from=Success) |>
+          mutate(Effect_Kick = Kick_0 - Kick_1) |>
+          pull(Effect_Kick) |>
+          max()
+}
+
+sensitivities <- tibble(Strategy_Overall = unique(dat_hs$Strategy_Overall)) |>
+              mutate(Sensitivity_Degrading = map_dbl(Strategy_Overall, calcSensitivityDegrading),
+                     Sensitivity_Perturbing = map_dbl(Strategy_Overall, calcSensitivityPerturbing)) |>
+              left_join(dat_hs_relation, by="Strategy_Overall")
+
+write_csv(sensitivities, "temp.csv")
+
+ggplot(filter(sensitivities, Strategy_Overall %in% best_strategies)) +
+    geom_point(aes(x=Sensitivity_Degrading, y=Sensitivity_Perturbing)) +
+    geom_smooth(aes(x=Sensitivity_Degrading, y=Sensitivity_Perturbing), method="lm")
+
+ggplot(filter(sensitivities, Strategy_Overall %in% best_strategies)) +
+    geom_point(aes(x=Success_150, y=Sensitivity_Degrading)) +
+    geom_smooth(aes(x=Success_150, y=Sensitivity_Degrading), method="lm")
+
+ggplot(filter(sensitivities, Strategy_Overall %in% best_strategies)) +
+    geom_point(aes(x=Success_150, y=Sensitivity_Perturbing)) +
+    geom_smooth(aes(x=Success_150, y=Sensitivity_Perturbing), method="lm")
+
+ggplot(filter(sensitivities, Strategy_Overall %in% best_strategies)) +
+    geom_point(aes(x=Weighted_Entropy, y=Sensitivity_Perturbing)) +
+    geom_smooth(aes(x=Weighted_Entropy, y=Sensitivity_Perturbing), method="lm")
+
+ggplot(filter(sensitivities, Strategy_Overall %in% best_strategies)) +
+    geom_point(aes(x=Weighted_Entropy, y=Sensitivity_Degrading)) +
+    geom_smooth(aes(x=Weighted_Entropy, y=Sensitivity_Degrading), method="lm")
+
+lm(Sensitivity_Degrading ~ Success_150 + Weighted_Entropy, 
+   data=filter(sensitivities, Strategy_Overall %in% best_strategies)) |> 
+   summary()
+
+# plot_entropy_examples <- ggplot(example_strings_cut) +
+#                       geom_raster(aes(x=Day, y=Iteration, fill=State, alpha=Hatch_Result=="hatched")) +
+#                       geom_text(aes(x=Day, y=Iteration, label=State), size=1.25) +
+#                       scale_fill_manual(values=c(state_colors), na.value="white", 
+#                                         labels=c("F"="Female", "M"="Male", "N"="Neglect")) +
+#                       scale_y_discrete(limits=c("I73", "I0", "I48", "I208"),
+#                                        labels=c("I73"="Hatched", "I0"="Overall neglect - Fail", 
+#                                                 "I48"="Continuous neglect - Fail", "I208"="Dead parent - Fail")) +
+#                       scale_alpha_manual(values=c("TRUE"=1, "FALSE"=0.25)) +
+#                       guides(alpha="none") +
+#                       ylab("Outcome") +
+#                       theme_classic()
+# ggsave(filename="SICB/plot_entropy_examples.png", plot_entropy_examples, width=5, height=2)
+
+# plot_entropy_examples_nofill <- ggplot(example_strings_cut) +
+#                              geom_text(aes(x=Day, y=Iteration, label=State), size=1.25) +
+#                              scale_fill_manual(values=c(state_colors), na.value="white", 
+#                                                labels=c("F"="Female", "M"="Male", "N"="Neglect")) +
+#                              scale_y_discrete(limits=c("I73", "I0", "I48", "I208"),
+#                                               labels=c("I73"="Hatched", "I0"="Overall neglect - Fail", 
+#                                                        "I48"="Continuous neglect - Fail", "I208"="Dead parent - Fail")) +
+#                              scale_alpha_manual(values=c("TRUE"=1, "FALSE"=0.25)) +
+#                              guides(alpha="none") +
+#                              ylab("Outcome") +
+#                              theme_classic()
+# ggsave(filename="SICB/plot_entropy_examples_nofill.png", plot_entropy_examples_nofill, width=5, height=2)
+
+# ggplot(dat_hs_relation) +
+#                       geom_point(aes(x=Success_150_Scaled_Entropy, y=Perturbed_Penalty))
+# plot_penalties_entropies <- ggplot(penalty_residuals) +
+#                          geom_point(aes(x=Success_150_Scaled_Entropy, y=Perturbed_Penalty_Residual), 
+#                                     colour="black", fill="orange", alpha=0.5, shape=21) +
+#                          geom_smooth(aes(x=Success_150_Scaled_Entropy, y=Perturbed_Penalty_Residual), colour="black", se=FALSE) +
+#                          xlab("Schedule entropy in regular environment") +
+#                          ylab("Residual of perturbed penalty") +
+#                          theme_classic()
+# ggsave(filename="SICB/plot_penalties_residualPoints_entropies.png", plot_penalties_entropies, width=5, height=4)
+
+
+
