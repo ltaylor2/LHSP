@@ -5,6 +5,7 @@ library(patchwork)
 # Read and format data
 SIMS_VERSION <- "Perturbed3"
 dat <- read_csv(paste0("Output/processed_results_summarized_", SIMS_VERSION, ".csv")) |>
+    filter(Foraging_Condition_Kick == 0) |>
     mutate(Strategy_F = paste0(Min_Energy_Thresh_F, "-", Max_Energy_Thresh_F),
            Strategy_M = paste0(Min_Energy_Thresh_M, "-", Max_Energy_Thresh_M), .before=1) |>
     mutate(Strategy_Overall = paste0(Strategy_F, "/", Strategy_M), .before=1)
@@ -35,18 +36,18 @@ dat$Strategy_Overall <- factor(dat$Strategy_Overall, levels=strategyOrder_Overal
 #                  mutate(Diff_From_50 = abs(0.5 - Hatch_Success)) |>
 #                  slice_min(order_by = Diff_From_50) |>
 #                  pull(Strategy_Overall)
-dat_example_strategy <- read_csv(paste0("Output/processed_results_example_strategy_", SIMS_VERSION, ".csv"))
+dat_example_strategy <- read_csv(paste0("Output/processed_results_example_strategy_", SIMS_VERSION, ".csv")) |>
+                     filter(Foraging_Condition_Kick==0)
 
 # Season history examples
 exampleCategories <- c("Regular environment\n(150 kJ/day)", 
-                       "Degraded environment\n(140 kJ/day)", 
-                       "Perturbed environment\n(150->0 kJ/day, days 20-22)")
-assignExampleCategory <- function(fMean, fKick) {
+                       "Degraded environment\n(140 kJ/day)")
+assignExampleCategory <- function(fMean, fKick=0) {
     if (fMean == 150 & fKick == 0) { return (exampleCategories[1]) }
     if (fMean == 140 & fKick == 0) { return (exampleCategories[2]) }
-    if (fMean == 150 & fKick == 1) { return (exampleCategories[3]) }
     return("Other")
 }
+
 example_strings <- dat_example_strategy |>
                 select(Iteration, Hatch_Result, Foraging_Condition_Mean, Foraging_Condition_Kick, Hatch_Days, Season_History) |>
                 mutate(Example_Category = map2_chr(Foraging_Condition_Mean, Foraging_Condition_Kick, assignExampleCategory)) |>
@@ -59,13 +60,13 @@ example_strings <- dat_example_strategy |>
                 filter(!is.na(State))
 
 example_strings_cut <- dat_example_strategy |>
-                    select(Iteration, Hatch_Result, Foraging_Condition_Mean, Foraging_Condition_Kick, Hatch_Days, Season_History) |>
-                    filter(Foraging_Condition_Mean == 150) |>
+                    filter(Foraging_Condition_Mean==140) |>
+                    select(Iteration, Hatch_Result, Foraging_Condition_Mean, Hatch_Days, Season_History) |>
                     group_by(Hatch_Result) |>
                     slice_min(n=1, order_by=Hatch_Days, with_ties=FALSE) |>
                     mutate(Iteration = paste0("I", as.character(Iteration))) |>
                     separate(Season_History, into=as.character(0:61), sep="") |>
-                    pivot_longer(cols=-c(Iteration, Hatch_Result, Foraging_Condition_Mean, Hatch_Days, Foraging_Condition_Kick), names_to="Day", values_to="State") |>
+                    pivot_longer(cols=-c(Iteration, Hatch_Result, Foraging_Condition_Mean, Hatch_Days), names_to="Day", values_to="State") |>
                     filter(Day != 0) |>
                     mutate(Day = as.numeric(Day)) |>
                     filter(!is.na(State))
@@ -78,9 +79,9 @@ plot_iteration_examples <- ggplot(example_strings_cut) +
                         geom_raster(aes(x=Day, y=Iteration, fill=State, alpha=Hatch_Result=="hatched")) +
                         scale_fill_manual(values=c(state_colors), na.value="white", 
                                           labels=c("F"="Female", "M"="Male", "N"="Neglect")) +
-                        scale_y_discrete(limits=c("I73", "I0", "I48", "I208"),
-                                         labels=c("I73"="Hatched", "I0"="Overall neglect - Fail", 
-                                                  "I48"="Continuous neglect - Fail", "I208"="Dead parent - Fail")) +
+                        scale_y_discrete(limits=c("I452", "I0", "I497", "I37"),
+                                         labels=c("I452"="Hatched", "I0"="Overall neglect - Fail", 
+                                                  "I497"="Continuous neglect - Fail", "I37"="Dead parent - Fail")) +
                         scale_alpha_manual(values=c("TRUE"=1, "FALSE"=0.25)) +
                         guides(alpha="none") +
                         ylab("Outcome") +
@@ -95,15 +96,28 @@ plot_iteration_examples_all <- ggplot(example_strings) +
                             scale_alpha_manual(values=c("TRUE"=1, "FALSE"=0)) +
                             guides(alpha="none") +
                             theme_classic()
-ggsave(filename="SICB/PLOT_iteration_examples_all.png", plot_iteration_examples_all, width=9, height=4)
+ggsave(filename="SICB/PLOT_iteration_examples_all.png", plot_iteration_examples_all, width=6, height=4)
 
 # Strategy comparisons in regular environment
+successMetrics <- dat |>
+               filter(Did_Hatch) |>
+               group_by(Strategy_Overall, Foraging_Condition_Mean) |>
+               summarize(Foraging_Condition_Mean=Foraging_Condition_Mean,
+                         Total_Neglect_Success = mean(Total_Neglect),
+                         Scaled_Entropy_Success = mean(Scaled_Entropy),
+                         Scaled_Entropy_N_Adjusted_Success = mean(Scaled_Entropy_N_Adjusted),
+                         Mean_Energy_F_Success = mean(Mean_Energy_F),
+                         Mean_Energy_M_Success = mean(Mean_Energy_M)) |>
+               mutate(Mean_Parent_Energy_Success = (Mean_Energy_F_Success + Mean_Energy_M_Success)/2)
+
 dat_hs <- read_csv(paste0("Output/processed_results_hatch_success_", SIMS_VERSION, ".csv")) |>
-       mutate(Example_Category = map2_chr(Foraging_Condition_Mean, Foraging_Condition_Kick, assignExampleCategory)) |>
+       filter(Foraging_Condition_Kick==0) |>
+       mutate(Example_Category = map_chr(Foraging_Condition_Mean, assignExampleCategory)) |>
        mutate(Example_Category = factor(Example_Category, levels=exampleCategories)) |>
        mutate(Strategy_F = paste0(Min_Energy_Thresh_F, "-", Max_Energy_Thresh_F),
               Strategy_M = paste0(Min_Energy_Thresh_M, "-", Max_Energy_Thresh_M), .before=1) |>
-       mutate(Strategy_Overall = paste0(Strategy_F, "/", Strategy_M), .before=1)
+       mutate(Strategy_Overall = paste0(Strategy_F, "/", Strategy_M), .before=1) |>
+       left_join(successMetrics, by=c("Strategy_Overall", "Foraging_Condition_Mean"))
 
 strategyOrder_F <- dat_hs |> 
                 arrange(Min_Energy_Thresh_F, Max_Energy_Thresh_F) |>
@@ -136,6 +150,112 @@ plot_strategy_combos <- ggplot(filter(dat_hs, Example_Category != "Other")) +
                            legend.title=element_text(hjust=0.5),
                            strip.text=element_text(size=12))
 ggsave(filename="SICB/PLOT_strategy_combos.png", plot_strategy_combos, width=12, height=6)
+
+# Variation in strategies
+strategy_variations <- dat_hs |>
+                    group_by(Strategy_F, Foraging_Condition_Mean) |>
+                    summarize(Mean_Success=mean(Success),
+                              SD_Success=sd(Success),
+                              Min_Success=min(Success),
+                              Max_Success=max(Success)) |>
+                    mutate(Success_Range = Max_Success-Min_Success) |>
+                    group_by(Foraging_Condition_Mean) |>
+                    arrange(Mean_Success) |>
+                    mutate(Rank_Success = row_number())
+
+combo_success <- dat_hs |>
+              left_join(strategy_variations, by=c("Strategy_F", "Foraging_Condition_Mean"))
+
+plot_combination_success_points <- ggplot(combo_success) +
+                                geom_point(aes(x=Mean_Success, y=Success), 
+                                           size=0.5, colour="gray") +
+                                facet_wrap(facets=vars(Foraging_Condition_Mean), nrow=1,
+                                           labeller=as_labeller(~paste(., "kJ/day"))) +
+                                scale_x_continuous(limits=c(0, 1), breaks=seq(0.1, 0.9, by=0.2)) +
+                                xlab("Overall success of female strategy") +
+                                ylab("Success with different partners") +
+                                ggtitle("Foraging environment") +
+                                theme_classic() +
+                                theme(plot.title=element_text(hjust=0.5),
+                                      panel.background=element_rect(colour="black"),
+                                      panel.spacing.x=unit(0.1, units="in"))
+ggsave(filename="SICB/PLOT_combination_success_points.png", width=9, height=3, unit="in")
+
+plot_combination_success_lines <- ggplot(strategy_variations) +
+                               geom_segment(data=strategy_variations,
+                                        aes(x=Mean_Success, xend=Mean_Success, 
+                                            y=Min_Success, yend=Max_Success, group=Strategy_F)) +
+                               facet_wrap(facets=vars(Foraging_Condition_Mean), nrow=1,
+                                          labeller=as_labeller(~paste(., "kJ/day"))) +
+                               scale_x_continuous(limits=c(0, 1), breaks=seq(0.1, 0.9, by=0.2)) +
+                               xlab("Overall success of female strategy") +
+                               ylab("Success with different partners") +
+                               ggtitle("Foraging environment") +
+                               theme_classic() +
+                               theme(plot.title=element_text(hjust=0.5),
+                                     panel.background=element_rect(colour="black"),
+                                     panel.spacing.x=unit(0.1, units="in"))
+ggsave(filename="SICB/PLOT_combination_success_lines.png", width=9, height=3, unit="in")
+
+
+
+
+temp <- dat_hs |>
+     left_join(strategy_sd, by=c("Strategy_F", "Foraging_Condition_Mean"))
+
+hs_ranges <- dat_hs |>
+          group_by(Strategy_Overall, Foraging_Condition_Mean) |>
+          summarize(Min_Success = min(Success), 
+                    Max_Success = max(Success))
+ggplot()
+
+overall_sd <- dat_hs |>
+           group_by(Foraging_Condition_Mean) |>
+           summarize(Mean_Success = mean(Success),
+                     SD_Success = sd(Success))
+plot_combination_variance <- ggplot(temp) +
+                          geom_point(aes(x=Mean_Success, y=Success)) +
+                          facet_wrap(facets=vars(Foraging_Condition_Mean), nrow=1,
+                                     labeller=as_labeller(~paste(., "kJ/day"))) +
+                          ggtitle("Foraging environment") +
+                          theme_classic() +
+                          theme(panel.background=element_rect(colour="black"),
+                                plot.title=element_text(hjust=0.5))
+ggsave(filename="SICB/PLOT_strategy_variation.png", plot_combination_variance, width=10, height=4, unit="in")                          
+
+# What makes a strategy combination good?
+plot_success_neglect <- ggplot(filter(dat_hs, Foraging_Condition_Mean == 150)) +
+                     geom_point(aes(x=Success, y=Total_Neglect_Success), colour="gray") +
+                     geom_smooth(aes(x=Success, y=Total_Neglect_Success), colour="black", 
+                                 method="loess", linewidth = 1, se=FALSE) +
+                     scale_x_continuous(breaks=seq(0, 1, by=0.25),
+                                        labels=c("0", "0.25", "0.50", "0.75", "1")) +                                 
+                     xlab("Hatch success rate") +
+                     ylab("Total egg neglect (successful only)") +
+                     theme_classic()
+plot_success_energy <- ggplot(filter(dat_hs, Foraging_Condition_Mean == 150)) +
+                    geom_point(aes(x=Success, y=Mean_Parent_Energy_Success), colour="gray") +
+                    geom_smooth(aes(x=Success, y=Mean_Parent_Energy_Success), colour="black", 
+                                method="loess", linewidth = 1, se=FALSE) +
+                    scale_x_continuous(breaks=seq(0, 1, by=0.25),
+                                       labels=c("0", "0.25", "0.50", "0.75", "1")) +                                 
+                    xlab("Hatch success rate") +
+                    ylab("Mean parent energy (successful only)") +
+                    theme_classic()
+plot_success_entropy <- ggplot(filter(dat_hs, Foraging_Condition_Mean == 150)) +
+                     geom_point(aes(x=Success, y=Scaled_Entropy_Success), colour="gray") +
+                     geom_smooth(aes(x=Success, y=Scaled_Entropy_Success), colour="black", 
+                                 method="loess", linewidth = 1, se=FALSE) +
+                     scale_x_continuous(breaks=seq(0, 1, by=0.25),
+                                        labels=c("0", "0.25", "0.50", "0.75", "1")) +                                 
+                     xlab("Hatch success rate") +
+                     ylab("Schedule entropy (successful only)") +
+                     theme_classic()
+plots_success <- plot_success_neglect + plot_success_energy + plot_success_entropy +
+              plot_layout(axes="collect")
+ggsave(filename="SICB/PLOT_success_metrics.png", width=9, height=3, unit="in")
+
+
 
 # Changing environments
 
