@@ -197,31 +197,27 @@ plot_combination_success_lines <- ggplot(strategy_variations) +
                                      panel.spacing.x=unit(0.1, units="in"))
 ggsave(filename="SICB/PLOT_combination_success_lines.png", width=9, height=3, unit="in")
 
-
-
-
-temp <- dat_hs |>
-     left_join(strategy_sd, by=c("Strategy_F", "Foraging_Condition_Mean"))
-
-hs_ranges <- dat_hs |>
-          group_by(Strategy_Overall, Foraging_Condition_Mean) |>
-          summarize(Min_Success = min(Success), 
-                    Max_Success = max(Success))
-ggplot()
-
-overall_sd <- dat_hs |>
-           group_by(Foraging_Condition_Mean) |>
-           summarize(Mean_Success = mean(Success),
-                     SD_Success = sd(Success))
-plot_combination_variance <- ggplot(temp) +
-                          geom_point(aes(x=Mean_Success, y=Success)) +
-                          facet_wrap(facets=vars(Foraging_Condition_Mean), nrow=1,
-                                     labeller=as_labeller(~paste(., "kJ/day"))) +
-                          ggtitle("Foraging environment") +
-                          theme_classic() +
-                          theme(panel.background=element_rect(colour="black"),
-                                plot.title=element_text(hjust=0.5))
-ggsave(filename="SICB/PLOT_strategy_variation.png", plot_combination_variance, width=10, height=4, unit="in")                          
+overall_success_ranges <- dat_hs |>
+                       group_by(Foraging_Condition_Mean) |>
+                       summarize(Min_Success = min(Success),
+                                 Max_Success = max(Success)) |>
+                       mutate(Success_Range = Max_Success - Min_Success)
+plot_combination_success_range <- ggplot(strategy_variations) +
+                               geom_hline(data=overall_success_ranges,
+                                          aes(yintercept=Success_Range),
+                                          colour="black", alpha=0.25, linewidth=1.25) +
+                               geom_point(aes(x=Mean_Success, y=Success_Range), colour="black") +
+                               facet_wrap(facets=vars(Foraging_Condition_Mean), nrow=1,
+                                          labeller=as_labeller(~paste(., "kJ/day"))) +
+                               scale_x_continuous(limits=c(0, 1), breaks=seq(0.1, 0.9, by=0.2)) +
+                               xlab("Overall success of female strategy") +
+                               ylab("Success range across partners") +
+                               ggtitle("Foraging environment") +
+                               theme_classic() +
+                               theme(plot.title=element_text(hjust=0.5), 
+                                     panel.background=element_rect(colour="black"),
+                                     panel.spacing.x=unit(0.1, units="in"))
+ggsave(filename="SICB/PLOT_combination_success_range.png", width=9, height=3, unit="in")
 
 # What makes a strategy combination good?
 plot_success_neglect <- ggplot(filter(dat_hs, Foraging_Condition_Mean == 150)) +
@@ -255,10 +251,10 @@ plots_success <- plot_success_neglect + plot_success_energy + plot_success_entro
               plot_layout(axes="collect")
 ggsave(filename="SICB/PLOT_success_metrics.png", width=9, height=3, unit="in")
 
-
-
+# TODO HERE FINISH
+ggplot(filter(dat_hs, Foraging_Condition_Mean==150)) +
+    geom_point(aes(y=Scaled_Entropy_Success, x=Total_Neglect_Success, colour=Success))
 # Changing environments
-
 best_strategies <- dat_hs |>
                 filter(Foraging_Condition_Mean == 150 & Foraging_Condition_Kick==0) |>
                 slice_max(prop=0.10, order_by=Success) |>
