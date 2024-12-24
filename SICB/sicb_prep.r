@@ -49,7 +49,6 @@ assignExampleCategory <- function(fMean, fKick=0) {
     return("Other")
 }
 
-
 example_strings_cut <- dat_example_strategy |>
                     filter(Foraging_Condition_Mean==140) |>
                     filter(Iteration != 452) |>
@@ -446,10 +445,9 @@ plot_environmental_condition_perturbed <- ggplot(filter(dat_hs, Foraging_Conditi
                                        ylab("Hatch success rate") +
                                        theme_classic() +
                                        theme(legend.key.width=rel(1.5))
-                                      
 ggsave(filename="SICB/PLOT_environmental_condition_perturbed.png", plot_environmental_condition_perturbed, width=6, height=5)
 
-# Changing outcomes as the envioronment declines
+# Changing outcomes as the environment declines
 dat_hs_long <- dat_hs |>
             pivot_longer(cols=c(Fail_Dead_Parent, Fail_Egg_Neglect_Max, Fail_Egg_Neglect_Cumulative, Success),
                          names_to="Outcome", values_to="Rate")
@@ -582,3 +580,25 @@ plot_strategy_entropy <- ggplot(filter(dat_hs, Example_Category != "Other")) +
                             strip.text=element_text(size=12))
 ggsave(filename="SICB/PLOT_strategy_entropy.png", plot_strategy_entropy, width=12, height=6)
 
+# How good does the environment need to be before one parent can incubate?
+dat_hs_oneparent <- read_csv("Output/processed_results_hatch_success_OneParent.csv") |>
+                 mutate(Strategy_F = paste(Min_Energy_Thresh_F, Max_Energy_Thresh_F, sep="-"))
+
+        
+logFit_oneParent <- glm(Success ~ Foraging_Condition_Mean, data=filter(dat_hs_oneparent, Foraging_Condition_Kick==0), family="quasibinomial")
+switchPoint_oneParent <- -1 * coef(logFit_oneParent)["(Intercept)"] / coef(logFit_oneParent)["Foraging_Condition_Mean"]
+
+plot_oneParent <- ggplot(filter(dat_hs_oneparent, Foraging_Condition_Kick==0)) +
+               geom_line(aes(x=Foraging_Condition_Mean, y=Success, group=Strategy_F), 
+                         colour="lightgray", alpha=0.5) +
+               geom_vline(xintercept=160, colour="black", linetype="dashed") + 
+               stat_smooth(aes(x=Foraging_Condition_Mean, y=Success), formula = "y ~ x", method = "glm", 
+                           method.args = list(family="quasibinomial"), se = FALSE, colour="black") +
+               geom_vline(xintercept=switchPoint_oneParent, colour="black", alpha=0.5, linewidth=1.75) + 
+               scale_x_continuous(limits=c(130, 300)) +
+               guides(colour=guide_legend(title="Strategies")) +
+               xlab("Foraging environment (kJ/day)") +
+               ylab("Hatch success rate") +
+               theme_classic() +
+               theme(legend.key.width=rel(1.5))
+ggsave(filename="SICB/PLOT_oneParent.png", plot_oneParent, width=6, height=5)
