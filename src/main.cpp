@@ -11,7 +11,7 @@
 #include "Egg.hpp"
 #include "Parent.hpp"
 
-static std::string OUTPUT_SUFFIX = ""
+static std::string OUTPUT_SUFFIX = "";
 static int ITERATIONS = 1000;
 
 constexpr static double P_MAX_ENERGY_THRESH[] = {200, 1000, 100};
@@ -43,7 +43,7 @@ int main()
     std::time_t now = std::time(nullptr);
     char timeStr[100];
     std::strftime(timeStr, sizeof(timeStr), "%Y-%m-%d_%H-%M-%S", std::localtime(&now));
-    std::string outfileName = std::string("../Output/sims_") + timeStr + str::string("_") + OUTPUT_SUFFIX + std::string(".csv");
+    std::string outfileName = std::string("../Output/sims_") + timeStr + std::string("_") + OUTPUT_SUFFIX + std::string(".csv");
 
 	// Generate a vector of parameter values from {min, max, by} arrays
 	std::vector<double> v_minEnergyThresh = paramVector(P_MIN_ENERGY_THRESH);

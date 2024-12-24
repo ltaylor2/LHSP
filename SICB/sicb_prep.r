@@ -508,7 +508,7 @@ example_strings_continuous_neglect <- dat_example_strategy |>
                                    group_by(Example_Category) |>
                                    slice_sample(n=2) |>
                                    separate(Season_History, into=as.character(0:61), sep="") |>
-                                   pivot_longer(cols=-c(Iteration, Example_Category), names_to="Day", values_to="State") |>
+                                   pivot_longer(cols=-c(Iteration, Hatch_Result, Example_Category), names_to="Day", values_to="State") |>
                                    filter(Day != 0) |>
                                    mutate(Day = as.numeric(Day)) |>
                                    filter(!is.na(State)) |>
@@ -518,12 +518,14 @@ plot_neglect_examples <- ggplot(example_strings_continuous_neglect) +
                       geom_raster(aes(x=Day, y=Iteration, fill=State, alpha=Hatch_Result=="hatched")) +
                       scale_fill_manual(values=c(state_colors), na.value="white", 
                                         labels=c("F"="Female", "M"="Male", "N"="Neglect")) +
-                      facet_wrap(facets=vars(Example_Category), nrow=2) +
-                      scale_alpha_manual(values=c("TRUE"=1, "FALSE"=0.25)) +
+                      facet_wrap(facets=vars(Example_Category), nrow=2, scales="free_y") +
+                      scale_alpha_manual(values=c("TRUE"=1, "FALSE"=0.5)) +
                       guides(alpha="none") +
                       ylab("Outcome") +
-                      theme_classic()
-ggsave(filename="SICB/PLOT_season_examples.png", plot_neglect_examples, width=5, height=2)
+                      theme_classic() +
+                      theme(axis.title.y=element_blank(),
+                            axis.text.y=element_blank())
+ggsave(filename="SICB/PLOT_neglect_examples.png", plot_neglect_examples, width=5, height=3)
 
 # Best strategy ranks
 strategy_ranks <- dat_hs |>
