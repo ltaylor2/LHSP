@@ -79,9 +79,9 @@ void printBoutInfo(std::string fname, std::string model, std::string tag, std::v
 	of.close();
 }
 
-std::string checkSeasonSuccess(Parent& pf, Parent& pm, Egg& egg) 
+std::string checkSeasonSuccess(Parent& pf, Egg& egg) 
 {
-	if (!pm.isAlive() || !pf.isAlive()) {
+	if (!pf.isAlive()) {
         return("dead parent");
     } else if (egg.isAlive() && egg.isHatched()) {
 		return "hatched";
