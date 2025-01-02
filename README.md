@@ -1,10 +1,10 @@
 
 <p>
-<strong>Email</strong>: 	   liam.taylor@yale.edu<br>
-<strong>Twitter</strong>:   @LUlyssesT<br>
-<strong>Website</strong>:   ltaylor2.github.io<br>
+<strong>Email</strong>: 	   l.taylor@bowdoin.edu<br>
+<strong>Twitter</strong>:   @liamtaylor.bsky.social<br>
+<strong>Website</strong>:   https://ltaylor.mmm.page/<br>
 <br>
-The main branch of this repository currently hosts the code version from the American Ornithological Society 2019 Conference in Anchorage, Alaska.
+The main branch of this repository currently hosts the code version from the Society for Integrative and Comparative Biology (SICB) 2025 Conference in Atlanta, Georgia
 </p>
 
 ---
@@ -17,15 +17,8 @@ Running the program with <code>./lhsp</code> will simulate the models requested 
 <br>
 Iterations and other important constants can be found at the top of <code>main.cpp</code>.
 <br>
-Figures for the AOS19AK poster can be generated using the R script <code>Figures/lhsp_visualizations.r</code> with the help of the [tidyverse](https://github.com/tidyverse/tidyverse).
+Figures for the SICB2025 presentation can be generated using the R script <code>SICB/sicb_prep.r</code>.
 </p>
-
----
-
-<h3>Acknowledgements</h3>
-I would first like to thank the many scientists, artists, and students with whom I spent time at the Bowdoin Scientific Station on Kent Island, New Brunswick, Canada. My work there under Dr. Robert Mauck in the summers of 2014 and 2015 first inspired my interest in the complicated and lovely Leach's Storm-petrels. My thanks to Dr. Alvaro Sanchez and Dr. Stephen Stearns for their careful critique and comments on two course projects which combined to form the bulk of the present model. Thanks also to my advisor Dr. Richard Prum for his conversation and thoughts as I begin my work at Yale EEB. Support for this project came in part from NSF (GRFP #DGE1752134) and the Coe Fund. 
-
----
 
 <h3>Parameter references</h3>
 
