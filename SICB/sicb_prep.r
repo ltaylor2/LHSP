@@ -336,6 +336,47 @@ plots_success <- plot_success_neglect + plot_success_energy + plot_success_entro
               plot_layout(axes="collect")
 ggsave(filename="SICB/PLOT_success_metrics.png", width=9, height=3, unit="in")
 
+# Strategy combinations with HIGHLIGHTED EMPIRICAL STRATEGY
+empiricalStrategy <- dat_hs |>
+                  filter(Foraging_Condition_Mean == 160,
+                         Min_Energy_Thresh_F %in% c(400, 500, 600), Max_Energy_Thresh_F %in% c(700, 800, 900),
+                         Min_Energy_Thresh_M %in% c(400, 500, 600), Max_Energy_Thresh_M %in% c(700, 800, 900))
+plot_success_neglect_with_empirical <- ggplot(filter(dat_hs, Foraging_Condition_Mean == 160)) +
+                     geom_point(aes(x=Success, y=Total_Neglect_Success), colour="gray") +
+                     geom_point(data=empiricalStrategy, aes(x=Success, y=Total_Neglect_Success), colour="red") +
+                     geom_smooth(aes(x=Success, y=Total_Neglect_Success), colour="black", 
+                                 method="loess", linewidth = 1, se=FALSE) +
+                     scale_x_continuous(breaks=seq(0, 1, by=0.25),
+                                        labels=c("0", "0.25", "0.50", "0.75", "1")) +                                 
+                     xlab("Hatch success rate") +
+                     ylab("Total egg neglect") +
+                     theme_classic()
+plot_success_energy_with_empirical <- ggplot(filter(dat_hs, Foraging_Condition_Mean == 160)) +
+                    geom_point(aes(x=Success, y=Mean_Parent_Energy_Success), colour="gray") +
+                    geom_point(data=empiricalStrategy, aes(x=Success, y=Mean_Parent_Energy_Success), colour="red") +
+                    geom_smooth(aes(x=Success, y=Mean_Parent_Energy_Success), colour="black", 
+                                method="loess", linewidth = 1, se=FALSE) +
+                    scale_x_continuous(breaks=seq(0, 1, by=0.25),
+                                       labels=c("0", "0.25", "0.50", "0.75", "1")) +                                 
+                    xlab("Hatch success rate") +
+                    ylab("Mean parent energy") +
+                    theme_classic()
+plot_success_entropy_with_empirical <- ggplot(filter(dat_hs, Foraging_Condition_Mean == 160)) +
+                     geom_point(aes(x=Success, y=Scaled_Entropy_Success), colour="gray") +
+                    geom_point(data=empiricalStrategy, aes(x=Success, y=Scaled_Entropy_Success), colour="red") +
+                     geom_smooth(aes(x=Success, y=Scaled_Entropy_Success), colour="black", 
+                                 method="loess", linewidth = 1, se=FALSE) +
+                     scale_x_continuous(breaks=seq(0, 1, by=0.25),
+                                        labels=c("0", "0.25", "0.50", "0.75", "1")) +                                 
+                     xlab("Hatch success rate") +
+                     ylab("Schedule entropy") +
+                     theme_classic()
+plots_success_with_empirical <- plot_success_neglect_with_empirical + plot_success_energy_with_empirical + plot_success_entropy_with_empirical +
+              plot_layout(axes="collect")
+ggsave(filename="SICB/PLOT_success_metrics_with_empirical.png", width=9, height=3, unit="in")
+
+
+
 plot_entropy_neglect_comparison <- ggplot(filter(dat_hs, Foraging_Condition_Mean %in% 140:160)) +
                                 geom_point(aes(y=Total_Neglect_Success, 
                                                x=Scaled_Entropy_Success, 
