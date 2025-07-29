@@ -21,6 +21,7 @@ int isolateHatchResults(std::vector<std::string>, std::string);
 
 // Converts a {min, max, by} vector to a list of parameters
 std::vector<double> paramVector(const double[3]);
+std::vector<int> paramVector(const int p[3]); // overloaded
 
 // Prints bout info to a file
 void printBoutInfo(std::string, std::string, std::string, std::vector<int>);
