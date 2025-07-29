@@ -3,8 +3,29 @@ library(tidyverse)
 library(patchwork)
 library(plotly)
 
+# Hatch success
+dat <- read_csv("Output/processed_results_hatch_success.csv") |>    
+    filter(Foraging_Condition_Kick == 0) |>
+    mutate(Strategy_F = paste0(Min_Energy_Thresh_F, "-", Max_Energy_Thresh_F),
+           Strategy_M = paste0(Min_Energy_Thresh_M, "-", Max_Energy_Thresh_M), .before=1) |>
+    mutate(Strategy_Overall = paste0(Strategy_F, "/", Strategy_M), .before=1)
+
+dat160 <- filter(dat, Foraging_Condition_Mean == 160)
+plot_temp <- ggplot(filter(dat, Foraging_Condition_Mean %in% c(150, 160, 170))) +
+    geom_line(aes(x=Egg_Neglect_Max, y=Success, group=Strategy_Overall), colour="gray") +
+    geom_smooth(aes(x=Egg_Neglect_Max, y=Success), colour="black", 
+                method="loess", linewidth = 1, se=FALSE) +
+    scale_x_continuous(breaks=seq(1, 7, by=1)) +
+    facet_wrap(facets = vars(Foraging_Condition_Mean), 
+               labeller=as_labeller(c("150"="Bad environment\n(150 kJ/day)", "160"="Empirical environment\n(160 kJ/day)", "170"="Good environment\n(170 kJ/day)"))) +
+    xlab("Egg cold tolerance (days)") +
+    ylab("Hatch success rate") +
+    theme_classic()
+    
+
+
 # Read and format data
-SIMS_VERSION <- "Perturbed3"
+SIMS_VERSION <- "BaseEnergy766"
 dat <- read_csv(paste0("Output/processed_results_summarized_", SIMS_VERSION, ".csv")) |>
     filter(Foraging_Condition_Kick == 0) |>
     mutate(Strategy_F = paste0(Min_Energy_Thresh_F, "-", Max_Energy_Thresh_F),
@@ -341,6 +362,7 @@ empiricalStrategy <- dat_hs |>
                   filter(Foraging_Condition_Mean == 160,
                          Min_Energy_Thresh_F %in% c(400, 500, 600), Max_Energy_Thresh_F %in% c(700, 800, 900),
                          Min_Energy_Thresh_M %in% c(400, 500, 600), Max_Energy_Thresh_M %in% c(700, 800, 900))
+
 plot_success_neglect_with_empirical <- ggplot(filter(dat_hs, Foraging_Condition_Mean == 160)) +
                      geom_point(aes(x=Success, y=Total_Neglect_Success), colour="gray") +
                      geom_point(data=empiricalStrategy, aes(x=Success, y=Total_Neglect_Success), colour="red") +
@@ -351,6 +373,7 @@ plot_success_neglect_with_empirical <- ggplot(filter(dat_hs, Foraging_Condition_
                      xlab("Hatch success rate") +
                      ylab("Total egg neglect") +
                      theme_classic()
+
 plot_success_energy_with_empirical <- ggplot(filter(dat_hs, Foraging_Condition_Mean == 160)) +
                     geom_point(aes(x=Success, y=Mean_Parent_Energy_Success), colour="gray") +
                     geom_point(data=empiricalStrategy, aes(x=Success, y=Mean_Parent_Energy_Success), colour="red") +
@@ -361,6 +384,7 @@ plot_success_energy_with_empirical <- ggplot(filter(dat_hs, Foraging_Condition_M
                     xlab("Hatch success rate") +
                     ylab("Mean parent energy") +
                     theme_classic()
+
 plot_success_entropy_with_empirical <- ggplot(filter(dat_hs, Foraging_Condition_Mean == 160)) +
                      geom_point(aes(x=Success, y=Scaled_Entropy_Success), colour="gray") +
                     geom_point(data=empiricalStrategy, aes(x=Success, y=Scaled_Entropy_Success), colour="red") +
@@ -371,11 +395,11 @@ plot_success_entropy_with_empirical <- ggplot(filter(dat_hs, Foraging_Condition_
                      xlab("Hatch success rate") +
                      ylab("Schedule entropy") +
                      theme_classic()
+
 plots_success_with_empirical <- plot_success_neglect_with_empirical + plot_success_energy_with_empirical + plot_success_entropy_with_empirical +
               plot_layout(axes="collect")
+
 ggsave(filename="SICB/PLOT_success_metrics_with_empirical.png", width=9, height=3, unit="in")
-
-
 
 plot_entropy_neglect_comparison <- ggplot(filter(dat_hs, Foraging_Condition_Mean %in% 140:160)) +
                                 geom_point(aes(y=Total_Neglect_Success, 

@@ -18,6 +18,9 @@ public:
 	*/
 	void eggDay(bool incubated);							
 
+    // Setters
+    void setNeglectMax(int neglectMax_) { this->neglectMax = neglectMax_; }
+
 	// Getters
 	bool isAlive() { return this->alive; }
 	bool isHatched() { return this->hatched; }
@@ -62,6 +65,7 @@ private:
 	bool hatched;		 // is egg hatched?
 
 	double eggCost;
+    int neglectMax;      // what is the egg cold limit?
 
 	double currDays;	     // egg age (days) 
 	double hatchDays; 	     // current total incubation days required until

@@ -8,6 +8,7 @@ Egg::Egg():
 	alive(true),
 	hatched(false),
 	eggCost(EGG_COST),
+    neglectMax(NEGLECT_MAX),
 	currDays(0),
 	hatchDays(START_HATCH_DAYS),
 	maxHatchDays(HATCH_DAYS_MAX),
@@ -38,7 +39,7 @@ void Egg::eggDay(bool incubated)
 			this->maxNegCounter = currNegCounter;
 
 			// Eggs which exceed the maximum neglect streak value die completely. 
-			if (maxNegCounter > NEGLECT_MAX) {
+			if (maxNegCounter > neglectMax) {
 				this->alive = false;
 			}
 		}

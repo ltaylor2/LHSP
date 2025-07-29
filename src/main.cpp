@@ -11,12 +11,15 @@
 #include "Egg.hpp"
 #include "Parent.hpp"
 
-static std::string OUTPUT_SUFFIX = "";
+static std::string OUTPUT_SUFFIX = "neglectMax";
 static int ITERATIONS = 1000;
 
-constexpr static double P_MAX_ENERGY_THRESH[] = {200, 1000, 100};
-constexpr static double P_MIN_ENERGY_THRESH[] = {200, 1000, 100};
+// constexpr static double P_MIN_ENERGY_THRESH[] = {200, 1000, 100};
+// constexpr static double P_MAX_ENERGY_THRESH[] = {200, 1000, 100};
+constexpr static double P_MIN_ENERGY_THRESH[] = {400, 600, 100};
+constexpr static double P_MAX_ENERGY_THRESH[] = {700, 900, 100};
 constexpr static double P_FORAGING_MEAN[] = {130, 170, 10};
+constexpr static int P_EGG_NEGLECT_MAX[] = {1, 7, 1};
 
 // Need a single, static random generator device to let us only seed once
 static std::mt19937* randGen;
@@ -26,7 +29,8 @@ void runModel(int iterations,
 	          std::string outfileName,
 	          std::vector<double> v_minEnergyThresh,
 	          std::vector<double> v_maxEnergyThresh,
-	          std::vector<double> v_foragingMean);
+	          std::vector<double> v_foragingMean,
+              std::vector<int> v_eggNeglectMax);
 
 std::string breedingSeason(Parent& pf, Parent& pm, Egg& egg, bool kick);
 
@@ -49,6 +53,7 @@ int main()
 	std::vector<double> v_minEnergyThresh = paramVector(P_MIN_ENERGY_THRESH);
 	std::vector<double> v_maxEnergyThresh = paramVector(P_MAX_ENERGY_THRESH);
 	std::vector<double> v_foragingMean    = paramVector(P_FORAGING_MEAN);
+    std::vector<int> v_eggNeglectMax      = paramVector(P_EGG_NEGLECT_MAX);
 
 	std::cout << "\n\n\nBeginning model runs\n\n\n";
 
@@ -56,7 +61,8 @@ int main()
              outfileName, 
              v_minEnergyThresh, 
              v_maxEnergyThresh, 
-             v_foragingMean);
+             v_foragingMean,
+             v_eggNeglectMax);
 
 	std::cout << "Ended model runs\n";
 
@@ -76,8 +82,10 @@ void runModel(int iterations,
 	          std::string outfileName,
 	          std::vector<double> v_minEnergyThresh,
               std::vector<double> v_maxEnergyThresh,
-	          std::vector<double> v_foragingMean)
+	          std::vector<double> v_foragingMean,
+              std::vector<int> v_eggNeglectMax)
 {
+    
 	// Start formatted output
 	std::ofstream outfile;
 	outfile.open(outfileName, std::ofstream::trunc);
@@ -91,6 +99,7 @@ void runModel(int iterations,
 			<< "Foraging_Condition_Mean" << ","
             << "Foraging_Condition_SD" << ","
             << "Foraging_Condition_Kick" << ","
+            << "Egg_Neglect_Max" << ","
 	    	<< "Hatch_Result" << ","
 			<< "Hatch_Days" << ","
 			<< "Total_Neglect" << ","
@@ -124,8 +133,8 @@ void runModel(int iterations,
         }
     }
 
-	int totParamIterations = energyCombinations * energyCombinations * v_foragingMean.size();
-
+	int totParamIterations = energyCombinations * energyCombinations * 
+                             v_foragingMean.size() * 2 * v_eggNeglectMax.size();
 	int currParamIteration = 0;
 
 	// For every minEnergy value (FEMALE)
@@ -153,6 +162,15 @@ void runModel(int iterations,
 	for (unsigned int e = 0; e < v_foragingMean.size(); e++) {
 		double foragingMean = v_foragingMean[e];
     
+    // (finally) we're duplicating each run for an added "kick"
+    // NOTE disabled for now
+    for (int k = 0; k < 1; k++) {
+        bool kick = false;
+        if (k % 2 == 1) { kick = true; }
+
+    for (unsigned int f = 0; f < v_eggNeglectMax.size(); f++) {
+        int eggNeglectMax = v_eggNeglectMax[f];
+        
 		// Mildly helpful progress update
 		currParamIteration++;
 		if (currParamIteration % (totParamIterations/100) == 0) {
@@ -163,16 +181,12 @@ void runModel(int iterations,
             outfile.flush();
 		}
 
-    // (finally) we're duplicating each run for an added "kick"
-    for (int k = 0; k < 2; k++) {
-        bool kick = false;
-        if (k % 2 == 1) { kick = true; }
-
         // Replicate every parameter combination by i iterations
         for (int i = 0; i < iterations; i++) {
 
             // A fresh egg
             Egg egg = Egg();
+            egg.setNeglectMax(eggNeglectMax);
 
             // Two shiny new parents
             Parent pf = Parent(Sex::female, randGen);
@@ -224,6 +238,7 @@ void runModel(int iterations,
                     << foragingMean << ","
                     << foragingSD << ","
                     << kick << ","
+                    << eggNeglectMax << ","
                     << hatchResult << ","
                     << hatchDays << ","
                     << totNeglect << ","
@@ -239,7 +254,7 @@ void runModel(int iterations,
                     << seasonLength << ","
                     << seasonHistory << std::endl;
         }
-    } }	} } } } // End parameter loops
+    } } } } } } } // End parameter loops
 
 	// Close file and exit
 	outfile.close();

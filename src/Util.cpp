@@ -67,6 +67,21 @@ std::vector<double> paramVector(const double p[3])
 	return ret;
 }
 
+std::vector<int> paramVector(const int p[3]) 
+{
+	int min = p[0];
+	int max = p[1];
+	int by = p[2];
+
+	std::vector<int> ret;
+	for (int i = min; i <= max; i+=by) {
+		ret.push_back(i);
+	}
+
+	return ret;
+}
+
+
 void printBoutInfo(std::string fname, std::string model, std::string tag, std::vector<int> v) 
 {
 	std::ofstream of;
