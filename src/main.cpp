@@ -11,15 +11,12 @@
 #include "Egg.hpp"
 #include "Parent.hpp"
 
-static std::string OUTPUT_SUFFIX = "neglectMax";
+static std::string OUTPUT_SUFFIX = "ms1";
 static int ITERATIONS = 1000;
 
-// constexpr static double P_MIN_ENERGY_THRESH[] = {200, 1000, 100};
-// constexpr static double P_MAX_ENERGY_THRESH[] = {200, 1000, 100};
-constexpr static double P_MIN_ENERGY_THRESH[] = {400, 600, 100};
-constexpr static double P_MAX_ENERGY_THRESH[] = {700, 900, 100};
+constexpr static double P_MIN_ENERGY_THRESH[] = {200, 1000, 100};
+constexpr static double P_MAX_ENERGY_THRESH[] = {200, 1000, 100};
 constexpr static double P_FORAGING_MEAN[] = {130, 170, 10};
-constexpr static int P_EGG_NEGLECT_MAX[] = {1, 7, 1};
 
 // Need a single, static random generator device to let us only seed once
 static std::mt19937* randGen;
@@ -29,10 +26,9 @@ void runModel(int iterations,
 	          std::string outfileName,
 	          std::vector<double> v_minEnergyThresh,
 	          std::vector<double> v_maxEnergyThresh,
-	          std::vector<double> v_foragingMean,
-              std::vector<int> v_eggNeglectMax);
+	          std::vector<double> v_foragingMean);
 
-std::string breedingSeason(Parent& pf, Parent& pm, Egg& egg, bool kick);
+std::string breedingSeason(Parent& pf, Parent& pm, Egg& egg);
 
 int main()
 {
@@ -53,7 +49,7 @@ int main()
 	std::vector<double> v_minEnergyThresh = paramVector(P_MIN_ENERGY_THRESH);
 	std::vector<double> v_maxEnergyThresh = paramVector(P_MAX_ENERGY_THRESH);
 	std::vector<double> v_foragingMean    = paramVector(P_FORAGING_MEAN);
-    std::vector<int> v_eggNeglectMax      = paramVector(P_EGG_NEGLECT_MAX);
+	v_foragingMean.push_back(162.0);
 
 	std::cout << "\n\n\nBeginning model runs\n\n\n";
 
@@ -61,8 +57,7 @@ int main()
              outfileName, 
              v_minEnergyThresh, 
              v_maxEnergyThresh, 
-             v_foragingMean,
-             v_eggNeglectMax);
+             v_foragingMean);
 
 	std::cout << "Ended model runs\n";
 
@@ -82,8 +77,7 @@ void runModel(int iterations,
 	          std::string outfileName,
 	          std::vector<double> v_minEnergyThresh,
               std::vector<double> v_maxEnergyThresh,
-	          std::vector<double> v_foragingMean,
-              std::vector<int> v_eggNeglectMax)
+	          std::vector<double> v_foragingMean)
 {
     
 	// Start formatted output
@@ -98,8 +92,6 @@ void runModel(int iterations,
 			<< "Max_Energy_Thresh_M" << ","
 			<< "Foraging_Condition_Mean" << ","
             << "Foraging_Condition_SD" << ","
-            << "Foraging_Condition_Kick" << ","
-            << "Egg_Neglect_Max" << ","
 	    	<< "Hatch_Result" << ","
 			<< "Hatch_Days" << ","
 			<< "Total_Neglect" << ","
@@ -117,9 +109,9 @@ void runModel(int iterations,
 
 	/*
 	Total parameter space being searched
-	NOTE I throw out any combinations where
-	minEnergy [hunger] > maxEnergy [satiation],
-	So this space is reduced to that array
+	NOTE we throw out any combinations where
+	     minEnergy [hunger] > maxEnergy [satiation],
+	     So this space is reduced to that array
 	*/
 
     int energyCombinations = 0;
@@ -132,9 +124,8 @@ void runModel(int iterations,
             }
         }
     }
-
-	int totParamIterations = energyCombinations * energyCombinations * 
-                             v_foragingMean.size() * 2 * v_eggNeglectMax.size();
+	int totParamIterations = energyCombinations * energyCombinations * v_foragingMean.size();
+    std::cout << "Estimated parameter combinations: " << totParamIterations << std::endl;
 	int currParamIteration = 0;
 
 	// For every minEnergy value (FEMALE)
@@ -162,15 +153,6 @@ void runModel(int iterations,
 	for (unsigned int e = 0; e < v_foragingMean.size(); e++) {
 		double foragingMean = v_foragingMean[e];
     
-    // (finally) we're duplicating each run for an added "kick"
-    // NOTE disabled for now
-    for (int k = 0; k < 1; k++) {
-        bool kick = false;
-        if (k % 2 == 1) { kick = true; }
-
-    for (unsigned int f = 0; f < v_eggNeglectMax.size(); f++) {
-        int eggNeglectMax = v_eggNeglectMax[f];
-        
 		// Mildly helpful progress update
 		currParamIteration++;
 		if (currParamIteration % (totParamIterations/100) == 0) {
@@ -186,7 +168,6 @@ void runModel(int iterations,
 
             // A fresh egg
             Egg egg = Egg();
-            egg.setNeglectMax(eggNeglectMax);
 
             // Two shiny new parents
             Parent pf = Parent(Sex::female, randGen);
@@ -203,7 +184,7 @@ void runModel(int iterations,
 
             //
             // Run the given breeding season model function
-            std::string seasonHistory = breedingSeason(pf, pm, egg, kick);
+            std::string seasonHistory = breedingSeason(pf, pm, egg);
             //
             //
 
@@ -237,8 +218,6 @@ void runModel(int iterations,
                     << maxEnergyThresh_M << ","
                     << foragingMean << ","
                     << foragingSD << ","
-                    << kick << ","
-                    << eggNeglectMax << ","
                     << hatchResult << ","
                     << hatchDays << ","
                     << totNeglect << ","
@@ -254,14 +233,14 @@ void runModel(int iterations,
                     << seasonLength << ","
                     << seasonHistory << std::endl;
         }
-    } } } } } } } // End parameter loops
+    } } } } } // End parameter loops
 
 	// Close file and exit
 	outfile.close();
 	std::cout << "Final output written to " << outfileName << "\n";
 }
 
-std::string breedingSeason(Parent& pf, Parent& pm, Egg& egg, bool kick)
+std::string breedingSeason(Parent& pf, Parent& pm, Egg& egg)
 {
     // Record the foraging parameters to restore later
     double foragingMean_F_original = pf.getForagingMean();
@@ -284,17 +263,6 @@ std::string breedingSeason(Parent& pf, Parent& pm, Egg& egg, bool kick)
 	*/
 
     while (!egg.isHatched() && (egg.getIncubationDays() <= egg.getMaxHatchDays())) {
-
-        // if there is a kick in the season, kick the foraging environment for days 20-23
-        if (kick) {
-            if (egg.getIncubationDays() == 20) {
-                pf.setForagingDistribution(0, 0);
-                pm.setForagingDistribution(0, 0);
-            } else if (egg.getIncubationDays() >= 23){
-                pf.setForagingDistribution(foragingMean_F_original, foragingSD_F_original);
-                pm.setForagingDistribution(foragingMean_M_original, foragingSD_M_original);
-            }
-        }
 
 		// Check if either is incubating
 		bool incubated = false;
@@ -353,14 +321,6 @@ std::string breedingSeason(Parent& pf, Parent& pm, Egg& egg, bool kick)
         else if (maleState == State::incubating) { seasonHistory += 'M'; }
         else { seasonHistory += 'N'; }
 	}
-
-    // with the season over, reset the foraging mean for the output records 
-    // in case the parents died in the middle of the kick
-    // (otherwise they might get recorded as foraging mean of 0, if the season ended in the middle of the kick)
-    if (kick) {
-        pf.setForagingDistribution(foragingMean_F_original, foragingSD_F_original);
-        pm.setForagingDistribution(foragingMean_M_original, foragingSD_M_original);
-    }
 
     return seasonHistory;
 }
