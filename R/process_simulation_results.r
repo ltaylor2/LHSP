@@ -1,7 +1,7 @@
 library(tidyverse)
 
-RESULTS_FILEPATH <- "Output/sims_2025-08-04_18-55-22_ms1.csv"
-# RESULTS_FILEPATH <- "Output/temp_test.csv"
+RESULTS_FILEPATH <- "Output/sims_2025-08-04_14-59-12_ms1.csv"
+ITERATIONS <- 1000
 
 calcBouts <- function(schedule) {
     # Split schedule into character vector
@@ -74,7 +74,7 @@ processChunk <- function(chunk, pos) {
     }
 
     # Check that the chunk is exactly the size of the iterations
-    if (nrow(chunk) != iterations) {
+    if (nrow(chunk) != ITERATIONS) {
         return("ERROR")
     }
 
@@ -82,7 +82,7 @@ processChunk <- function(chunk, pos) {
     n <- nrow(chunk) 
 
     # Separate values for result states
-    successes <- chunk[chunk$Hatch_Result == "hatched",]
+    successes <- chunk[chunk$Hatch_Result == "oops",]
     fail_egg_time <- chunk[chunk$Hatch_Result == "egg time fail",]
     fail_egg_cold <- chunk[chunk$Hatch_Result == "egg cold fail",]
     fail_parent_dead <- chunk[chunk$Hatch_Result == "dead parent",]
@@ -120,7 +120,24 @@ processChunk <- function(chunk, pos) {
     # Generate bout info for each successful schedule
     SUCCESSFUL_bout_info <- map_df(successes$Season_History, calcBouts) |>
                          summarize_all(mean)
-    
+
+    # If no bout info, manually construct empty tibble 
+    #   so the chunk has the correct number of columns
+    if (nrow(SUCCESSFUL_bout_info) == 0) {
+        SUCCESSFUL_bout_info <- tibble(N_Incubation_Bouts_F = NA,
+                                       Mean_Incubation_Bout_F = NA,
+                                       Var_Incubation_Bout_F = NA,
+                                       N_Foraging_Bouts_F = NA,
+                                       Mean_Foraging_Bout_F = NA,
+                                       Var_Foraging_Bout_F = NA,
+                                       N_Incubation_Bouts_M = NA,
+                                       Mean_Incubation_Bout_M = NA,
+                                       Var_Incubation_Bout_M = NA,
+                                       N_Foraging_Bouts_M = NA,
+                                       Mean_Foraging_Bout_M = NA,
+                                       Var_Foraging_Bout_M = NA)
+    }    
+
     # Construct final dataframe
     processed <- tibble(Min_Energy_Thresh_F = min_energy_thresh_f,
                         Max_Energy_Thresh_F = max_energy_thresh_f,
@@ -164,6 +181,6 @@ processChunk <- function(chunk, pos) {
 
 results_summarized <- read_csv_chunked(RESULTS_FILEPATH,
                                        DataFrameCallback$new(processChunk),
-                                       chunk_size=1000)
+                                       chunk_size=ITERATIONS)
 
 write_csv(results_summarized, "Output/processed_results.csv")
