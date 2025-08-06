@@ -1,4 +1,5 @@
 Output/sims*
+Output/process_log.txt
 *.o
 lhsp
 slurm*
