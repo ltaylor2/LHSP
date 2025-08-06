@@ -1,7 +1,9 @@
 library(tidyverse)
 
-RESULTS_FILEPATH <- "Output/sims_2025-08-04_14-59-12_ms1.csv"
+RESULTS_FILEPATH <- "Output/sims_2025-08-04_18-55-22_ms1.csv"
 ITERATIONS <- 1000
+
+write("", "Output/process_log.txt", append=FALSE)
 
 calcBouts <- function(schedule) {
     # Split schedule into character vector
@@ -82,7 +84,7 @@ processChunk <- function(chunk, pos) {
     n <- nrow(chunk) 
 
     # Separate values for result states
-    successes <- chunk[chunk$Hatch_Result == "oops",]
+    successes <- chunk[chunk$Hatch_Result == "hatched",]
     fail_egg_time <- chunk[chunk$Hatch_Result == "egg time fail",]
     fail_egg_cold <- chunk[chunk$Hatch_Result == "egg cold fail",]
     fail_parent_dead <- chunk[chunk$Hatch_Result == "dead parent",]
@@ -123,7 +125,7 @@ processChunk <- function(chunk, pos) {
 
     # If no bout info, manually construct empty tibble 
     #   so the chunk has the correct number of columns
-    if (nrow(SUCCESSFUL_bout_info) == 0) {
+    if (ncol(SUCCESSFUL_bout_info) == 0) {
         SUCCESSFUL_bout_info <- tibble(N_Incubation_Bouts_F = NA,
                                        Mean_Incubation_Bout_F = NA,
                                        Var_Incubation_Bout_F = NA,
