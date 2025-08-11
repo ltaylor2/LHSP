@@ -1,10 +1,25 @@
+############################################################
+### Logistics
+############################################################
+
+# Required packages
 library(tidyverse)
 
+# Filename for full simulation output
 RESULTS_FILEPATH <- "Output/sims_2025-08-04_18-55-22_ms1.csv"
+
+# How many iterations for each simulated parameter set?
+#   NOTE this will determine the chunk length used to summarize data
+#        set it carefully!
 ITERATIONS <- 1000
 
+# Make a new output log file, which will print parameter set info
+#   as the long processing function runs
 write("", "Output/process_log.txt", append=FALSE)
 
+############################################################
+### calcBouts - calculate bout information for a schedule
+############################################################
 calcBouts <- function(schedule) {
     # Split schedule into character vector
     schedule_f <- str_split_1(schedule, "")
@@ -57,6 +72,10 @@ calcBouts <- function(schedule) {
            Var_Foraging_Bout_M = var_foraging_bout_m)
 } 
 
+
+############################################################
+### processChunk - summarize rows from long data file
+############################################################
 processChunk <- function(chunk, pos) {
 
     # Extract unique parameters to append later
@@ -99,7 +118,7 @@ processChunk <- function(chunk, pos) {
     OVERALL_mean_energy_f <- mean(chunk$Mean_Energy_F)
     OVERALL_var_energy_f <- mean(chunk$Var_Energy_F)
     OVERALL_mean_energy_m <- mean(chunk$Mean_Energy_M)
-    OVERALL_var_energy_f <- mean(chunk$Var_Energy_M)
+    OVERALL_var_energy_m <- mean(chunk$Var_Energy_M)
     OVERALL_total_neglect <- mean(chunk$Total_Neglect)
     OVERALL_max_neglect <- mean(chunk$Max_Neglect)
     OVERALL_prop_neglect <- mean(chunk$Total_Neglect / chunk$Hatch_Days)
@@ -155,6 +174,7 @@ processChunk <- function(chunk, pos) {
                         Overall_Mean_Energy_F = OVERALL_mean_energy_f,
                         Overall_Var_Energy_F = OVERALL_var_energy_f,
                         Overall_Mean_Energy_M = OVERALL_mean_energy_m,
+                        Overall_Var_Energy_M = OVERALL_var_energy_m,
                         Overall_Total_Neglect = OVERALL_total_neglect,
                         Overall_Max_Neglect = OVERALL_max_neglect,
                         Overall_Prop_Neglect = OVERALL_prop_neglect, 
@@ -177,12 +197,20 @@ processChunk <- function(chunk, pos) {
                     Rate_Fail_Parent_Dead = N_Fail_Parent_Dead/N_Total) |>
              bind_cols(SUCCESSFUL_bout_info)
 
+    # Write process log line to output, makes it easier to catch errors if all cols are not returned
+    #   (if different number cols are returned, the final bind_rows will fail for something like read_csv_chunked)
     write(paste(paste(processed[1,1:5], collapse=" "), ncol(processed)), "Output/process_log.txt", append=TRUE)
     return(processed)
 }
 
+############################################################
+### Process the data and write output
+############################################################
+
+# Process data with chunk function
 results_summarized <- read_csv_chunked(RESULTS_FILEPATH,
                                        DataFrameCallback$new(processChunk),
                                        chunk_size=ITERATIONS)
 
+# Save processed output to file
 write_csv(results_summarized, "Output/processed_results.csv")
