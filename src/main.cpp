@@ -14,8 +14,8 @@
 static std::string OUTPUT_SUFFIX = "ms1";
 static int ITERATIONS = 1000;
 
-constexpr static double P_MIN_ENERGY_THRESH[] = {200, 1000, 100};
-constexpr static double P_MAX_ENERGY_THRESH[] = {200, 1000, 100};
+constexpr static double P_MIN_ENERGY_THRESH[] = {300, 1100, 100};
+constexpr static double P_MAX_ENERGY_THRESH[] = {300, 1100, 100};
 constexpr static double P_FORAGING_MEAN[] = {130, 170, 10};
 
 // Need a single, static random generator device to let us only seed once
