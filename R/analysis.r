@@ -162,14 +162,14 @@ plot_tradeoff_energy <- ggplot() +
                                   aes(x=Rate_Success, y=Successful_Mean_Energy_F),
                                   colour = EMPIRICAL_COLOR, fill="transparent",
                                   linewidth=0.3) +
+                     annotate(geom="point",
+                              x = mean(filter(emp_environment, Is_Empirical_Strategy)$Rate_Success),
+                              y = mean(filter(emp_environment, Is_Empirical_Strategy)$Successful_Mean_Energy_F),
+                              colour="red", shape="+", size=3, alpha=0.8) +
                      geom_smooth(data=emp_environment,
                                  aes(x=Rate_Success, y=Successful_Mean_Energy_F),
                                  colour = "black", se=FALSE, 
-                                 method="loess", linewidth=0.75) +
-                     geom_point(data=filter(emp_environment, Is_Empirical_Strategy),
-                                x = mean(filter(emp_environment, Is_Empirical_Strategy)$Rate_Success),
-                                y = mean(filter(emp_environment, Is_Empirical_Strategy)$Successful_Mean_Energy_F),
-                                colour="red", shape="+", size=3) +
+                                 method="loess", linewidth=0.4) +
                      scale_x_continuous(limits=c(0, 1), breaks=seq(0, 1.0, by=0.25)) +
                      scale_y_continuous(breaks=seq(500, 1000, by=100)) +
                      guides(colour="none") +
@@ -197,14 +197,14 @@ plot_tradeoff_date <- ggplot() +
                                 aes(x=Rate_Success, y=Successful_Hatch_Date),
                                 colour = EMPIRICAL_COLOR, fill="transparent",
                                 linewidth=0.3) +
+                   annotate(geom="point",
+                            x = mean(filter(emp_environment, Is_Empirical_Strategy)$Rate_Success),
+                            y = mean(filter(emp_environment, Is_Empirical_Strategy)$Successful_Hatch_Date),
+                            colour="red", shape="+", size=3, alpha=0.8) +
                    geom_smooth(data=emp_environment,
                                aes(x=Rate_Success, y=Successful_Hatch_Date),
                                colour = "black", se=FALSE, 
-                               method="loess", linewidth=0.75) +
-                   geom_point(data=filter(emp_environment, Is_Empirical_Strategy),
-                              x = mean(filter(emp_environment, Is_Empirical_Strategy)$Rate_Success),
-                              y = mean(filter(emp_environment, Is_Empirical_Strategy)$Successful_Hatch_Date),
-                              colour="red", shape="+", size=3) +
+                               method="loess", linewidth=0.4) +
                    scale_x_continuous(limits=c(0, 1), breaks=seq(0, 1.0, by=0.25)) +
                    scale_y_continuous(limits=c(38, 56), breaks=seq(40, 55, by=5)) +
                    guides(colour="none") +
@@ -231,14 +231,14 @@ plot_tradeoff_energydate <- ggplot() +
                                       aes(x=Successful_Hatch_Date, y=Successful_Mean_Energy_F),
                                       colour=EMPIRICAL_COLOR, fill="transparent",
                                       linewidth=0.3) +
+                         annotate(geom="point",
+                                  x = mean(filter(emp_environment, Is_Empirical_Strategy)$Successful_Hatch_Date),
+                                  y = mean(filter(emp_environment, Is_Empirical_Strategy)$Successful_Mean_Energy_F),
+                                  colour="red", shape="+", size=3, alpha=0.8) +
                          geom_smooth(data=emp_environment,
                                      aes(x=Successful_Hatch_Date, y=Successful_Mean_Energy_F),
                                      colour = "black", se=FALSE, 
-                                     method="loess", linewidth=0.75) +
-                         geom_point(data=filter(emp_environment, Is_Empirical_Strategy),
-                                    x = mean(filter(emp_environment, Is_Empirical_Strategy)$Successful_Hatch_Date),
-                                    y = mean(filter(emp_environment, Is_Empirical_Strategy)$Successful_Mean_Energy_F),
-                                    colour="red", shape="+", size=3) +
+                                     method="loess", linewidth=0.4) +
                          scale_x_continuous(limits=c(38, 56), breaks=seq(40, 55, by=5)) +
                          scale_y_continuous(breaks=seq(500, 1000, by=100)) +
                          guides(colour="none") +
@@ -389,25 +389,104 @@ plot_failpoints <- ggplot() +
                 ylab("Num. strategies") +
                 theme_lt
 
-plot_resilience <- ggplot() +
-                geom_point(data=filter(failpoints, !Is_Empirical_Strategy),
-                           aes(x=Rate_Success, y=Fail_Point), 
-                           colour="lightgray", size=0.8, alpha=0.5) +
-                geom_point(data=filter(failpoints, Is_Empirical_Strategy),
-                           aes(x=Rate_Success, y=Fail_Point), 
-                           colour=EMPIRICAL_COLOR, size=0.8, alpha=0.5) +
-                           
-                scale_x_continuous(limits=c(0, 1), breaks=seq(0, 1, by=0.25)) +
-                scale_y_continuous(breaks=seq(144, 168, by=8)) +               
-                xlab("Hatch success rate in empirical environment (162 kJ/day)") +
-                ylab("Environmental fail point\n(kJ/day)") +
-                theme_lt
-design <- "13
-           24"
-plot_failpoints_combined <- plot_failpoints + plot_resilience + plot_spacer() + plot_spacer() +
-                         plot_layout(widths=c(1, 0.8), design=design)
+emp_hull_resilience_energy <- failpoints |>
+                           filter(Is_Empirical_Strategy) |>
+                           slice(chull(Successful_Mean_Energy_F, Fail_Point))
+plot_resilience_energy <- ggplot() +
+                       geom_point(data=filter(failpoints, !Is_Empirical_Strategy),
+                                  aes(x=Successful_Mean_Energy_F, y=Fail_Point),
+                                  colour="lightgray", size=0.5, alpha=0.5) +
+                       geom_point(data=filter(failpoints, Is_Empirical_Strategy),
+                                  aes(x=Successful_Mean_Energy_F, y=Fail_Point),
+                                  colour=EMPIRICAL_COLOR, size=0.5, alpha=0.5) +
+                       geom_polygon(data=emp_hull_resilience_energy,
+                                    aes(x=Successful_Mean_Energy_F, y=Fail_Point),
+                                    colour=EMPIRICAL_COLOR, fill="transparent",
+                                    linewidth=0.3) +
+                       annotate(geom="point",
+                                x = mean(filter(failpoints, Is_Empirical_Strategy)$Successful_Mean_Energy_F),
+                                y = mean(filter(failpoints, Is_Empirical_Strategy)$Fail_Point),
+                                colour="red", shape="+", size=3, alpha=0.8) +
+                       geom_smooth(data=failpoints,
+                                   aes(x=Successful_Mean_Energy_F, y=Fail_Point),
+                                   colour="black", se=FALSE,
+                                   method="loess", linewidth=0.4) +
+                       scale_y_continuous(limits=c(140, 170), breaks=seq(145, 165, by=10)) +               
+                       xlab("Mean female energy (kJ)") +
+                       ylab("Environmental fail point (kJ/day)") +
+                       theme_lt +
+                       theme(axis.title=element_text(size=8),
+                             axis.text=element_text(size=6),
+                             plot.title=element_text(size=8))
 
-ggsave(filename="Plots/FIGURE_5.png", plot=plot_failpoints_combined, width=7.5, height=4)
+emp_hull_resilience_date <- failpoints |>
+                           filter(Is_Empirical_Strategy) |>
+                           slice(chull(Successful_Hatch_Date, Fail_Point))
+plot_resilience_date <- ggplot() +
+                     geom_point(data=filter(failpoints, !Is_Empirical_Strategy),
+                                aes(x=Successful_Hatch_Date, y=Fail_Point),
+                                colour="lightgray", size=0.5, alpha=0.5) +
+                     geom_point(data=filter(failpoints, Is_Empirical_Strategy),
+                                aes(x=Successful_Hatch_Date, y=Fail_Point),
+                                colour=EMPIRICAL_COLOR, size=0.5, alpha=0.5) +
+                     geom_polygon(data=emp_hull_resilience_date,
+                                  aes(x=Successful_Hatch_Date, y=Fail_Point),
+                                  colour=EMPIRICAL_COLOR, fill="transparent",
+                                  linewidth=0.3) +
+                     annotate(geom="point",
+                              x = mean(filter(failpoints, Is_Empirical_Strategy)$Successful_Hatch_Date),
+                              y = mean(filter(failpoints, Is_Empirical_Strategy)$Fail_Point),
+                              colour="red", shape="+", size=3, alpha=0.8) +
+                     geom_smooth(data=failpoints,
+                                 aes(x=Successful_Hatch_Date, y=Fail_Point),
+                                 colour="black", se=FALSE,
+                                 method="loess", linewidth=0.4) +
+                     scale_y_continuous(limits=c(140, 170), breaks=seq(145, 165, by=10)) +               
+                     xlab("Hatch date") +
+                     ylab("Environmental fail point (kJ/day)") +
+                     theme_lt +
+                     theme(axis.title=element_text(size=8),
+                           axis.text=element_text(size=6))
+
+emp_hull_resilience_hatch <- failpoints |>
+                          filter(Is_Empirical_Strategy) |>
+                          slice(chull(Rate_Success, Fail_Point))
+
+plot_resilience_hatch <- ggplot() +
+                      geom_point(data=filter(failpoints, !Is_Empirical_Strategy),
+                                 aes(x=Rate_Success, y=Fail_Point), 
+                                 colour="lightgray", size=0.5, alpha=0.5) +
+                      geom_point(data=filter(failpoints, Is_Empirical_Strategy),
+                                 aes(x=Rate_Success, y=Fail_Point), 
+                                 colour=EMPIRICAL_COLOR, size=0.5, alpha=0.5) +
+                      geom_polygon(data=emp_hull_resilience_hatch,
+                                   aes(x=Rate_Success, y=Fail_Point),
+                                   colour=EMPIRICAL_COLOR, fill="transparent",
+                                   linewidth=0.3) +
+                      annotate(geom="point",
+                               x = mean(filter(failpoints, Is_Empirical_Strategy)$Rate_Success),
+                               y = mean(filter(failpoints, Is_Empirical_Strategy)$Fail_Point),
+                               colour="red", shape="+", size=3, alpha=0.8) +
+                      geom_smooth(data=failpoints,
+                                  aes(x=Rate_Success, y=Fail_Point),
+                                  method="loess", se=FALSE,
+                                  colour="black", linewidth=0.4) +
+                      scale_x_continuous(limits=c(0.25, 1), breaks=seq(0.25, 1, by=0.25)) +
+                      scale_y_continuous(limits=c(140, 170), breaks=seq(145, 165, by=10)) +               
+                      xlab("Hatch success rate") +
+                      ylab("Environmental fail point (kJ/day)") +
+                      theme_lt +
+                      theme(axis.title=element_text(size=8),
+                        axis.text=element_text(size=6))
+
+design <- "12
+           13
+           14"
+
+plot_failpoints_combined <- plot_failpoints + plot_resilience_energy + plot_resilience_date + plot_resilience_hatch +
+                         plot_layout(widths=c(1, 0.3), design=design, axes="collect")
+
+ggsave(filename="Plots/FIGURE_5.png", plot=plot_failpoints_combined, width=7.5, height=3)
 
 ###############################################################
 ### Change in outcomes across environments
