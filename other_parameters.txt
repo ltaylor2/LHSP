@@ -1,7 +1,0 @@
-From Elliott, Zangmeister, Cerchiara, Haussmann, and Mauck, in prep -- Evidence of Incubation Trade-offs in Leach's Storm-petrel (Oceanodroma leucorhoa): Ptilochronology as a Measure of Reproductive Investment in a Long-lived Seabird:
-
-Incubation period length (successful burrows) : mean = 42.7 days , s.d. = 2 days , N = 26 burrows
-Parental attendance (successful burrows) : mean = 93.7%, s.d. = 6.3%, N = 26 burrows
-Neglect rate (successful burrows) : mean = 6.3% , s.d., = 6.3%, N = 26 burrows
-
-Neglect rate over first 40 days (unsuccesful burrows) : mean = 67.25%, s.d. = 26.6% over, N = 8 burrows
