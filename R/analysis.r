@@ -246,8 +246,21 @@ plot_tradeoff_energydate <- ggplot() +
                          ylab("Female energy (kJ)") +
                          theme_lt
 
+plot_tradeoff_energydate_colored <- ggplot() +
+                                 geom_point(data=filter(emp_environment, !Is_Empirical_Strategy),
+                                            aes(x=Successful_Hatch_Date, y=Successful_Mean_Energy_F,
+                                                colour=Rate_Success),
+                                            size=0.8, alpha=0.5) +
+                                 scale_x_continuous(limits=c(38, 56), breaks=seq(40, 55, by=5)) +
+                                 scale_y_continuous(breaks=seq(500, 1000, by=100)) +
+                                 scale_colour_gradient() +
+                                 guides(colour="none") +
+                                 xlab("Hatch date") +
+                                 ylab("Female energy (kJ)") +
+                                 theme_lt
+
 # Assemble and print full plot
-plot_tradeoffs <- plot_tradeoff_energy + plot_tradeoff_date + plot_tradeoff_energydate +
+plot_tradeoffs <- plot_tradeoff_energy + plot_tradeoff_date + plot_tradeoff_energydate + plot_tradeoff_energydate_colored
                plot_annotation(tag_levels="A", tag_prefix="(", tag_suffix=")") &
                theme(legend.position = "bottom", legend.title.position = "top",
                      legend.title = element_text(size=12, hjust=0.5),
