@@ -6,7 +6,7 @@
 library(tidyverse)
 
 # Filename for full simulation output
-RESULTS_FILEPATH <- "Output/sims_2025-08-11_23-51-37_ms1.csv"
+RESULTS_FILEPATH <- "Output/sims_2025-08-18_19-27-10_ms1.csv"
 
 # How many iterations for each simulated parameter set?
 #   NOTE this will determine the chunk length used to summarize data
@@ -43,6 +43,9 @@ calcBouts <- function(schedule) {
     foraging_bouts_m <- runs_m$lengths[runs_m$values=="0"]
 
     # Summarize all values
+    mean_incubation_bout_both <- mean(c(incubation_bouts_f, incubation_bouts_m))
+    mean_foraging_bout_both <- mean(c(foraging_bouts_f, foraging_bouts_m))
+
     num_incubation_bouts_f <- length(incubation_bouts_f)
     mean_incubation_bout_f <- mean(incubation_bouts_f)
     var_incubation_bout_f <- var(incubation_bouts_f)
@@ -58,7 +61,9 @@ calcBouts <- function(schedule) {
     var_foraging_bout_m <- var(foraging_bouts_m)
 
     # Return as neat tibble
-    tibble(N_Incubation_Bouts_F = num_incubation_bouts_f,
+    tibble(Mean_Incubation_Bout_Both = mean_incubation_bout_both,
+           Mean_Foraging_Bout_Both = mean_foraging_bout_both,
+           N_Incubation_Bouts_F = num_incubation_bouts_f,
            Mean_Incubation_Bout_F = mean_incubation_bout_f,
            Var_Incubation_Bout_F = var_incubation_bout_f,
            N_Foraging_Bouts_F = num_foraging_bouts_f,
@@ -145,7 +150,9 @@ processChunk <- function(chunk, pos) {
     # If no bout info, manually construct empty tibble 
     #   so the chunk has the correct number of columns
     if (ncol(SUCCESSFUL_bout_info) == 0) {
-        SUCCESSFUL_bout_info <- tibble(N_Incubation_Bouts_F = NA,
+        SUCCESSFUL_bout_info <- tibble(Mean_Incubation_Bout_Both = NA,
+                                       Mean_Foraging_Bout_Both = NA,
+                                       N_Incubation_Bouts_F = NA,
                                        Mean_Incubation_Bout_F = NA,
                                        Var_Incubation_Bout_F = NA,
                                        N_Foraging_Bouts_F = NA,

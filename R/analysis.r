@@ -41,6 +41,37 @@ theme_lt <- theme_bw() +
 
 EMPIRICAL_COLOR <- "#a16161"
 
+OF <- "Output/results_log.txt"
+
+cat("Results log from", as.character(now()), "\n", file=OF, append=FALSE)
+
+###############################################################
+### Model fidelity
+############################################################
+
+# Empirical parameter set only
+emp <- dat |>
+    filter(Is_Empirical_Strategy, Foraging_Condition_Mean == 162)
+
+summaryValues <- function(v, sfs=3) {
+    return(paste0("Mean=", round(mean(v),sfs), 
+                 " SD=", round(sd(v),sfs), 
+                 " Min=", round(min(v),sfs), 
+                 " Max=", round(max(v), sfs)))
+}
+
+cat("\nModel fidelity for empirical strategies in empirical environment\n", file=OF, append=TRUE)
+cat("Foraging conditions", unique(emp$Foraging_Condition_Mean), "\n", file=OF, append=TRUE)
+cat("Departure thresholds", unique(c(emp$Min_Energy_Thresh_F, emp$Min_Energy_Thresh_M)), "\n", file=OF, append=TRUE)
+cat("Return thresholds", unique(c(emp$Max_Energy_Thresh_F, emp$Max_Energy_Thresh_M)), "\n", file=OF, append=TRUE)
+cat("Success rate", summaryValues(emp$Rate_Success), "\n", file=OF, append=TRUE)
+cat("Mean incubation bout (F)", summaryValues(emp$Mean_Incubation_Bout_F), "\n", file=OF, append=TRUE)
+cat("Mean incubation bout (M)", summaryValues(emp$Mean_Incubation_Bout_M), "\n", file=OF, append=TRUE)
+cat("Mean incubation bout (F)", summaryValues(emp$Mean_Incubation_Bout_F), "\n", file=OF, append=TRUE)
+cat("Mean incubation bout (M)", summaryValues(emp$Mean_Incubation_Bout_M), "\n", file=OF, append=TRUE)
+cat("Mean foraging bout (F)", summaryValues(emp$Mean_Foraging_Bout_F), "\n", file=OF, append=TRUE)
+cat("Mean foraging bout (M)", summaryValues(emp$Mean_Foraging_Bout_M), "\n", file=OF, append=TRUE)
+
 ###############################################################
 ### Parent strategies
 ############################################################
@@ -486,7 +517,7 @@ design <- "12
 plot_failpoints_combined <- plot_failpoints + plot_resilience_energy + plot_resilience_date + plot_resilience_hatch +
                          plot_layout(widths=c(1, 0.3), design=design, axes="collect")
 
-ggsave(filename="Plots/FIGURE_5.png", plot=plot_failpoints_combined, width=7.5, height=3)
+ggsave(filename="Plots/FIGURE_5.png", plot=plot_failpoints_combined, width=7, height=3)
 
 ###############################################################
 ### Change in outcomes across environments
