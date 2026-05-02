@@ -14,8 +14,8 @@
 static std::string OUTPUT_SUFFIX = "ms1";
 static int ITERATIONS = 1000;
 
-constexpr static double P_MIN_ENERGY_THRESH[] = {200, 1000, 100};
-constexpr static double P_MAX_ENERGY_THRESH[] = {500, 1400, 100};
+constexpr static double P_MIN_ENERGY_THRESH[] = {100, 1000, 100};
+constexpr static double P_MAX_ENERGY_THRESH[] = {400, 1200, 100};
 constexpr static double P_FORAGING_MEAN[] = {130, 170, 10};
 constexpr static double P_FORAGING_SD[] = {0, 100, 10};
 
