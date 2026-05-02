@@ -16,12 +16,12 @@ Parent::Parent(Sex sex_, std::mt19937* randGen_):
 	energyRecord(std::vector<double>())
 {
 	/*
-	Male begin the incubation period incubating, females begin foraging
+	Females begin the season incubating, males begin foraging
 	*/
 	this->state = State::incubating;
 	this->previousDayState = State::incubating;
 
-	if (this->sex == Sex::female) {
+	if (this->sex == Sex::male) {
 		this->state = State::foraging;
 		this->previousDayState = State::foraging;
 	}
