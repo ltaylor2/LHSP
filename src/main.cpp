@@ -14,9 +14,10 @@
 static std::string OUTPUT_SUFFIX = "ms1";
 static int ITERATIONS = 1000;
 
-constexpr static double P_MIN_ENERGY_THRESH[] = {300, 1100, 100};
-constexpr static double P_MAX_ENERGY_THRESH[] = {300, 1100, 100};
+constexpr static double P_MIN_ENERGY_THRESH[] = {200, 1000, 100};
+constexpr static double P_MAX_ENERGY_THRESH[] = {500, 1400, 100};
 constexpr static double P_FORAGING_MEAN[] = {130, 170, 10};
+constexpr static double P_FORAGING_SD[] = {0, 100, 10};
 
 // Need a single, static random generator device to let us only seed once
 static std::mt19937* randGen;
@@ -26,7 +27,8 @@ void runModel(int iterations,
 	          std::string outfileName,
 	          std::vector<double> v_minEnergyThresh,
 	          std::vector<double> v_maxEnergyThresh,
-	          std::vector<double> v_foragingMean);
+	          std::vector<double> v_foragingMean,
+			  std::vector<double> v_foragingSD);
 
 std::string breedingSeason(Parent& pf, Parent& pm, Egg& egg);
 
@@ -49,7 +51,10 @@ int main()
 	std::vector<double> v_minEnergyThresh = paramVector(P_MIN_ENERGY_THRESH);
 	std::vector<double> v_maxEnergyThresh = paramVector(P_MAX_ENERGY_THRESH);
 	std::vector<double> v_foragingMean    = paramVector(P_FORAGING_MEAN);
+	std::vector<double> v_foragingSD      = paramVector(P_FORAGING_SD);
+
 	v_foragingMean.push_back(162.0);
+	v_foragingSD.push_back(47.0);
 
 	std::cout << "\n\n\nBeginning model runs\n\n\n";
 
@@ -57,7 +62,8 @@ int main()
              outfileName, 
              v_minEnergyThresh, 
              v_maxEnergyThresh, 
-             v_foragingMean);
+             v_foragingMean,
+			 v_foragingSD);
 
 	std::cout << "Ended model runs\n";
 
@@ -77,7 +83,8 @@ void runModel(int iterations,
 	          std::string outfileName,
 	          std::vector<double> v_minEnergyThresh,
               std::vector<double> v_maxEnergyThresh,
-	          std::vector<double> v_foragingMean)
+	          std::vector<double> v_foragingMean,
+			  std::vector<double> v_foragingSD)
 {
     
 	// Start formatted output
@@ -124,7 +131,7 @@ void runModel(int iterations,
             }
         }
     }
-	int totParamIterations = energyCombinations * energyCombinations * v_foragingMean.size();
+	int totParamIterations = energyCombinations * energyCombinations * v_foragingMean.size() * v_foragingSD.size();
     std::cout << "Estimated parameter combinations: " << totParamIterations << std::endl;
 	int currParamIteration = 0;
 
@@ -153,6 +160,9 @@ void runModel(int iterations,
 	for (unsigned int e = 0; e < v_foragingMean.size(); e++) {
 		double foragingMean = v_foragingMean[e];
     
+	for (unsigned int f = 0; f < v_foragingSD.size(); f++) {
+		double foragingSD = v_foragingSD[f];
+
 		// Mildly helpful progress update
 		currParamIteration++;
 		if (currParamIteration % (totParamIterations/100) == 0) {
@@ -176,11 +186,11 @@ void runModel(int iterations,
             // Set both parent's parameters according to the new combo  
             pf.setMinEnergyThresh(minEnergyThresh_F);
             pf.setMaxEnergyThresh(maxEnergyThresh_F);
-            pf.setForagingDistribution(foragingMean, pf.getForagingSD());   
+            pf.setForagingDistribution(foragingMean, foragingSD);   
             
             pm.setMinEnergyThresh(minEnergyThresh_M);
             pm.setMaxEnergyThresh(maxEnergyThresh_M);
-            pm.setForagingDistribution(foragingMean, pm.getForagingSD());
+            pm.setForagingDistribution(foragingMean, foragingSD);
 
             //
             // Run the given breeding season model function
@@ -189,7 +199,6 @@ void runModel(int iterations,
             //
 
             // Extract output
-            double foragingSD = pf.getForagingSD();
 
             std::string hatchResult = checkSeasonSuccess(pf, pm, egg);	// Factorized season result
             double hatchDays = egg.getIncubationDays();                 // Total number of days (maybe limit)
@@ -233,7 +242,7 @@ void runModel(int iterations,
                     << seasonLength << ","
                     << seasonHistory << std::endl;
         }
-    } } } } } // End parameter loops
+    } } } } } } // End parameter loops
 
 	// Close file and exit
 	outfile.close();
@@ -242,12 +251,13 @@ void runModel(int iterations,
 
 std::string breedingSeason(Parent& pf, Parent& pm, Egg& egg)
 {
-    // Record the foraging parameters to restore later
-    double foragingMean_F_original = pf.getForagingMean();
-    double foragingSD_F_original = pf.getForagingSD();
+    // FOR FUTURE PERTURBATION WORK
+	// Record the foraging parameters to restore later
+    // double foragingMean_F_original = pf.getForagingMean();
+    // double foragingSD_F_original = pf.getForagingSD();
     
-    double foragingMean_M_original = pm.getForagingMean();
-    double foragingSD_M_original = pm.getForagingSD();
+    // double foragingMean_M_original = pm.getForagingMean();
+    // double foragingSD_M_original = pm.getForagingSD();
 
     // Season history that records state at the end of each day
     std::string seasonHistory = ""; 
@@ -262,7 +272,7 @@ std::string breedingSeason(Parent& pf, Parent& pm, Egg& egg)
  	accumulated neglect
 	*/
 
-    while (!egg.isHatched() && (egg.getIncubationDays() <= egg.getMaxHatchDays())) {
+    while (egg.isAlive() && !egg.isHatched() && (egg.getIncubationDays() <= egg.getMaxHatchDays())) {
 
 		// Check if either is incubating
 		bool incubated = false;

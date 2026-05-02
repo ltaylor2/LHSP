@@ -48,7 +48,7 @@ void Egg::eggDay(bool incubated)
 	}
 
 	// Egg hatches when it catches up with the required hatching time
-	if (this->currDays >= this->hatchDays) {
+	if (this->alive && this->currDays >= this->hatchDays) {
 		this->hatched = true;
 	}
 }
