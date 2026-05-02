@@ -12,7 +12,7 @@
 #include "Parent.hpp"
 
 static std::string OUTPUT_SUFFIX = "ms1";
-static int ITERATIONS = 1000;
+static int ITERATIONS = 100;
 
 constexpr static double P_MIN_ENERGY_THRESH[] = {100, 1000, 100};
 constexpr static double P_MAX_ENERGY_THRESH[] = {400, 1200, 100};
