@@ -1,13 +1,24 @@
-Results log from 2025-08-19 09:51:25.17261 
+Results log from 2026-05-03 00:56:56.643733 
+
+Model fidelity for empirical strategies in empirical environment
+
+Model fidelity for empirical strategies in empirical environment
 
 Model fidelity for empirical strategies in empirical environment
 Foraging conditions 162 
+Foraging conditions 162 
+Foraging conditions 162 
+Foraging conditions 162 
+Foraging conditions 162 
+Foraging conditions 162 
+Foraging conditions 162 
+Foraging conditions 162 
 Departure thresholds 400 500 600 700 
-Return thresholds 700 800 900 
-Success rate Mean=0.903 SD=0.05 Min=0.769 Max=0.977 
-Mean incubation bout (F) Mean=3.995 SD=0.867 Min=2.76 Max=6.612 
-Mean incubation bout (M) Mean=3.337 SD=1.236 Min=1.762 Max=7.821 
-Mean incubation bout (F) Mean=3.995 SD=0.867 Min=2.76 Max=6.612 
-Mean incubation bout (M) Mean=3.337 SD=1.236 Min=1.762 Max=7.821 
-Mean foraging bout (F) Mean=4.422 SD=1.424 Min=2.55 Max=9.476 
-Mean foraging bout (M) Mean=4.915 SD=1.013 Min=3.392 Max=7.849 
+Departure thresholds 400 500 600 700 
+Departure thresholds 400 500 600 700 
+Departure thresholds 400 500 600 700 
+Departure thresholds 400 500 600 700 
+Departure thresholds 400 500 600 700 
+Departure thresholds 400 500 600 700 
+Departure thresholds 400 500 600 700 
+Departure thresholds 400 500 600 700 

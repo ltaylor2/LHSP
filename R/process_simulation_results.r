@@ -3,15 +3,18 @@
 ############################################################
 
 # Required packages
-library(tidyverse)
+library(data.table)
+library(parallel)
+library(pbapply)
+library(stringr)
 
 # Filename for full simulation output
-RESULTS_FILEPATH <- "Output/sims_2025-08-18_19-27-10_ms1.csv"
+RESULTS_FILEPATH <- "Output/sims_2026-05-02_17-01-27_100iter.csv"
 
-# How many iterations for each simulated parameter set?
-#   NOTE this will determine the chunk length used to summarize data
-#        set it carefully!
-ITERATIONS <- 1000
+# # How many iterations for each simulated parameter set?
+# #   NOTE this will determine the chunk length used to summarize data
+# #        set it carefully!
+# ITERATIONS <- 100
 
 # Make a new output log file, which will print parameter set info
 #   as the long processing function runs
@@ -21,17 +24,13 @@ write("", "Output/process_log.txt", append=FALSE)
 ### calcBouts - calculate bout information for a schedule
 ############################################################
 calcBouts <- function(schedule) {
-    # Split schedule into character vector
-    schedule_f <- str_split_1(schedule, "")
-    schedule_m <- str_split_1(schedule, "")
 
-    # Simplify to two states
-    #   1 for focal parent, 0 otherwise
-    schedule_f[schedule_f == "F"] <- 1
-    schedule_f[schedule_f != 1] <- 0
+    chars <- strsplit(schedule, "")[[1]]
 
-    schedule_m[schedule_m == "M"] <- 1
-    schedule_m[schedule_m != 1] <- 0
+    # Female: F=1, else 0
+    schedule_f <- ifelse(chars == "F", "1", "0")
+    # Male: M=1, else 0
+    schedule_m <- ifelse(chars == "M", "1", "0")
 
     # Calculate runs
     runs_f <- rle(schedule_f)
@@ -42,182 +41,196 @@ calcBouts <- function(schedule) {
     incubation_bouts_m <- runs_m$lengths[runs_m$values=="1"] 
     foraging_bouts_m <- runs_m$lengths[runs_m$values=="0"]
 
+    # Trim first and last bouts to reduce sensitivity to arbitrary start/end conditions
+    incubation_bouts_f_trimmed <- NA
+    foraging_bouts_f_trimmed <- NA
+    incubation_bouts_m_trimmed <- NA
+    foraging_bouts_m_trimmed <- NA
+
+    if (length(incubation_bouts_f) > 2) {
+        incubation_bouts_f_trimmed <- incubation_bouts_f[-c(1, length(incubation_bouts_f))]
+    }
+    if (length(foraging_bouts_f) > 2) {
+        foraging_bouts_f_trimmed <- foraging_bouts_f[-c(1, length(foraging_bouts_f))]
+    }
+    if (length(incubation_bouts_m) > 2) {
+        incubation_bouts_m_trimmed <- incubation_bouts_m[-c(1, length(incubation_bouts_m))]
+    }
+    if (length(foraging_bouts_m) > 2) {
+        foraging_bouts_m_trimmed <- foraging_bouts_m[-c(1, length(foraging_bouts_m))]
+    }
+
     # Summarize all values
-    mean_incubation_bout_both <- mean(c(incubation_bouts_f, incubation_bouts_m))
-    mean_foraging_bout_both <- mean(c(foraging_bouts_f, foraging_bouts_m))
-
-    num_incubation_bouts_f <- length(incubation_bouts_f)
-    mean_incubation_bout_f <- mean(incubation_bouts_f)
-    var_incubation_bout_f <- var(incubation_bouts_f)
-    num_foraging_bouts_f <- length(foraging_bouts_f)
-    mean_foraging_bout_f <- mean(foraging_bouts_f)
-    var_foraging_bout_f <- var(foraging_bouts_f)
-
-    num_incubation_bouts_m <- length(incubation_bouts_m)
-    mean_incubation_bout_m <- mean(incubation_bouts_m)
-    var_incubation_bout_m <- var(incubation_bouts_m)
-    num_foraging_bouts_m <- length(foraging_bouts_m)
-    mean_foraging_bout_m <- mean(foraging_bouts_m)
-    var_foraging_bout_m <- var(foraging_bouts_m)
-
-    # Return as neat tibble
-    tibble(Mean_Incubation_Bout_Both = mean_incubation_bout_both,
-           Mean_Foraging_Bout_Both = mean_foraging_bout_both,
-           N_Incubation_Bouts_F = num_incubation_bouts_f,
-           Mean_Incubation_Bout_F = mean_incubation_bout_f,
-           Var_Incubation_Bout_F = var_incubation_bout_f,
-           N_Foraging_Bouts_F = num_foraging_bouts_f,
-           Mean_Foraging_Bout_F = mean_foraging_bout_f,
-           Var_Foraging_Bout_F = var_foraging_bout_f,
-           N_Incubation_Bouts_M = num_incubation_bouts_m,
-           Mean_Incubation_Bout_M = mean_incubation_bout_m,
-           Var_Incubation_Bout_M = var_incubation_bout_m,
-           N_Foraging_Bouts_M = num_foraging_bouts_m,
-           Mean_Foraging_Bout_M = mean_foraging_bout_m,
-           Var_Foraging_Bout_M = var_foraging_bout_m)
+    list(
+         Mean_Incubation_Bout_Both         = mean(c(incubation_bouts_f, incubation_bouts_m)),
+         Mean_Incubation_Bout_Both_Trimmed = mean(c(incubation_bouts_f_trimmed, incubation_bouts_m_trimmed), na.rm = TRUE),
+         Mean_Foraging_Bout_Both           = mean(c(foraging_bouts_f, foraging_bouts_m)),
+         Mean_Foraging_Bout_Both_Trimmed   = mean(c(foraging_bouts_f_trimmed, foraging_bouts_m_trimmed), na.rm = TRUE),
+         N_Incubation_Bouts_F              = length(incubation_bouts_f),
+         Mean_Incubation_Bout_F            = mean(incubation_bouts_f),
+         Mean_Incubation_Bout_F_Trimmed    = mean(incubation_bouts_f_trimmed, na.rm = TRUE),
+         Var_Incubation_Bout_F             = var(incubation_bouts_f),
+         N_Foraging_Bouts_F                = length(foraging_bouts_f),
+         Mean_Foraging_Bout_F              = mean(foraging_bouts_f),
+         Mean_Foraging_Bout_F_Trimmed      = mean(foraging_bouts_f_trimmed, na.rm = TRUE),
+         Var_Foraging_Bout_F               = var(foraging_bouts_f),
+         N_Incubation_Bouts_M              = length(incubation_bouts_m),
+         Mean_Incubation_Bout_M            = mean(incubation_bouts_m),
+         Mean_Incubation_Bout_M_Trimmed    = mean(incubation_bouts_m_trimmed, na.rm = TRUE),
+         Var_Incubation_Bout_M             = var(incubation_bouts_m),
+         N_Foraging_Bouts_M                = length(foraging_bouts_m),
+         Mean_Foraging_Bout_M              = mean(foraging_bouts_m),
+         Mean_Foraging_Bout_M_Trimmed      = mean(foraging_bouts_m_trimmed, na.rm = TRUE),
+         Var_Foraging_Bout_M               = var(foraging_bouts_m)
+    )
 } 
 
 
 ############################################################
-### processChunk - summarize rows from long data file
+### processGroup - summarize one parameter combination
 ############################################################
-processChunk <- function(chunk, pos) {
+processGroup <- function(chunk) {
 
-    # Extract unique parameters to append later
-    min_energy_thresh_f <- unique(chunk$Min_Energy_Thresh_F)
-    max_energy_thresh_f <- unique(chunk$Max_Energy_Thresh_F)
-    min_energy_thresh_m <- unique(chunk$Min_Energy_Thresh_M)
-    max_energy_thresh_m <- unique(chunk$Max_Energy_Thresh_M)
-    foraging_condition_mean <- unique(chunk$Foraging_Condition_Mean)
-    foraging_condition_sd <- unique(chunk$Foraging_Condition_SD)
+    # Group keys for parameters from first row to prepend to output
+    keys <- chunk[1, .(Min_Energy_Thresh_F, Max_Energy_Thresh_F,
+                       Min_Energy_Thresh_M, Max_Energy_Thresh_M,
+                       Foraging_Condition_Mean, Foraging_Condition_SD)]
 
-    # Check that we haven't run over any different parameter combinations
-    if (any(map_lgl(list(max_energy_thresh_f, min_energy_thresh_f, 
-                         max_energy_thresh_m, min_energy_thresh_m, 
-                         foraging_condition_mean, foraging_condition_sd), 
-                    ~ length(.) > 1))) {
-        return("ERROR")
-    }
+    n <- nrow(chunk)
 
-    # Check that the chunk is exactly the size of the iterations
-    if (nrow(chunk) != ITERATIONS) {
-        return("ERROR")
-    }
+    # Subset by result state
+    successes        <- chunk[Hatch_Result == "hatched"]
+    fail_egg_time    <- chunk[Hatch_Result == "egg time fail"]
+    fail_egg_cold    <- chunk[Hatch_Result == "egg cold fail"]
+    fail_parent_dead <- chunk[Hatch_Result == "dead parent"]
 
-    # Calculate summary values
-    n <- nrow(chunk) 
-
-    # Separate values for result states
-    successes <- chunk[chunk$Hatch_Result == "hatched",]
-    fail_egg_time <- chunk[chunk$Hatch_Result == "egg time fail",]
-    fail_egg_cold <- chunk[chunk$Hatch_Result == "egg cold fail",]
-    fail_parent_dead <- chunk[chunk$Hatch_Result == "dead parent",]
-
-    # Tally different result states
-    n_successes <- nrow(successes)
-    n_fail_egg_time <- nrow(fail_egg_time)
-    n_fail_egg_cold <- nrow(fail_egg_cold)
+    n_successes        <- nrow(successes)
+    n_fail_egg_time    <- nrow(fail_egg_time)
+    n_fail_egg_cold    <- nrow(fail_egg_cold)
     n_fail_parent_dead <- nrow(fail_parent_dead)
 
-    # Summary values for all simulations, including both successes and failures 
-    OVERALL_mean_energy_f <- mean(chunk$Mean_Energy_F)
-    OVERALL_var_energy_f <- mean(chunk$Var_Energy_F)
-    OVERALL_mean_energy_m <- mean(chunk$Mean_Energy_M)
-    OVERALL_var_energy_m <- mean(chunk$Var_Energy_M)
-    OVERALL_total_neglect <- mean(chunk$Total_Neglect)
-    OVERALL_max_neglect <- mean(chunk$Max_Neglect)
-    OVERALL_prop_neglect <- mean(chunk$Total_Neglect / chunk$Hatch_Days)
-    OVERALL_hatch_date <- mean(chunk$Hatch_Days)
+    # Overall summaries (all iterations)
+    OVERALL_mean_energy_f  <- mean(chunk$Mean_Energy_F)
+    OVERALL_var_energy_f   <- mean(chunk$Var_Energy_F)
+    OVERALL_mean_energy_m  <- mean(chunk$Mean_Energy_M)
+    OVERALL_var_energy_m   <- mean(chunk$Var_Energy_M)
+    OVERALL_total_neglect  <- mean(chunk$Total_Neglect)
+    OVERALL_max_neglect    <- mean(chunk$Max_Neglect)
+    OVERALL_prop_neglect   <- mean(chunk$Total_Neglect / chunk$Hatch_Days)
+    OVERALL_hatch_date     <- mean(chunk$Hatch_Days)
 
-    # More internally consistent summary values for successful seasons only 
-    SUCCESSFUL_mean_energy_f <- mean(successes$Mean_Energy_F)
-    SUCCESSFUL_var_energy_f <- mean(successes$Var_Energy_F)
-    SUCCESSFUL_mean_energy_m <- mean(successes$Mean_Energy_M)
-    SUCCESSFUL_var_energy_m <- mean(successes$Var_Energy_M)
-    SUCCESSFUL_tot_neglect <- mean(successes$Total_Neglect)
-    SUCCESSFUL_max_neglect <- mean(successes$Max_Neglect)
-    SUCCESSFUL_prop_neglect <- mean(successes$Total_Neglect / successes$Hatch_Days)
-    SUCCESSFUL_hatch_date <- mean(successes$Hatch_Days)
-    SUCCESSFUL_attendance_f <- mean(str_count(successes$Season_History, "F"))
-    SUCCESSFUL_prop_f <- mean(str_count(successes$Season_History, "F") / successes$Hatch_Days)
-    SUCCESSFUL_attendance_m <- mean(str_count(successes$Season_History, "M"))
-    SUCCESSFUL_prop_m <- mean(str_count(successes$Season_History, "M") / successes$Hatch_Days)
+    # Successful-only summaries
+    SUCCESSFUL_mean_energy_f  <- mean(successes$Mean_Energy_F)
+    SUCCESSFUL_var_energy_f   <- mean(successes$Var_Energy_F)
+    SUCCESSFUL_mean_energy_m  <- mean(successes$Mean_Energy_M)
+    SUCCESSFUL_var_energy_m   <- mean(successes$Var_Energy_M)
+    SUCCESSFUL_tot_neglect    <- mean(successes$Total_Neglect)
+    SUCCESSFUL_max_neglect    <- mean(successes$Max_Neglect)
+    SUCCESSFUL_prop_neglect   <- mean(successes$Total_Neglect / successes$Hatch_Days)
+    SUCCESSFUL_hatch_date     <- mean(successes$Hatch_Days)
+    SUCCESSFUL_attendance_f   <- mean(str_count(successes$Season_History, "F"))
+    SUCCESSFUL_prop_f         <- mean(str_count(successes$Season_History, "F") / successes$Hatch_Days)
+    SUCCESSFUL_attendance_m   <- mean(str_count(successes$Season_History, "M"))
+    SUCCESSFUL_prop_m         <- mean(str_count(successes$Season_History, "M") / successes$Hatch_Days)
 
-    # Generate bout info for each successful schedule
-    SUCCESSFUL_bout_info <- map_df(successes$Season_History, calcBouts) |>
-                         summarize_all(mean)
+    # Bout info across successful schedules, parallelized
+    if (n_successes > 0) {
+        bout_list <- lapply(successes$Season_History, calcBouts)
+        bout_dt   <- rbindlist(lapply(bout_list, as.list))
+        SUCCESSFUL_bout_info <- as.list(bout_dt[, lapply(.SD, mean, na.rm = TRUE)])
+    } else {
+        SUCCESSFUL_bout_info <- list(
+            Mean_Incubation_Bout_Both = NA, 
+            Mean_Incubation_Bout_Both_Trimmed = NA,
+            Mean_Foraging_Bout_Both = NA,   
+            Mean_Foraging_Bout_Both_Trimmed = NA,
+            N_Incubation_Bouts_F = NA,      
+            Mean_Incubation_Bout_F = NA,
+            Mean_Incubation_Bout_F_Trimmed = NA,
+            Var_Incubation_Bout_F = NA,
+            N_Foraging_Bouts_F = NA,
+            Mean_Foraging_Bout_F = NA,
+            Mean_Foraging_Bout_F_Trimmed = NA,
+            Var_Foraging_Bout_F = NA,
+            N_Incubation_Bouts_M = NA,
+            Mean_Incubation_Bout_M = NA,
+            Mean_Incubation_Bout_M_Trimmed = NA, 
+            Var_Incubation_Bout_M = NA,
+            N_Foraging_Bouts_M = NA,        
+            Mean_Foraging_Bout_M = NA,
+            Mean_Foraging_Bout_M_Trimmed = NA,
+            Var_Foraging_Bout_M = NA
+        )
+    }
 
-    # If no bout info, manually construct empty tibble 
-    #   so the chunk has the correct number of columns
-    if (ncol(SUCCESSFUL_bout_info) == 0) {
-        SUCCESSFUL_bout_info <- tibble(Mean_Incubation_Bout_Both = NA,
-                                       Mean_Foraging_Bout_Both = NA,
-                                       N_Incubation_Bouts_F = NA,
-                                       Mean_Incubation_Bout_F = NA,
-                                       Var_Incubation_Bout_F = NA,
-                                       N_Foraging_Bouts_F = NA,
-                                       Mean_Foraging_Bout_F = NA,
-                                       Var_Foraging_Bout_F = NA,
-                                       N_Incubation_Bouts_M = NA,
-                                       Mean_Incubation_Bout_M = NA,
-                                       Var_Incubation_Bout_M = NA,
-                                       N_Foraging_Bouts_M = NA,
-                                       Mean_Foraging_Bout_M = NA,
-                                       Var_Foraging_Bout_M = NA)
-    }    
+    # Assemble output row
+    result <- data.table(
+        N_Total            = n,
+        N_Success          = n_successes,
+        N_Fail_Egg_Time    = n_fail_egg_time,
+        N_Fail_Egg_Cold    = n_fail_egg_cold,
+        N_Fail_Parent_Dead = n_fail_parent_dead,
 
-    # Construct final dataframe
-    processed <- tibble(Min_Energy_Thresh_F = min_energy_thresh_f,
-                        Max_Energy_Thresh_F = max_energy_thresh_f,
-                        Min_Energy_Thresh_M = min_energy_thresh_m,
-                        Max_Energy_Thresh_M = max_energy_thresh_m,
-                        Foraging_Condition_Mean = foraging_condition_mean,
-                        Foraging_Condition_SD = foraging_condition_sd,
-                        N_Total = n,
-                        N_Success = n_successes,
-                        N_Fail_Egg_Time = n_fail_egg_time,
-                        N_Fail_Egg_Cold = n_fail_egg_cold,
-                        N_Fail_Parent_Dead = n_fail_parent_dead,
-                        Overall_Mean_Energy_F = OVERALL_mean_energy_f,
-                        Overall_Var_Energy_F = OVERALL_var_energy_f,
-                        Overall_Mean_Energy_M = OVERALL_mean_energy_m,
-                        Overall_Var_Energy_M = OVERALL_var_energy_m,
-                        Overall_Total_Neglect = OVERALL_total_neglect,
-                        Overall_Max_Neglect = OVERALL_max_neglect,
-                        Overall_Prop_Neglect = OVERALL_prop_neglect, 
-                        Overall_Hatch_Date = OVERALL_hatch_date,
-                        Successful_Mean_Energy_F = SUCCESSFUL_mean_energy_f,
-                        Successful_Var_Energy_F = SUCCESSFUL_var_energy_f,
-                        Successful_Mean_Energy_M = SUCCESSFUL_mean_energy_m,
-                        Successful_Var_Energy_M = SUCCESSFUL_var_energy_m,
-                        Successful_Total_Neglect = SUCCESSFUL_tot_neglect,
-                        Successful_Max_Neglect = SUCCESSFUL_max_neglect,
-                        Successful_Prop_Neglect = SUCCESSFUL_prop_neglect,
-                        Successful_Hatch_Date = SUCCESSFUL_hatch_date,
-                        Successful_Attendance_F = SUCCESSFUL_attendance_f,
-                        Successful_Prop_F = SUCCESSFUL_prop_f,
-                        Successful_Attendance_M = SUCCESSFUL_attendance_m,
-                        Successful_Prop_M = SUCCESSFUL_prop_m) |>
-             mutate(Rate_Success = N_Success/N_Total,
-                    Rate_Fail_Egg_Time = N_Fail_Egg_Time/N_Total,
-                    Rate_Fail_Egg_Cold = N_Fail_Egg_Cold/N_Total,
-                    Rate_Fail_Parent_Dead = N_Fail_Parent_Dead/N_Total) |>
-             bind_cols(SUCCESSFUL_bout_info)
+        Overall_Mean_Energy_F  = OVERALL_mean_energy_f,
+        Overall_Var_Energy_F   = OVERALL_var_energy_f,
+        Overall_Mean_Energy_M  = OVERALL_mean_energy_m,
+        Overall_Var_Energy_M   = OVERALL_var_energy_m,
+        Overall_Total_Neglect  = OVERALL_total_neglect,
+        Overall_Max_Neglect    = OVERALL_max_neglect,
+        Overall_Prop_Neglect   = OVERALL_prop_neglect,
+        Overall_Hatch_Date     = OVERALL_hatch_date,
 
-    # Write process log line to output, makes it easier to catch errors if all cols are not returned
-    #   (if different number cols are returned, the final bind_rows will fail for something like read_csv_chunked)
-    write(paste(paste(processed[1,1:5], collapse=" "), ncol(processed)), "Output/process_log.txt", append=TRUE)
-    return(processed)
+        Successful_Mean_Energy_F  = SUCCESSFUL_mean_energy_f,
+        Successful_Var_Energy_F   = SUCCESSFUL_var_energy_f,
+        Successful_Mean_Energy_M  = SUCCESSFUL_mean_energy_m,
+        Successful_Var_Energy_M   = SUCCESSFUL_var_energy_m,
+        Successful_Total_Neglect  = SUCCESSFUL_tot_neglect,
+        Successful_Max_Neglect    = SUCCESSFUL_max_neglect,
+        Successful_Prop_Neglect   = SUCCESSFUL_prop_neglect,
+        Successful_Hatch_Date     = SUCCESSFUL_hatch_date,
+        Successful_Attendance_F   = SUCCESSFUL_attendance_f,
+        Successful_Prop_F         = SUCCESSFUL_prop_f,
+        Successful_Attendance_M   = SUCCESSFUL_attendance_m,
+        Successful_Prop_M         = SUCCESSFUL_prop_m
+)
+
+    result[, Rate_Success          := N_Success / N_Total]
+    result[, Rate_Fail_Egg_Time    := N_Fail_Egg_Time / N_Total]
+    result[, Rate_Fail_Egg_Cold    := N_Fail_Egg_Cold / N_Total]
+    result[, Rate_Fail_Parent_Dead := N_Fail_Parent_Dead / N_Total]
+
+    result <- cbind(keys, result, as.data.table(SUCCESSFUL_bout_info))
+
+    return(result)
 }
 
 ############################################################
 ### Process the data and write output
 ############################################################
 
-# Process data with chunk function
-results_summarized <- read_csv_chunked(RESULTS_FILEPATH,
-                                       DataFrameCallback$new(processChunk),
-                                       chunk_size=ITERATIONS)
+cat("Reading data...\n")
+dat <- fread(RESULTS_FILEPATH)
 
-# Save processed output to file
-write_csv(results_summarized, "Output/processed_results.csv")
+GROUP_KEYS <- c("Min_Energy_Thresh_F", "Max_Energy_Thresh_F",
+                "Min_Energy_Thresh_M", "Max_Energy_Thresh_M",
+                "Foraging_Condition_Mean", "Foraging_Condition_SD")
+
+# Split into list of data.tables, one per parameter combination
+groups <- split(dat, by = GROUP_KEYS, keep.by = TRUE)
+
+rm(dat)
+gc()
+
+# Process all groups in parallel
+cl <- makeCluster(detectCores() - 1)
+clusterExport(cl, c("calcBouts", "processGroup"))
+clusterEvalQ(cl, { library(data.table); library(stringr) })
+results_list <- pblapply(groups, processGroup, cl = cl)
+stopCluster(cl)
+
+results_summarized <- rbindlist(results_list, use.names = TRUE)
+
+# Save output
+cat("Writing output...\n")
+fwrite(results_summarized, "Output/processed_results.csv")
+cat("Done.\n")

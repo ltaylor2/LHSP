@@ -14,7 +14,7 @@
 static std::string OUTPUT_SUFFIX = "ms1";
 static int ITERATIONS = 100;
 
-constexpr static double P_MIN_ENERGY_THRESH[] = {100, 1000, 100};
+constexpr static double P_MIN_ENERGY_THRESH[] = {200, 1100, 100};
 constexpr static double P_MAX_ENERGY_THRESH[] = {400, 1200, 100};
 constexpr static double P_FORAGING_MEAN[] = {130, 170, 10};
 constexpr static double P_FORAGING_SD[] = {0, 100, 10};
@@ -28,7 +28,7 @@ void runModel(int iterations,
 	          std::vector<double> v_minEnergyThresh,
 	          std::vector<double> v_maxEnergyThresh,
 	          std::vector<double> v_foragingMean,
-			  std::vector<double> v_foragingSD);
+	          std::vector<double> v_foragingSD);
 
 std::string breedingSeason(Parent& pf, Parent& pm, Egg& egg);
 

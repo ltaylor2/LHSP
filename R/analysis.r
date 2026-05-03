@@ -8,6 +8,7 @@ library(patchwork)
 
 # Read in processed data
 dat <- read_csv("Output/processed_results.csv") |>
+    filter(Foraging_Condition_SD > 0) |>
     mutate(Strategy_F = paste(Min_Energy_Thresh_F, Max_Energy_Thresh_F, sep="-"),
            Strategy_M = paste(Min_Energy_Thresh_M, Max_Energy_Thresh_M, sep="-"),
            Strategy_Combination = paste(Strategy_F, Strategy_M, sep=" : "),
@@ -33,9 +34,9 @@ dat <- dat |>
 # Custom plotting theme
 theme_lt <- theme_bw() +
          theme(plot.title = element_text(size=12, hjust=0.5),
-               axis.title = element_text(size=12),
+               axis.title = element_text(size=11),
                axis.text = element_text(size=8),
-               legend.title = element_text(size=12),
+               legend.title = element_text(size=11),
                legend.text = element_text(size=8),
                panel.grid = element_blank())
 
@@ -43,7 +44,6 @@ EMPIRICAL_COLOR <- "#a16161"
 
 OF <- "Output/results_log.txt"
 
-cat("Results log from", as.character(now()), "\n", file=OF, append=FALSE)
 
 ###############################################################
 ### Model fidelity
@@ -51,37 +51,42 @@ cat("Results log from", as.character(now()), "\n", file=OF, append=FALSE)
 
 # Empirical parameter set only
 emp <- dat |>
-    filter(Is_Empirical_Strategy, Foraging_Condition_Mean == 162)
+    filter(Is_Empirical_Strategy, Foraging_Condition_Mean == 162, Foraging_Condition_SD == 47)
 
 summaryValues <- function(v, sfs=3) {
-    return(paste0("Mean=", round(mean(v),sfs), 
-                 " SD=", round(sd(v),sfs), 
-                 " Min=", round(min(v),sfs), 
-                 " Max=", round(max(v), sfs)))
+    return(paste0("Mean=", round(mean(v, na.rm=TRUE),sfs), 
+                  " SD=", round(sd(v, na.rm=TRUE),sfs), 
+                  " Min=", round(min(v, na.rm=TRUE),sfs), 
+                  " Max=", round(max(v, na.rm=TRUE), sfs))) 
 }
 
+cat("Results log from", as.character(now()), "\n", file=OF, append=FALSE)
 cat("\nModel fidelity for empirical strategies in empirical environment\n", file=OF, append=TRUE)
 cat("Foraging conditions", unique(emp$Foraging_Condition_Mean), "\n", file=OF, append=TRUE)
 cat("Departure thresholds", unique(c(emp$Min_Energy_Thresh_F, emp$Min_Energy_Thresh_M)), "\n", file=OF, append=TRUE)
 cat("Return thresholds", unique(c(emp$Max_Energy_Thresh_F, emp$Max_Energy_Thresh_M)), "\n", file=OF, append=TRUE)
 cat("Success rate", summaryValues(emp$Rate_Success), "\n", file=OF, append=TRUE)
-cat("Mean incubation bout (F)", summaryValues(emp$Mean_Incubation_Bout_F), "\n", file=OF, append=TRUE)
-cat("Mean incubation bout (M)", summaryValues(emp$Mean_Incubation_Bout_M), "\n", file=OF, append=TRUE)
-cat("Mean incubation bout (F)", summaryValues(emp$Mean_Incubation_Bout_F), "\n", file=OF, append=TRUE)
-cat("Mean incubation bout (M)", summaryValues(emp$Mean_Incubation_Bout_M), "\n", file=OF, append=TRUE)
-cat("Mean foraging bout (F)", summaryValues(emp$Mean_Foraging_Bout_F), "\n", file=OF, append=TRUE)
-cat("Mean foraging bout (M)", summaryValues(emp$Mean_Foraging_Bout_M), "\n", file=OF, append=TRUE)
+cat("Success hatch date", summaryValues(emp$Successful_Hatch_Date), "\n", file=OF, append=TRUE)
+cat("Success proportion neglect", summaryValues(emp$Successful_Prop_Neglect), "\n", file=OF, append=TRUE)
+cat("Mean success incubation bout (F)", summaryValues(emp$Mean_Incubation_Bout_F), "\n", file=OF, append=TRUE)
+cat("Mean success incubation bout (F Trimmed)", summaryValues(emp$Mean_Incubation_Bout_F_Trimmed), "\n", file=OF, append=TRUE)
+cat("Mean success incubation bout (M)", summaryValues(emp$Mean_Incubation_Bout_M), "\n", file=OF, append=TRUE)
+cat("Mean success incubation bout (M Trimmed)", summaryValues(emp$Mean_Incubation_Bout_M_Trimmed), "\n", file=OF, append=TRUE)
+cat("Mean success foraging bout (F)", summaryValues(emp$Mean_Foraging_Bout_F), "\n", file=OF, append=TRUE)
+cat("Mean success foraging bout (F Trimmed)", summaryValues(emp$Mean_Foraging_Bout_F_Trimmed), "\n", file=OF, append=TRUE)
+cat("Mean success foraging bout (M)", summaryValues(emp$Mean_Foraging_Bout_M), "\n", file=OF, append=TRUE)
+cat("Mean success foraging bout (M Trimmed)", summaryValues(emp$Mean_Foraging_Bout_M_Trimmed), "\n", file=OF, append=TRUE)
+cat("Mean success incubation bout (Both)", summaryValues(emp$Mean_Incubation_Bout_Both), "\n", file=OF, append=TRUE)
+cat("Mean success incubation bout (Both Trimmed)", summaryValues(emp$Mean_Incubation_Bout_Both_Trimmed), "\n", file=OF, append=TRUE)
+cat("Mean success foraging bout (Both)", summaryValues(emp$Mean_Foraging_Bout_Both), "\n", file=OF, append=TRUE)
+cat("Mean success foraging bout (Both Trimmed)", summaryValues(emp$Mean_Foraging_Bout_Both_Trimmed), "\n", file=OF, append=TRUE)
 
 ###############################################################
 ### Parent strategies
 ############################################################
 
 # Data from empirical environment only
-emp_environment <- filter(dat, Foraging_Condition_Mean == 162)
-
-# Comparison environments
-comp_bad <- filter(dat, Foraging_Condition_Mean == 140)
-comp_good <- filter(dat, Foraging_Condition_Mean == 170)
+emp_environment <- filter(dat, Foraging_Condition_Mean == 162, Foraging_Condition_SD == 47)
 
 # Empirical strategy boxes to highlight those places in the tile
 #   We factor to align with axes in the tile plot
@@ -102,74 +107,72 @@ plot_main_tile <- ggplot(emp_environment) +
                          aes(xmin=Strategy_F_Start, xmax=Strategy_F_End, 
                              ymin=Strategy_M_Start, ymax=Strategy_M_End),
                          fill="transparent", color=EMPIRICAL_COLOR) +
-               scale_fill_continuous(low="white", high="gray10", name="Hatch success rate",
+               scale_fill_continuous(low="white", high="gray10", name="Hatch rate",
                                      limits=c(0, 1)) +
                xlab("Female strategy") +
                ylab("Male strategy") +
-               ggtitle("Empirical environment\n(162 kJ/day)") +
                theme_lt +
                theme(panel.background = element_blank(),
-                     axis.text.y = element_text(size=6),
-                     axis.text.x = element_text(size=6, angle=35, hjust=1, vjust=1))
+                     axis.text.y = element_text(size=4),
+                     axis.text.x = element_text(size=4, angle=-90, hjust=0, vjust=1))
 
-# Tile plot for visual comparison with bad environment
-plot_bad_tile <- ggplot(comp_bad) +
-              geom_tile(aes(x=Strategy_F, y=Strategy_M, fill=Rate_Success)) +
-              geom_rect(data=emp_strategy_boxes,
-                        aes(xmin=Strategy_F_Start, xmax=Strategy_F_End, 
-                            ymin=Strategy_M_Start, ymax=Strategy_M_End),
-                        fill="transparent", color=EMPIRICAL_COLOR, linewidth=0.2) +
-              scale_fill_continuous(low="white", high="gray10", name="Hatch success rate",
-                                    limits=c(0, 1)) +
-              xlab("Female strategy") +
-              ylab("Male strategy") +
-              ggtitle("Bad environment\n(140 kJ/day)") +
-              theme_lt +
-              theme(panel.background = element_blank(),
-                    axis.text = element_blank(),
-                    plot.title = element_text(size=12),
-                    axis.title = element_text(size=6))
+# Summarize across minimum thresholds
+min_threshes <- emp_environment |>
+             select(Min_Energy_Thresh_F, Min_Energy_Thresh_M, Rate_Success) |>
+             pivot_longer(cols=contains("Thresh"), names_to="Sex", values_to="Min_Energy_Thresh") |>
+             group_by(Min_Energy_Thresh) |>
+             mutate(Mean_Rate_Success = mean(Rate_Success))
+    
+plot_min_threshes <- ggplot(min_threshes,
+                            aes(x=Min_Energy_Thresh, y=Rate_Success)) +
+                  geom_violin(aes(group=Min_Energy_Thresh, fill=Mean_Rate_Success),
+                              colour="black", linewidth=0.15) +
+                  stat_summary(fun=mean, geom="line", colour="black", linewidth=0.5) +
+                  scale_x_continuous(breaks=seq(100, 1000, by=200)) +
+                  scale_y_continuous(limits=c(0, 1), breaks=seq(0, 1, by=0.25)) +
+                  scale_fill_continuous(low="white", high="gray10", name="Hatch rate",
+                                        limits=c(0, 1)) +    
+                  xlab("Departure threshold (kJ)") +
+                  ylab("Success rate") +
+                  theme_lt
 
-# Tile plot for visual comparison with good environment
-plot_good_tile <- ggplot(comp_good) +
-               geom_tile(aes(x=Strategy_F, y=Strategy_M, fill=Rate_Success)) +
-               geom_rect(data=emp_strategy_boxes,
-                         aes(xmin=Strategy_F_Start, xmax=Strategy_F_End, 
-                             ymin=Strategy_M_Start, ymax=Strategy_M_End),
-                         fill="transparent", color=EMPIRICAL_COLOR, linewidth=0.2) +
-               scale_fill_continuous(low="white", high="gray10", name="Hatch success rate",
-                                     limits=c(0, 1)) +
-               xlab("Female strategy") +
-               ylab("Male strategy") +
-               ggtitle("Good environment\n(170 kJ/day)") +
-               theme_lt +
-               theme(panel.background = element_blank(),
-                     axis.text = element_blank(),
-                     plot.title = element_text(size=12),
-                     axis.title = element_text(size=6))
+# Summarize across maximum thresholds
+max_threshes <- emp_environment |>
+             select(Max_Energy_Thresh_F, Max_Energy_Thresh_M, Rate_Success) |>
+             pivot_longer(cols=contains("Thresh"), names_to="Sex", values_to="Max_Energy_Thresh") |>
+             group_by(Max_Energy_Thresh) |>
+             mutate(Mean_Rate_Success = mean(Rate_Success))
+
+plot_max_threshes <- ggplot(max_threshes,
+                            aes(x=Max_Energy_Thresh, y=Rate_Success)) +
+                  geom_violin(aes(group=Max_Energy_Thresh, fill=Mean_Rate_Success),
+                              colour="black", linewidth=0.15) +
+                  stat_summary(fun=mean, geom="line", colour="black", linewidth=0.5) +
+                  scale_x_continuous(breaks=seq(400, 1200, by=200)) +
+                  scale_y_continuous(limits=c(0, 1), breaks=seq(0, 1, by=0.25)) +  
+                  scale_fill_continuous(low="white", high="gray10", name="Hatch rate",
+                                        limits=c(0, 1)) +    
+                  xlab("Return threshold (kJ)") +
+                  ylab("Success rate") +
+                  theme_lt
 
 # Assemble full with tile plots
 design <- "12
-           12
-           13
            13
            14"
 
-plot_tiles <- plot_main_tile + plot_bad_tile + plot_good_tile + guide_area() +
-           plot_layout(guides="collect", design=design, widths=c(0.75, 0.25)) +
+plot_tiles <- plot_main_tile + plot_min_threshes + plot_max_threshes + guide_area() +
+           plot_layout(guides="collect", design=design, 
+                       widths=c(1, 0.5), heights=c(1.3, 1.3, 1, 1)) +
            plot_annotation(tag_levels="A", tag_prefix="(", tag_suffix=")") &
            theme(legend.position = "bottom", legend.title.position = "top",
-                 legend.title = element_text(size=12, hjust=0.5),
-                 plot.tag.position=c(0.03, 0.98))
-ggsave(filename="Plots/FIGURE_2.png", plot=plot_tiles, width=7.5, height=6)
+                 legend.title = element_text(size=11, hjust=0.5),
+                 plot.tag.position=c(0, 1))
 
-###############################################################
-### Energy variation - pair or individual
-############################################################
+ggsave(filename="Plots/FIGURE_2.png", plot=plot_tiles, width=6.5, height=5)
 
-###############################################################
-### Sexual differences
-############################################################
+
+
 
 ###############################################################
 ### Tradeoffs
@@ -202,9 +205,9 @@ plot_tradeoff_energy <- ggplot() +
                                  colour = "black", se=FALSE, 
                                  method="loess", linewidth=0.4) +
                      scale_x_continuous(limits=c(0, 1), breaks=seq(0, 1.0, by=0.25)) +
-                     scale_y_continuous(breaks=seq(500, 1000, by=100)) +
+                     scale_y_continuous(breaks=seq(400, 1200, by=200)) +
                      guides(colour="none") +
-                     xlab("Hatch success rate") +
+                     xlab("Success rate") +
                      ylab("Female energy (kJ)") +
                      theme_lt
 
@@ -237,9 +240,9 @@ plot_tradeoff_date <- ggplot() +
                                colour = "black", se=FALSE, 
                                method="loess", linewidth=0.4) +
                    scale_x_continuous(limits=c(0, 1), breaks=seq(0, 1.0, by=0.25)) +
-                   scale_y_continuous(limits=c(38, 56), breaks=seq(40, 55, by=5)) +
+                   scale_y_continuous(limits=c(36, 58), breaks=seq(36, 58, by=4)) +
                    guides(colour="none") +
-                   xlab("Hatch success rate") +
+                   xlab("Success rate") +
                    ylab("Hatch date") +
                    theme_lt
 
@@ -270,33 +273,20 @@ plot_tradeoff_energydate <- ggplot() +
                                      aes(x=Successful_Hatch_Date, y=Successful_Mean_Energy_F),
                                      colour = "black", se=FALSE, 
                                      method="loess", linewidth=0.4) +
-                         scale_x_continuous(limits=c(38, 56), breaks=seq(40, 55, by=5)) +
-                         scale_y_continuous(breaks=seq(500, 1000, by=100)) +
+                         scale_x_continuous(limits=c(36, 58), breaks=seq(36, 58, by=4)) +
+                         scale_y_continuous(breaks=seq(400, 1200, by=200)) +
                          guides(colour="none") +
                          xlab("Hatch date") +
                          ylab("Female energy (kJ)") +
                          theme_lt
 
-plot_tradeoff_energydate_colored <- ggplot() +
-                                 geom_point(data=filter(emp_environment, !Is_Empirical_Strategy),
-                                            aes(x=Successful_Hatch_Date, y=Successful_Mean_Energy_F,
-                                                colour=Rate_Success),
-                                            size=0.8, alpha=0.5) +
-                                 scale_x_continuous(limits=c(38, 56), breaks=seq(40, 55, by=5)) +
-                                 scale_y_continuous(breaks=seq(500, 1000, by=100)) +
-                                 scale_colour_gradient() +
-                                 guides(colour="none") +
-                                 xlab("Hatch date") +
-                                 ylab("Female energy (kJ)") +
-                                 theme_lt
-
 # Assemble and print full plot
-plot_tradeoffs <- plot_tradeoff_energy + plot_tradeoff_date + plot_tradeoff_energydate + plot_tradeoff_energydate_colored
+plot_tradeoffs <- plot_tradeoff_energy + plot_tradeoff_date + plot_tradeoff_energydate +
                plot_annotation(tag_levels="A", tag_prefix="(", tag_suffix=")") &
                theme(legend.position = "bottom", legend.title.position = "top",
-                     legend.title = element_text(size=12, hjust=0.5),
+                     legend.title = element_text(size=11, hjust=0.5),
                      plot.tag.position=c(0.02, 1.0))
-ggsave(filename="Plots/FIGURE_3.png", plot=plot_tradeoffs, width=7.5, height=2.5)
+ggsave(filename="Plots/FIGURE_3.png", plot=plot_tradeoffs, width=7, height=2.5)
 
 ###############################################################
 ### Decline in hatch success in the environment
@@ -304,91 +294,65 @@ ggsave(filename="Plots/FIGURE_3.png", plot=plot_tradeoffs, width=7.5, height=2.5
 
 # Exclude data from empirical environment, so we have smooth sample of 
 #   130 - 170 by 10 (including 160)
-not_emp <- filter(dat, Foraging_Condition_Mean != 162)
+not_emp_forgmean <- filter(dat, Foraging_Condition_Mean != 162, Foraging_Condition_SD == 47)
 
 # Fit logistic curves to find fail point
-mlog_all <- glm(Rate_Success ~ Foraging_Condition_Mean, data=not_emp, family="quasibinomial")
+mlog_all <- glm(Rate_Success ~ Foraging_Condition_Mean, data=not_emp_forgmean, family="quasibinomial")
 mlog_all_failpoint <- -coef(mlog_all)[1] / coef(mlog_all)[2]
-mlog_emp <- glm(Rate_Success ~ Foraging_Condition_Mean, data=filter(not_emp, Is_Empirical_Strategy), family="quasibinomial")
+mlog_emp <- glm(Rate_Success ~ Foraging_Condition_Mean, data=filter(not_emp_forgmean, Is_Empirical_Strategy), family="quasibinomial")
 mlog_emp_failpoint <- -coef(mlog_emp)[1] / coef(mlog_emp)[2]
 
 # Line plot of hatch rate as environment degrades
-plot_decline_hatch <- ggplot() +
-                   geom_line(data=filter(not_emp, !Is_Empirical_Strategy),
-                             aes(x=Foraging_Condition_Mean, y=Rate_Success, group=Strategy_Combination),
-                             colour="lightgray", alpha=0.5, linewidth=0.35) +
-                   geom_line(data=filter(not_emp, Is_Empirical_Strategy),
-                             aes(x=Foraging_Condition_Mean, y=Rate_Success, group=Strategy_Combination),
-                             colour=EMPIRICAL_COLOR, alpha=0.15, linewidth=0.1) +
-                   geom_vline(xintercept = mlog_all_failpoint, colour="black", linewidth=0.25) +
-                   geom_vline(xintercept = mlog_emp_failpoint, colour=EMPIRICAL_COLOR, linewidth=0.25) +
-                   stat_smooth(data=filter(not_emp, Is_Empirical_Strategy),
-                               aes(x=Foraging_Condition_Mean, y=Rate_Success), 
-                               method = "glm", method.args = list(family="quasibinomial"), 
-                               se=FALSE, colour=EMPIRICAL_COLOR) +
-                   stat_smooth(data=not_emp,
-                               aes(x=Foraging_Condition_Mean, y=Rate_Success), 
-                               method = "glm", method.args = list(family="quasibinomial"), 
-                               se=FALSE, colour="black") +
-                   xlab("Environmental condition (kJ/day)") +
-                   ylab("Hatch success rate") +
-                   theme_lt
-    
-# Line plot of changing parent energy as environment degrades
-plot_decline_energy <- ggplot() +
-                   geom_line(data=filter(not_emp, !Is_Empirical_Strategy),
-                             aes(x=Foraging_Condition_Mean, y=Successful_Mean_Energy_F, group=Strategy_Combination),
-                             colour="lightgray", alpha=0.5, linewidth=0.25) +
-                   geom_line(data=filter(not_emp, Is_Empirical_Strategy),
-                             aes(x=Foraging_Condition_Mean, y=Successful_Mean_Energy_F, group=Strategy_Combination),
-                             colour=EMPIRICAL_COLOR, alpha=0.15, linewidth=0.1) +
-                   geom_smooth(data=not_emp, 
-                               aes(x=Foraging_Condition_Mean, y=Successful_Mean_Energy_F),
-                               method="lm", colour="black") +
-                   geom_smooth(data=filter(not_emp, Is_Empirical_Strategy), 
-                               aes(x=Foraging_Condition_Mean, y=Successful_Mean_Energy_F),
-                               method="lm", colour=EMPIRICAL_COLOR) +
-                   scale_y_continuous(breaks=seq(400, 1200, by=300)) +
-                   xlab("Environmental condition (kJ/day)") +
-                   ylab("Female energy (kJ)") +
-                   theme_lt +
-                   theme(panel.background = element_blank(),
-                         plot.title = element_text(size=10),
-                         axis.title = element_text(size=8),
-                         axis.text = element_text(size=8))
+plot_decline_hatch_mean <- ggplot() +
+                        geom_line(data=filter(not_emp_forgmean, !Is_Empirical_Strategy),
+                                  aes(x=Foraging_Condition_Mean, y=Rate_Success, group=Strategy_Combination),
+                                  colour="lightgray", alpha=0.5, linewidth=0.35) +
+                        geom_line(data=filter(not_emp_forgmean, Is_Empirical_Strategy),
+                                  aes(x=Foraging_Condition_Mean, y=Rate_Success, group=Strategy_Combination),
+                                  colour=EMPIRICAL_COLOR, alpha=0.15, linewidth=0.1) +
+                        geom_vline(xintercept = mlog_all_failpoint, colour="black", linewidth=0.25) +
+                        geom_vline(xintercept = mlog_emp_failpoint, colour=EMPIRICAL_COLOR, linewidth=0.25) +
+                        stat_smooth(data=filter(not_emp_forgmean, Is_Empirical_Strategy),
+                                    aes(x=Foraging_Condition_Mean, y=Rate_Success), 
+                                    method = "glm", method.args = list(family="quasibinomial"), 
+                                    se=FALSE, colour=EMPIRICAL_COLOR) +
+                        stat_smooth(data=not_emp_forgmean,
+                                    aes(x=Foraging_Condition_Mean, y=Rate_Success), 
+                                    method = "glm", method.args = list(family="quasibinomial"), 
+                                    se=FALSE, colour="black") +
+                        xlab("Foraging mean (kJ/day)") +
+                        ylab("Success rate rate") +
+                        theme_lt
 
-# Line plot of changing hatch date as environment degrades
-plot_decline_date <- ggplot() +
-                   geom_line(data=filter(not_emp, !Is_Empirical_Strategy),
-                             aes(x=Foraging_Condition_Mean, y=Successful_Hatch_Date, group=Strategy_Combination),
-                             colour="lightgray", alpha=0.5, linewidth=0.25) +
-                   geom_line(data=filter(not_emp, Is_Empirical_Strategy),
-                             aes(x=Foraging_Condition_Mean, y=Successful_Hatch_Date, group=Strategy_Combination),
-                             colour=EMPIRICAL_COLOR, alpha=0.15, linewidth=0.1) +
-                   geom_smooth(data=not_emp, 
-                               aes(x=Foraging_Condition_Mean, y=Successful_Hatch_Date),
-                               method="lm", colour="black") +
-                   geom_smooth(data=filter(not_emp, Is_Empirical_Strategy), 
-                               aes(x=Foraging_Condition_Mean, y=Successful_Hatch_Date),
-                               method="lm", colour=EMPIRICAL_COLOR) +
-                   xlab("Environmental condition (kJ/day)") +
-                   ylab("Hate date") +
-                   theme_lt +
-                   theme(panel.background = element_blank(),
-                         plot.title = element_text(size=10),
-                         axis.title = element_text(size=8),
-                         axis.text = element_text(size=8))
+not_emp_both <- filter(dat, Foraging_Condition_SD != 47, Foraging_Condition_Mean != 162)
+
+# Line plot of hatch rate as environment degrades
+
+ggplot(not_emp_both) +
+    geom_line(data=filter(not_emp_both, Is_Empirical_Strategy),
+              aes(x=Foraging_Condition_Mean, y=Rate_Success, group=paste(Foraging_Condition_SD, Strategy_Combination)),
+              colour="lightgray", alpha=0.5, linewidth=0.35)
+plot_decline_hatch_sd <- ggplot() +
+                      geom_line(data=filter(not_emp_both, Is_Empirical_Strategy),
+                                  aes(x=Foraging_Condition_Mean, y=Rate_Success, group=paste(Foraging_Condition_SD, Strategy_Combination),
+                                      colour=Foraging_Condition_SD),
+                                  alpha=0.5, linewidth=0.35) +
+                    #   stat_smooth(data=filter(not_emp_both, Is_Empirical_Strategy),
+                    #               aes(x=Foraging_Condition_Mean, y=Rate_Success, 
+                    #                   group=Foraging_Condition_SD, colour=Foraging_Condition_SD), 
+                    #               method = "glm", method.args = list(family="quasibinomial"), 
+                    #               se=FALSE) +
+                      xlab("Foraging mean (kJ/day)") +
+                      ylab("Success rate rate") +
+                      theme_lt
 
 # Assemble and print full plot
-design <- "12
-           13"
-
-plot_declines <- plot_decline_hatch + plot_decline_energy + plot_decline_date +
-              plot_layout(widths=c(1, 0.7), design=design, axes="collect") +
+plot_declines <- plot_decline_hatch_mean + plot_decline_hatch_sd +
+              plot_layout(design="12", axes="collect") +
               plot_annotation(tag_levels="A", tag_prefix="(", tag_suffix=")") &
               theme(plot.tag.position=c(0.01, 1.01))
               
-ggsave(filename="Plots/FIGURE_4.png", plot=plot_declines, width=6, height=3.5)
+ggsave(filename="Plots/FIGURE_4.png", plot=plot_declines, width=6.5, height=3)
 
 ###############################################################
 ### Fail point and sensitivity
