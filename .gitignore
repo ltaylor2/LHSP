@@ -1,4 +1,4 @@
-Output/processed_results.csv
+Output/processed_results*.csv
 Output/sims*
 Output/process_log.txt
 *.o

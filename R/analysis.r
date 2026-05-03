@@ -8,7 +8,6 @@ library(patchwork)
 
 # Read in processed data
 dat <- read_csv("Output/processed_results.csv") |>
-    filter(Foraging_Condition_SD > 0) |>
     mutate(Strategy_F = paste(Min_Energy_Thresh_F, Max_Energy_Thresh_F, sep="-"),
            Strategy_M = paste(Min_Energy_Thresh_M, Max_Energy_Thresh_M, sep="-"),
            Strategy_Combination = paste(Strategy_F, Strategy_M, sep=" : "),
@@ -42,7 +41,6 @@ theme_lt <- theme_bw() +
 EMPIRICAL_COLOR <- "#f275ee"
 
 OF <- "Output/results_log.txt"
-
 
 ###############################################################
 ### Model fidelity
@@ -125,9 +123,10 @@ min_threshes <- emp_environment |>
 plot_min_threshes <- ggplot(min_threshes,
                             aes(x=Min_Energy_Thresh, y=Rate_Success)) +
                   geom_violin(aes(group=Min_Energy_Thresh, fill=Mean_Rate_Success),
-                              colour="black", linewidth=0.15) +
+                              scale="area",
+                              colour="black", linewidth=0.05) +
                   stat_summary(fun=mean, geom="line", colour="black", linewidth=0.5) +
-                  scale_x_continuous(breaks=seq(100, 1000, by=200)) +
+                  scale_x_continuous(breaks=seq(200, 11000, by=200)) +
                   scale_y_continuous(limits=c(0, 1), breaks=seq(0, 1, by=0.25)) +
                   scale_fill_continuous(low="white", high="gray10", name="Success rate",
                                         limits=c(0, 1)) +    
@@ -145,7 +144,8 @@ max_threshes <- emp_environment |>
 plot_max_threshes <- ggplot(max_threshes,
                             aes(x=Max_Energy_Thresh, y=Rate_Success)) +
                   geom_violin(aes(group=Max_Energy_Thresh, fill=Mean_Rate_Success),
-                              colour="black", linewidth=0.15) +
+                              scale="area",
+                              colour="black", linewidth=0.05) +
                   stat_summary(fun=mean, geom="line", colour="black", linewidth=0.5) +
                   scale_x_continuous(breaks=seq(400, 1200, by=200)) +
                   scale_y_continuous(limits=c(0, 1), breaks=seq(0, 1, by=0.25)) +  
@@ -157,21 +157,20 @@ plot_max_threshes <- ggplot(max_threshes,
 
 # Assemble full with tile plots
 design <- "12
-           13
-           14"
+           13"
 
-plot_tiles <- plot_main_tile + plot_min_threshes + plot_max_threshes + guide_area() +
-           plot_layout(guides="collect", design=design, 
-                       widths=c(1, 0.5), heights=c(1.3, 1.3, 1, 1)) +
-           plot_annotation(tag_levels="A", tag_prefix="(", tag_suffix=")") &
-           theme(legend.position = "bottom", legend.title.position = "top",
-                 legend.title = element_text(size=11, hjust=0.5),
-                 plot.tag.position = "topleft",
-                 plot.tag = element_text(hjust=-0.1, vjust=2),
-                 plot.margin = margin(t=14, r=2, b=0, l=2))
+plot_tiles <- (plot_main_tile + labs(tag="(A)")) + 
+              guide_area() + 
+              ((plot_min_threshes + labs(tag="(B)")) / plot_max_threshes + 
+               plot_layout(axes="collect", heights=c(1,1))) + 
+              plot_layout(guides="collect", design=design, 
+                          widths=c(1, 0.5), heights=c(1, 4)) &
+              theme(legend.position = "bottom", legend.title.position = "top",
+                    legend.title = element_text(size=11, hjust=0.5),
+                    plot.tag.position = "topleft")
 
-ggsave(filename="Plots/FIGURE_2.png", plot=plot_tiles, width=6.5, height=4.5)
-
+ggsave(filename="Plots/FIGURE_2.png", plot=plot_tiles,
+       width=6.5, height=4, unit="in")
 ###############################################################
 ### Tradeoffs
 ############################################################
@@ -287,7 +286,8 @@ plot_tradeoffs <- plot_tradeoff_energy + plot_tradeoff_date + plot_tradeoff_ener
                      plot.tag=element_text(vjust=2),
                      plot.margin = margin(t=14, r=0, b=0, l=0))
 
-ggsave(filename="Plots/FIGURE_3.png", plot=plot_tradeoffs, width=6.5, height=2.3)
+ggsave(filename="Plots/FIGURE_3.png", plot=plot_tradeoffs, 
+       width=6.5, height=2.3)
 
 ###############################################################
 ### Decline in hatch success in the environment
@@ -351,9 +351,9 @@ plot_env_var <- ggplot(not_emp_both_summaries) +
                            y=Foraging_Condition_SD, 
                            fill=Var_Rate_Success)) +
              scale_y_continuous(limits=c(0, 110), breaks=seq(10, 100, by=20)) +
-             scale_fill_continuous(low="white", high="firebrick2", 
-                                   limits=c(0, 0.12),
-                                   breaks=seq(0, 0.12, by=0.03), name="Var. success rate") +
+             scale_fill_continuous(low="white", high="firebrick3", 
+                                   limits=c(0, 0.16),
+                                   breaks=seq(0, 0.16, by=0.04), name="Var. success rate") +
              xlab("Foraging mean (kJ/day)") +
              ylab("Foraging S.D. (kJ/day)") +
              theme_lt +
@@ -378,7 +378,8 @@ plot_declines <- (plot_decline_hatch_mean + labs(tag="(A)")) +
                     plot.tag=element_text(vjust=-2),
                     plot.margin = margin(t=2, r=2, b=2, l=2))
 
-ggsave(filename="Plots/FIGURE_4.png", plot=plot_declines, width=6.5, height=3)
+ggsave(filename="Plots/FIGURE_4.png", plot=plot_declines, 
+       width=6.5, height=3, unit="in")
 
 ###############################################################
 ### Change in outcomes across environments
@@ -397,10 +398,10 @@ outcomes <- dat |>
 plot_outcomes_smooth <- ggplot(outcomes) +
                      geom_smooth(aes(x=Foraging_Condition_Mean, y=Rate, colour=Outcome),
                                  method="loess") +
-                     annotate(geom="text", label="Successful", hjust=0, vjust=1, x=155.8, y=0.925, size=3, lineheight=1, colour="black") +
-                     annotate(geom="text", label="(Fail)\nCold shock", hjust=0, vjust=1, x=132, y=0.91, size=3, lineheight=1, colour="#7570b3") + 
-                     annotate(geom="text", label="(Fail)\nSlow dev.", hjust=0, vjust=1, x=152, y=0.252, size=3, lineheight=1, colour="#1b9e77") +
-                     annotate(geom="text", label="(Fail)\nParent dead", hjust=0, vjust=1, x=130.5, y=0.22, size=3, lineheight=1, colour="#d95f02") +
+                     annotate(geom="text", label="Successful", hjust=0, vjust=1, x=158, y=0.935, size=3, lineheight=1, colour="black") +
+                     annotate(geom="text", label="(Fail)\nCold shock", hjust=0, vjust=1, x=132, y=0.89, size=3, lineheight=1, colour="#7570b3") + 
+                     annotate(geom="text", label="(Fail)\nSlow dev.", hjust=0, vjust=1, x=154, y=0.22, size=3, lineheight=1, colour="#1b9e77") +
+                     annotate(geom="text", label="(Fail)\nParent dead", hjust=0, vjust=1, x=130.5, y=0.23, size=3, lineheight=1, colour="#d95f02") +
                      scale_colour_manual(values=c("Success"="black",
                                                   "Fail_Egg_Cold"="#7570b3",
                                                   "Fail_Egg_Time"="#1b9e77",
@@ -426,7 +427,7 @@ plot_outcome_cold <- ggplot(filter(outcomes, Outcome=="Fail_Egg_Cold")) +
                   geom_line(aes(x=Foraging_Condition_Mean, y=Rate, 
                                 group=Strategy_Combination),
                             colour="#7570b3", alpha=0.25, linewidth=0.1)  +
-                  annotate(geom="text", label="Cold\nshock", hjust=1, vjust=1, x=170, y=1.0, size=3, lineheight=1, colour="#7570b3") +
+                  annotate(geom="text", label="Cold\nshock", hjust=0, vjust=0, x=130, y=0, size=3, lineheight=1, colour="#7570b3") +
                   scale_y_continuous(limits=c(0, 1), breaks=seq(0, 1, by=0.25)) +
                   xlab("Foraging mean (kJ/day)") +
                   ylab("Outcome rate") +
@@ -463,4 +464,45 @@ plot_outcomes <- plot_outcomes_smooth +
               plot_outcome_time + plot_outcome_dead +
               plot_layout(widths=c(1, 0.5, 0.5), design = design,
                           axes="collect")
-ggsave(filename="Plots/FIGURE_6.png", plot=plot_outcomes, width=7.5, height=3)
+ggsave(filename="Plots/FIGURE_5.png", plot=plot_outcomes, 
+       width=6.5, height=3, unit="in")
+
+###############################################################
+### Egg tolerance simulations
+############################################################
+
+datEgg <- read_csv("Output/processed_results_eggTolerance.csv") |>
+       mutate(Strategy_F = paste(Min_Energy_Thresh_F, Max_Energy_Thresh_F, sep="-"),
+            Strategy_M = paste(Min_Energy_Thresh_M, Max_Energy_Thresh_M, sep="-"),
+            Strategy_Combination = paste(Strategy_F, Strategy_M, sep=" : "),
+            Is_Empirical_Strategy = (Min_Energy_Thresh_F >= 400 & Min_Energy_Thresh_F <= 700) &
+                                    (Max_Energy_Thresh_F >= 700 & Max_Energy_Thresh_F <= 900) &
+                                    (Min_Energy_Thresh_M >= 400 & Min_Energy_Thresh_M <= 700) &
+                                    (Max_Energy_Thresh_M >= 700 & Max_Energy_Thresh_M <= 900)) |>
+       filter(Is_Empirical_Strategy,
+              Foraging_Condition_Mean %in% c(150, 160, 170),
+              Foraging_Condition_SD == 47)
+
+egg_strip_labeller <- function(value) {
+    ifelse(value == min(as.numeric(value)),
+           paste0("Foraging mean: ", value, " (kJ/day)"),
+           paste0(value, " (kJ/day)"))
+}
+
+plot_egg_tolerance <- ggplot(datEgg) +
+                   geom_line(aes(x=Egg_Tolerance, y=Rate_Success, 
+                                 group=Strategy_Combination),
+                             colour=EMPIRICAL_COLOR, alpha=0.5) +
+                   geom_smooth(aes(x=Egg_Tolerance, y=Rate_Success),
+                               method="loess", colour="#b404a2") +
+                   facet_wrap(facets=vars(Foraging_Condition_Mean), nrow=1, ncol=3,
+                              labeller=labeller(Foraging_Condition_Mean=egg_strip_labeller)) +
+                   scale_x_continuous(breaks=1:7) +
+                   xlab("Egg tolerance") +
+                   ylab("Success rate") +
+                   theme_lt +
+                   theme(strip.background=element_rect(colour="transparent", fill="transparent"),
+                         strip.text=element_text(size=10, hjust=1))
+
+ggsave(filename="Plots/FIGURE_6.png", plot=plot_egg_tolerance, 
+       width=6.5, height=2.5, unit="in")

@@ -9,13 +9,10 @@ library(pbapply)
 library(stringr)
 
 # Filename for full simulation output
-RESULTS_FILEPATH <- "Output/sims_2026-05-02_17-01-27_100iter.csv"
+RESULTS_PREFIX <- "Output/sims_2026-05-03_12-56-21_ms1_100iter"
 
-# # How many iterations for each simulated parameter set?
-# #   NOTE this will determine the chunk length used to summarize data
-# #        set it carefully!
-# ITERATIONS <- 100
-
+OF_SUFFIX <- RESULTS_PREFIX |>
+          str_split_i("_", 5)
 # Make a new output log file, which will print parameter set info
 #   as the long processing function runs
 write("", "Output/process_log.txt", append=FALSE)
@@ -94,7 +91,8 @@ processGroup <- function(chunk) {
     # Group keys for parameters from first row to prepend to output
     keys <- chunk[1, .(Min_Energy_Thresh_F, Max_Energy_Thresh_F,
                        Min_Energy_Thresh_M, Max_Energy_Thresh_M,
-                       Foraging_Condition_Mean, Foraging_Condition_SD)]
+                       Foraging_Condition_Mean, Foraging_Condition_SD,
+                       Egg_Tolerance)]
 
     n <- nrow(chunk)
 
@@ -208,12 +206,17 @@ processGroup <- function(chunk) {
 ### Process the data and write output
 ############################################################
 
-cat("Reading data...\n")
-dat <- fread(RESULTS_FILEPATH)
+cat("Reading regular data...\n")
+
+dat <- fread(paste0(RESULTS_PREFIX, ".csv"))
+
+# TODO integrate egg tolerance as a regular key
+dat[, "Egg_Tolerance"] <- 7
 
 GROUP_KEYS <- c("Min_Energy_Thresh_F", "Max_Energy_Thresh_F",
                 "Min_Energy_Thresh_M", "Max_Energy_Thresh_M",
-                "Foraging_Condition_Mean", "Foraging_Condition_SD")
+                "Foraging_Condition_Mean", "Foraging_Condition_SD",
+                "Egg_Tolerance")
 
 # Split into list of data.tables, one per parameter combination
 groups <- split(dat, by = GROUP_KEYS, keep.by = TRUE)
@@ -231,6 +234,46 @@ stopCluster(cl)
 results_summarized <- rbindlist(results_list, use.names = TRUE)
 
 # Save output
-cat("Writing output...\n")
+cat("Writing regular output...\n")
 fwrite(results_summarized, "Output/processed_results.csv")
+
+rm(groups)
+rm(results_list)
+rm(results_summarized)
+gc()
+
+# Now repeat for egg tolerance 
+cat("Reading egg tolerance data...\n")
+
+dat <- fread(paste0(RESULTS_PREFIX, "_eggTolerance.csv"))
+
+GROUP_KEYS <- c("Min_Energy_Thresh_F", "Max_Energy_Thresh_F",
+                "Min_Energy_Thresh_M", "Max_Energy_Thresh_M",
+                "Foraging_Condition_Mean", "Foraging_Condition_SD",
+                "Egg_Tolerance")
+
+# Split into list of data.tables, one per parameter combination
+groups <- split(dat, by = GROUP_KEYS, keep.by = TRUE)
+
+rm(dat)
+gc()
+
+# Process all groups in parallel
+cl <- makeCluster(detectCores() - 1)
+clusterExport(cl, c("calcBouts", "processGroup"))
+clusterEvalQ(cl, { library(data.table); library(stringr) })
+results_list <- pblapply(groups, processGroup, cl = cl)
+stopCluster(cl)
+
+results_summarized <- rbindlist(results_list, use.names = TRUE)
+
+# Save output
+cat("Writing regular output...\n")
+fwrite(results_summarized, "Output/processed_results_eggTolerance.csv")
+
+rm(groups)
+rm(results_list)
+rm(results_summarized)
+gc()
+
 cat("Done.\n")
