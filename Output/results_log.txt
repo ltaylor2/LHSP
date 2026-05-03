@@ -1,24 +1,26 @@
-Results log from 2026-05-03 00:56:56.643733 
-
-Model fidelity for empirical strategies in empirical environment
-
-Model fidelity for empirical strategies in empirical environment
+Results log from 2026-05-03 12:03:49.561391 
 
 Model fidelity for empirical strategies in empirical environment
 Foraging conditions 162 
 Foraging conditions 162 
 Foraging conditions 162 
-Foraging conditions 162 
-Foraging conditions 162 
-Foraging conditions 162 
-Foraging conditions 162 
-Foraging conditions 162 
 Departure thresholds 400 500 600 700 
-Departure thresholds 400 500 600 700 
-Departure thresholds 400 500 600 700 
-Departure thresholds 400 500 600 700 
-Departure thresholds 400 500 600 700 
-Departure thresholds 400 500 600 700 
-Departure thresholds 400 500 600 700 
-Departure thresholds 400 500 600 700 
-Departure thresholds 400 500 600 700 
+Return thresholds 700 800 900 
+Success rate Mean=0.905 SD=0.054 Min=0.77 Max=1 
+Success rate Mean=0.905 SD=0.054 Min=0.77 Max=1 
+Success hatch date Mean=46.026 SD=2.067 Min=41.344 Max=50.39 
+Success hatch date Mean=46.026 SD=2.067 Min=41.344 Max=50.39 
+Success proportion neglect Mean=0.121 SD=0.026 Min=0.061 Max=0.172 
+Mean success incubation bout (F) Mean=3.998 SD=0.874 Min=2.733 Max=6.844 
+Mean success incubation bout (F Trimmed) Mean=4.566 SD=1.286 Min=3.028 Max=9.583 
+Mean success incubation bout (F Trimmed) Mean=4.566 SD=1.286 Min=3.028 Max=9.583 
+Mean success incubation bout (M) Mean=3.33 SD=1.225 Min=1.767 Max=7.782 
+Mean success incubation bout (M Trimmed) Mean=3.106 SD=1.153 Min=1.643 Max=6.206 
+Mean success foraging bout (F) Mean=4.416 SD=1.415 Min=2.52 Max=9.593 
+Mean success foraging bout (F Trimmed) Mean=4.253 SD=1.505 Min=2.303 Max=8.206 
+Mean success foraging bout (M) Mean=4.93 SD=1.02 Min=3.397 Max=8.151 
+Mean success foraging bout (M Trimmed) Mean=5.846 SD=1.581 Min=3.817 Max=12.012 
+Mean success incubation bout (Both) Mean=3.661 SD=1.009 Min=2.349 Max=7.202 
+Mean success incubation bout (Both Trimmed) Mean=3.9 SD=1.299 Min=2.332 Max=9.177 
+Mean success foraging bout (Both) Mean=4.649 SD=1.19 Min=2.958 Max=8.707 
+Mean success foraging bout (Both Trimmed) Mean=5.098 SD=1.637 Min=3.075 Max=11.664 

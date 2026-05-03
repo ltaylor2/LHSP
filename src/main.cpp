@@ -11,13 +11,17 @@
 #include "Egg.hpp"
 #include "Parent.hpp"
 
-static std::string OUTPUT_SUFFIX = "ms1";
+static std::string OUTPUT_SUFFIX = "ms1_100iter";
 static int ITERATIONS = 100;
 
 constexpr static double P_MIN_ENERGY_THRESH[] = {200, 1100, 100};
 constexpr static double P_MAX_ENERGY_THRESH[] = {400, 1200, 100};
 constexpr static double P_FORAGING_MEAN[] = {130, 170, 10};
 constexpr static double P_FORAGING_SD[] = {0, 100, 10};
+
+constexpr static double P_MIN_ENERGY_THRESH_EGGTOLERANCE[] = {400, 700, 100};
+constexpr static double P_MAX_ENERGY_THRESH_EGGTOLERANCE[] = {700, 900, 100};
+constexpr static int P_EGG_TOLERANCE[] = {1, 7, 1};
 
 // Need a single, static random generator device to let us only seed once
 static std::mt19937* randGen;
@@ -29,6 +33,14 @@ void runModel(int iterations,
 	          std::vector<double> v_maxEnergyThresh,
 	          std::vector<double> v_foragingMean,
 	          std::vector<double> v_foragingSD);
+
+// TODO integrate single runModel function with optional vectors for all parameters
+void runModel_eggTolerance(int iterations,
+	          			   std::string outfileName,
+	          			   std::vector<double> v_minEnergyThresh,
+	          			   std::vector<double> v_maxEnergyThresh,
+	          			   std::vector<double> v_foragingMean,
+	          			   std::vector<int> v_eggTolerance);
 
 std::string breedingSeason(Parent& pf, Parent& pm, Egg& egg);
 
@@ -53,10 +65,15 @@ int main()
 	std::vector<double> v_foragingMean    = paramVector(P_FORAGING_MEAN);
 	std::vector<double> v_foragingSD      = paramVector(P_FORAGING_SD);
 
+	std::vector<double> v_minEnergyThresh_eggTolerance = paramVector(P_MIN_ENERGY_THRESH_EGGTOLERANCE);
+	std::vector<double> v_maxEnergyThresh_eggTolerance = paramVector(P_MAX_ENERGY_THRESH_EGGTOLERANCE);
+	std::vector<double> v_foragingMean_eggTolerance = paramVector(P_FORAGING_MEAN);
+	std::vector<int> v_eggTolerance = paramVector(P_EGG_TOLERANCE);
+
 	v_foragingMean.push_back(162.0);
 	v_foragingSD.push_back(47.0);
 
-	std::cout << "\n\n\nBeginning model runs\n\n\n";
+	std::cout << "\n\n\nBeginning regular model runs\n\n\n";
 
     runModel(ITERATIONS, 
              outfileName, 
@@ -64,6 +81,17 @@ int main()
              v_maxEnergyThresh, 
              v_foragingMean,
 			 v_foragingSD);
+
+	std::cout << "\n\n\nDone with regular models.\nBeginning egg tolerance runs.\n\n\n";
+
+	std::string outfileName_eggTolerance = std::string("../Output/sims_") + timeStr + std::string("_") + OUTPUT_SUFFIX + "_eggTolerance" + std::string(".csv");
+
+	runModel_eggTolerance(ITERATIONS, 
+             			  outfileName_eggTolerance, 
+             			  v_minEnergyThresh_eggTolerance, 
+             			  v_maxEnergyThresh_eggTolerance, 
+             			  v_foragingMean_eggTolerance,
+						  v_eggTolerance);
 
 	std::cout << "Ended model runs\n";
 
@@ -227,6 +255,181 @@ void runModel(int iterations,
                     << maxEnergyThresh_M << ","
                     << foragingMean << ","
                     << foragingSD << ","
+                    << hatchResult << ","
+                    << hatchDays << ","
+                    << totNeglect << ","
+                    << maxNeglect << ","
+                    << endEnergy_F << ","
+                    << meanEnergy_F << ","
+                    << varEnergy_F << ","
+                    << dead_F << ","
+                    << endEnergy_M << ","
+                    << meanEnergy_M << ","
+                    << varEnergy_M << ","
+                    << dead_M << ","
+                    << seasonLength << ","
+                    << seasonHistory << std::endl;
+        }
+    } } } } } } // End parameter loops
+
+	// Close file and exit
+	outfile.close();
+	std::cout << "Final output written to " << outfileName << "\n";
+}
+
+void runModel_eggTolerance(int iterations,
+	          			   std::string outfileName,
+	          			   std::vector<double> v_minEnergyThresh,
+              			   std::vector<double> v_maxEnergyThresh,
+	          			   std::vector<double> v_foragingMean,
+			  			   std::vector<int> v_eggTolerance)
+{
+    
+	// Start formatted output
+	std::ofstream outfile;
+	outfile.open(outfileName, std::ofstream::trunc);
+
+	// Header column for CSV format
+	outfile << "Iteration" << ","
+            << "Min_Energy_Thresh_F" << ","
+			<< "Max_Energy_Thresh_F" << ","
+            << "Min_Energy_Thresh_M" << ","
+			<< "Max_Energy_Thresh_M" << ","
+			<< "Foraging_Condition_Mean" << ","
+            << "Foraging_Condition_SD" << ","
+			<< "Egg_Tolerance" << ","
+	    	<< "Hatch_Result" << ","
+			<< "Hatch_Days" << ","
+			<< "Total_Neglect" << ","
+			<< "Max_Neglect" << ","
+			<< "End_Energy_F" << ","
+			<< "Mean_Energy_F" << ","
+			<< "Var_Energy_F" << ","
+			<< "Dead_F" << ","
+			<< "End_Energy_M" << ","
+			<< "Mean_Energy_M" << ","
+			<< "Var_Energy_M" << ","
+			<< "Dead_M" <<  ","
+            << "Season_Length" << ","
+            << "Season_History" << std::endl;
+
+	/*
+	Total parameter space being searched
+	NOTE we throw out any combinations where
+	     minEnergy [hunger] > maxEnergy [satiation],
+	     So this space is reduced to that array
+	*/
+
+    int energyCombinations = 0;
+    for (unsigned int i = 0; i < v_minEnergyThresh.size(); i++) {
+        for (unsigned int j = 0; j < v_maxEnergyThresh.size(); j++) {
+            double minThresh = v_minEnergyThresh[i];
+            double maxThresh = v_maxEnergyThresh[j];
+            if (maxThresh > minThresh) {
+                energyCombinations++;
+            }
+        }
+    }
+	int totParamIterations = energyCombinations * energyCombinations * v_foragingMean.size() * v_eggTolerance.size();
+    std::cout << "Estimated parameter combinations: " << totParamIterations << std::endl;
+	int currParamIteration = 0;
+
+	// For every minEnergy value (FEMALE)
+	for (unsigned int a = 0; a < v_minEnergyThresh.size(); a++) {
+	    double minEnergyThresh_F = v_minEnergyThresh[a];
+
+	// (then) for every maxEnergy value (FEMALE)
+	for (unsigned int b = 0; b < v_maxEnergyThresh.size(); b++) {
+		double maxEnergyThresh_F = v_maxEnergyThresh[b];
+
+	// (then) for every minEnergy value (MALE)
+	for (unsigned int c = 0; c < v_minEnergyThresh.size(); c++) {
+        double minEnergyThresh_M = v_minEnergyThresh[c];
+
+	// (then) for every maxEnergy value (MALE)
+	for (unsigned int d = 0; d < v_maxEnergyThresh.size(); d++) {
+		double maxEnergyThresh_M = v_maxEnergyThresh[d];
+
+	// Skip if hunger threshold >= satiation threshold(doesn't make sense!)
+	if (minEnergyThresh_F >= maxEnergyThresh_F || minEnergyThresh_M >= maxEnergyThresh_M) {
+        continue; 
+    }
+
+	// (then, then) for every foraging mean value
+	for (unsigned int e = 0; e < v_foragingMean.size(); e++) {
+		double foragingMean = v_foragingMean[e];
+    
+	for (unsigned int f = 0; f < v_eggTolerance.size(); f++) {
+		int eggTolerance = v_eggTolerance[f];
+
+		// Mildly helpful progress update
+		currParamIteration++;
+		if (currParamIteration % (totParamIterations/100) == 0) {
+			std::cout << "[ofstream flushed] Approximate progress of "
+					  << outfileName
+					  << ": "
+					  << round((double)currParamIteration / totParamIterations*100) << "%" << std::endl;
+            outfile.flush();
+		}
+
+        // Replicate every parameter combination by i iterations
+        for (int i = 0; i < iterations; i++) {
+
+            // A fresh egg
+            Egg egg = Egg();
+			egg.setNeglectMax(eggTolerance);
+
+            // Two shiny new parents
+            Parent pf = Parent(Sex::female, randGen);
+            Parent pm = Parent(Sex::male, randGen);
+
+			double foragingSD = pf.getForagingSD();
+
+            // Set both parent's parameters according to the new combo  
+            pf.setMinEnergyThresh(minEnergyThresh_F);
+            pf.setMaxEnergyThresh(maxEnergyThresh_F);
+            pf.setForagingDistribution(foragingMean, foragingSD);   
+            
+            pm.setMinEnergyThresh(minEnergyThresh_M);
+            pm.setMaxEnergyThresh(maxEnergyThresh_M);
+            pm.setForagingDistribution(foragingMean, foragingSD);
+
+            //
+            // Run the given breeding season model function
+            std::string seasonHistory = breedingSeason(pf, pm, egg);
+            //
+            //
+
+            // Extract output
+
+            std::string hatchResult = checkSeasonSuccess(pf, pm, egg);	// Factorized season result
+            double hatchDays = egg.getIncubationDays();                 // Total number of days (maybe limit)
+            int totNeglect = egg.getTotNeg();				            // Total neglect across season
+            int maxNeglect = egg.getMaxNeg();				            // Maximum neglect streak
+
+            std::vector<double> energy_F = pf.getEnergyRecord();
+            double endEnergy_F = energy_F[energy_F.size()-1];           // Final energy value (female)
+            double meanEnergy_F = vectorMean(energy_F);                 // Arithmetic mean energy across season (female)
+            double varEnergy_F = vectorVar(energy_F);                   // Variance in energy across season (female)
+            bool dead_F = !pf.isAlive();                                // Is the female alive?
+
+            std::vector<double> energy_M = pm.getEnergyRecord(); 
+            double endEnergy_M = energy_M[energy_M.size()-1];           // Final energy value (male)
+            double meanEnergy_M = vectorMean(energy_M);                 // Arithmetic mean energy across season (male)
+            double varEnergy_M = vectorVar(energy_M);                   // Variance in energy across season (male)
+            bool dead_M = !pm.isAlive();                                // Is the male alive?
+
+            int seasonLength = egg.getIncubationDays();
+
+            // Send formatted output
+            outfile << i << ","
+                    << minEnergyThresh_F << ","
+                    << maxEnergyThresh_F << ","
+                    << minEnergyThresh_M << ","
+                    << maxEnergyThresh_M << ","
+                    << foragingMean << ","
+                    << foragingSD << ","
+					<< eggTolerance << ","
                     << hatchResult << ","
                     << hatchDays << ","
                     << totNeglect << ","
