@@ -364,10 +364,11 @@ plot_env_var <- ggplot(not_emp_both_summaries) +
 design <- "12"
 
 # Assemble and print full plot
-plot_declines <- (plot_decline_hatch_mean + labs(tag="(A)")) + 
-              ((plot_env_success + labs(tag="(B)")) / 
+plot_declines <- plot_decline_hatch_mean + 
+              (plot_env_success / 
                 plot_env_var +
                 plot_layout(axes="collect")) +
+              plot_annotation(tag_levels="A", tag_prefix="(", tag_suffix=")") + 
               plot_layout(design=design,
                           widths=c(1, 0.7)) &
               theme(legend.key.width = unit(0.1, "in"),
@@ -375,8 +376,8 @@ plot_declines <- (plot_decline_hatch_mean + labs(tag="(A)")) +
                     legend.margin = margin(t=0, r=0, b=0, l=0),
                     legend.box.spacing = unit(0.06, "in"),                  
                     plot.tag.position="topleft",
-                    plot.tag=element_text(vjust=-2),
-                    plot.margin = margin(t=2, r=2, b=2, l=2))
+                    plot.tag=element_text(vjust=-2, hjust=-1),
+                    plot.margin = margin(t=2, r=4, b=2, l=4))
 
 ggsave(filename="Plots/FIGURE_4.png", plot=plot_declines, 
        width=6.5, height=3, unit="in")
@@ -498,7 +499,7 @@ plot_egg_tolerance <- ggplot(datEgg) +
                    facet_wrap(facets=vars(Foraging_Condition_Mean), nrow=1, ncol=3,
                               labeller=labeller(Foraging_Condition_Mean=egg_strip_labeller)) +
                    scale_x_continuous(breaks=1:7) +
-                   xlab("Egg tolerance") +
+                   xlab("Egg cold tolerance (days)") +
                    ylab("Success rate") +
                    theme_lt +
                    theme(strip.background=element_rect(colour="transparent", fill="transparent"),
