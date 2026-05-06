@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LHSP Sandbox — Seabird Pair-Bond Simulation</title>
+    <meta name="description" content="Interactive port of Liam Taylor's Leach's Storm-Petrel incubation model.">
+    <link rel="stylesheet" href="./style.css">
+    <script src="https://cdn.plot.ly/plotly-2.35.2.min.js" charset="utf-8"></script>
+</head>
+<body>
+    <header class="topbar">
+        <div class="brand">
+            <h1>LHSP Sandbox</h1>
+            <span class="brand-sub">Leach's Storm-Petrel pair-bond simulation · Kent Island, Bay of Fundy</span>
+        </div>
+        <nav class="tabs" role="tablist">
+            <button role="tab" data-tab="replay"   class="tab is-active">Colony replay</button>
+            <button role="tab" data-tab="heatmap"  class="tab">Parameter heatmap</button>
+            <button role="tab" data-tab="strips"   class="tab">Season strips</button>
+            <button role="tab" data-tab="phase"    class="tab">Phase portrait</button>
+            <button role="tab" data-tab="tornado"  class="tab">Sensitivity tornado</button>
+            <button role="tab" data-tab="pareto"   class="tab">Pareto front</button>
+        </nav>
+    </header>
+
+    <main class="main">
+        <!-- ─── Tab 1: Kent-Island Colony Replay ────────────────────────────── -->
+        <section id="tab-replay" class="tab-panel" role="tabpanel">
+            <div class="panel-row">
+                <aside class="controls">
+                    <h2>Colony</h2>
+                    <div class="control"><label>Breeding pairs<output id="replay-out-npairs">12</output></label>
+                        <input type="range" id="replay-npairs" min="1" max="60" step="1" value="12"></div>
+                    <div class="control" data-control="sameForBoth">
+                        <label><input type="checkbox" id="replay-sameForBoth" checked> Same thresholds for both sexes</label>
+                    </div>
+                    <fieldset class="control-group">
+                        <legend>Female</legend>
+                        <div class="control"><label>Hunger threshold (kJ)<output id="replay-out-minF">200</output></label>
+                            <input type="range" id="replay-minF" min="100" max="1100" step="25" value="200"></div>
+                        <div class="control"><label>Satiation threshold (kJ)<output id="replay-out-maxF">900</output></label>
+                            <input type="range" id="replay-maxF" min="200" max="1200" step="25" value="900"></div>
+                    </fieldset>
+                    <fieldset class="control-group" id="replay-male-group">
+                        <legend>Male</legend>
+                        <div class="control"><label>Hunger threshold (kJ)<output id="replay-out-minM">200</output></label>
+                            <input type="range" id="replay-minM" min="100" max="1100" step="25" value="200"></div>
+                        <div class="control"><label>Satiation threshold (kJ)<output id="replay-out-maxM">900</output></label>
+                            <input type="range" id="replay-maxM" min="200" max="1200" step="25" value="900"></div>
+                    </fieldset>
+                    <fieldset class="control-group">
+                        <legend>Environment</legend>
+                        <div class="control"><label>Foraging mean (kJ/day)<output id="replay-out-fmean">162</output></label>
+                            <input type="range" id="replay-fmean" min="100" max="220" step="2" value="162"></div>
+                        <div class="control"><label>Foraging SD (kJ/day)<output id="replay-out-fsd">47</output></label>
+                            <input type="range" id="replay-fsd" min="0" max="120" step="1" value="47"></div>
+                        <div class="control"><label>Egg tolerance (consec. days)<output id="replay-out-egg">7</output></label>
+                            <input type="range" id="replay-egg" min="1" max="14" step="1" value="7"></div>
+                    </fieldset>
+                    <div class="control">
+                        <label>Colony seed
+                            <input type="text" id="replay-seed" placeholder="e.g. kent" maxlength="32" value="kent">
+                        </label>
+                    </div>
+                    <div class="button-row">
+                        <button class="btn btn-primary" id="replay-run">Re-roll colony</button>
+                        <button class="btn" id="replay-reset">Field defaults</button>
+                    </div>
+                    <div class="control">
+                        <label>Animation speed<output id="replay-out-speed">4 days/sec</output></label>
+                        <input type="range" id="replay-speed" min="1" max="60" step="1" value="4">
+                    </div>
+                    <div class="button-row">
+                        <button class="btn" id="replay-play-toggle">Pause</button>
+                        <button class="btn" id="replay-step-back">«</button>
+                        <button class="btn" id="replay-step-fwd">»</button>
+                    </div>
+                </aside>
+
+                <div class="display">
+                    <div class="ribbon-wrap">
+                        <div class="ribbon-label">Colony coverage over time (% of pairs in each daily state)</div>
+                        <canvas id="replay-ribbon" width="1200" height="48"></canvas>
+                        <div class="ribbon-legend">
+                            <span class="legend-chip" style="background:#f59e0b">female on egg</span>
+                            <span class="legend-chip" style="background:#0ea5e9">male on egg</span>
+                            <span class="legend-chip" style="background:#444">unattended</span>
+                            <span class="legend-chip" style="background:#2ecc71">hatched</span>
+                            <span class="legend-chip" style="background:#e84a4a">failed</span>
+                        </div>
+                    </div>
+                    <div class="scene-wrap">
+                        <canvas id="replay-canvas" width="1200" height="700"></canvas>
+                    </div>
+                    <div class="readout-grid">
+                        <div class="readout"><span class="readout-label">Day</span><span class="readout-val" id="r-day">0</span></div>
+                        <div class="readout"><span class="readout-label">Pairs in progress</span><span class="readout-val" id="r-active">12</span></div>
+                        <div class="readout"><span class="readout-label">Eggs hatched</span><span class="readout-val" id="r-hatched">0</span></div>
+                        <div class="readout"><span class="readout-label">Eggs died</span><span class="readout-val" id="r-eggdied">0</span></div>
+                        <div class="readout"><span class="readout-label">Parents lost</span><span class="readout-val" id="r-parentlost">0</span></div>
+                        <div class="readout"><span class="readout-label">Egg currently attended</span><span class="readout-val" id="r-attended">100%</span></div>
+                        <div class="readout"><span class="readout-label">Mean ♀ energy</span><span class="readout-val" id="r-fenergy">— kJ</span></div>
+                        <div class="readout"><span class="readout-label">Mean ♂ energy</span><span class="readout-val" id="r-menergy">— kJ</span></div>
+                        <div class="readout"><span class="readout-label">Mean neglect streak</span><span class="readout-val" id="r-neg">0</span></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ─── Tab 2: Parameter Heatmap ────────────────────────────────────── -->
+        <section id="tab-heatmap" class="tab-panel" role="tabpanel" hidden>
+            <div class="panel-row">
+                <aside class="controls">
+                    <h2>Sweep settings</h2>
+                    <p class="muted">All sliders update the heatmap live (debounced ≈220 ms).</p>
+                    <div class="control"><label>Grid resolution<output id="hm-out-res">7 × 7</output></label>
+                        <input type="range" id="hm-res" min="5" max="11" step="2" value="7"></div>
+                    <div class="control"><label>Replicates / cell<output id="hm-out-reps">30</output></label>
+                        <input type="range" id="hm-reps" min="10" max="200" step="10" value="30"></div>
+                    <fieldset class="control-group">
+                        <legend>Held constant</legend>
+                        <div class="control"><label>Foraging mean<output id="hm-out-fmean">162</output></label>
+                            <input type="range" id="hm-fmean" min="100" max="220" step="2" value="162"></div>
+                        <div class="control"><label>Foraging SD<output id="hm-out-fsd">47</output></label>
+                            <input type="range" id="hm-fsd" min="0" max="120" step="1" value="47"></div>
+                        <div class="control"><label>Egg tolerance<output id="hm-out-egg">7</output></label>
+                            <input type="range" id="hm-egg" min="1" max="14" step="1" value="7"></div>
+                    </fieldset>
+                    <div class="control">
+                        <label>Colour metric
+                            <select id="hm-metric">
+                                <option value="hatchRate">Hatch rate</option>
+                                <option value="parentSurvivalRate">Parent survival</option>
+                                <option value="meanHatchDays">Mean hatch days</option>
+                                <option value="meanMaxNeglect">Mean max neglect</option>
+                            </select>
+                        </label>
+                    </div>
+                    <p class="muted" id="hm-status">—</p>
+                </aside>
+                <div class="display">
+                    <div id="hm-plot" class="plot-area"></div>
+                    <p class="muted small">Click a cell to load its 100 sample seasons in the <strong>Season strips</strong> tab.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ─── Tab 3: Season Strips ────────────────────────────────────────── -->
+        <section id="tab-strips" class="tab-panel" role="tabpanel" hidden>
+            <div class="panel-row">
+                <aside class="controls">
+                    <h2>Strip settings</h2>
+                    <p class="muted">Drag any slider — the strips redraw automatically.</p>
+                    <fieldset class="control-group">
+                        <legend>Parameters</legend>
+                        <div class="control"><label>Hunger F<output id="strips-out-minF">200</output></label>
+                            <input type="range" id="strips-minF" min="100" max="1100" step="25" value="200"></div>
+                        <div class="control"><label>Satiation F<output id="strips-out-maxF">900</output></label>
+                            <input type="range" id="strips-maxF" min="200" max="1200" step="25" value="900"></div>
+                        <div class="control"><label>Hunger M<output id="strips-out-minM">200</output></label>
+                            <input type="range" id="strips-minM" min="100" max="1100" step="25" value="200"></div>
+                        <div class="control"><label>Satiation M<output id="strips-out-maxM">900</output></label>
+                            <input type="range" id="strips-maxM" min="200" max="1200" step="25" value="900"></div>
+                        <div class="control"><label>Foraging mean<output id="strips-out-fmean">162</output></label>
+                            <input type="range" id="strips-fmean" min="100" max="220" step="2" value="162"></div>
+                        <div class="control"><label>Foraging SD<output id="strips-out-fsd">47</output></label>
+                            <input type="range" id="strips-fsd" min="0" max="120" step="1" value="47"></div>
+                        <div class="control"><label>Egg tolerance<output id="strips-out-egg">7</output></label>
+                            <input type="range" id="strips-egg" min="1" max="14" step="1" value="7"></div>
+                    </fieldset>
+                    <div class="control"><label>Replicates<output id="strips-out-reps">100</output></label>
+                        <input type="range" id="strips-reps" min="20" max="300" step="10" value="100"></div>
+                    <div class="control">
+                        <label>Sort by
+                            <select id="strips-sort">
+                                <option value="outcome">Outcome (success first)</option>
+                                <option value="hatchDays">Hatch days</option>
+                                <option value="totalNeglect">Total neglect</option>
+                                <option value="seed">Seed (no sort)</option>
+                            </select>
+                        </label>
+                    </div>
+                    <p class="muted" id="strips-status">—</p>
+                </aside>
+                <div class="display">
+                    <div class="scene-wrap"><canvas id="strips-canvas" width="900" height="640"></canvas></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ─── Tab 4: Phase Portrait ───────────────────────────────────────── -->
+        <section id="tab-phase" class="tab-panel" role="tabpanel" hidden>
+            <div class="panel-row">
+                <aside class="controls">
+                    <h2>Phase settings</h2>
+                    <p class="muted">All sliders update the phase portrait live.</p>
+                    <fieldset class="control-group">
+                        <legend>Parameters</legend>
+                        <div class="control"><label>Hunger F<output id="phase-out-minF">200</output></label>
+                            <input type="range" id="phase-minF" min="100" max="1100" step="25" value="200"></div>
+                        <div class="control"><label>Satiation F<output id="phase-out-maxF">900</output></label>
+                            <input type="range" id="phase-maxF" min="200" max="1200" step="25" value="900"></div>
+                        <div class="control"><label>Hunger M<output id="phase-out-minM">200</output></label>
+                            <input type="range" id="phase-minM" min="100" max="1100" step="25" value="200"></div>
+                        <div class="control"><label>Satiation M<output id="phase-out-maxM">900</output></label>
+                            <input type="range" id="phase-maxM" min="200" max="1200" step="25" value="900"></div>
+                        <div class="control"><label>Foraging mean<output id="phase-out-fmean">162</output></label>
+                            <input type="range" id="phase-fmean" min="100" max="220" step="2" value="162"></div>
+                        <div class="control"><label>Foraging SD<output id="phase-out-fsd">47</output></label>
+                            <input type="range" id="phase-fsd" min="0" max="120" step="1" value="47"></div>
+                        <div class="control"><label>Egg tolerance<output id="phase-out-egg">7</output></label>
+                            <input type="range" id="phase-egg" min="1" max="14" step="1" value="7"></div>
+                    </fieldset>
+                    <div class="control"><label>Replicates<output id="phase-out-reps">50</output></label>
+                        <input type="range" id="phase-reps" min="10" max="200" step="10" value="50"></div>
+                    <p class="muted" id="phase-status">—</p>
+                </aside>
+                <div class="display">
+                    <div id="phase-plot" class="plot-area"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ─── Tab 5: Sensitivity Tornado ──────────────────────────────────── -->
+        <section id="tab-tornado" class="tab-panel" role="tabpanel" hidden>
+            <div class="panel-row">
+                <aside class="controls">
+                    <h2>Tornado settings</h2>
+                    <p class="muted">Baseline = field-derived defaults. Each parameter is perturbed up and down; the bar shows the change in hatch rate. Live-updates as you drag.</p>
+                    <div class="control"><label>Perturbation<output id="trn-out-pert">±25%</output></label>
+                        <input type="range" id="trn-pert" min="5" max="60" step="5" value="25"></div>
+                    <div class="control"><label>Replicates / level<output id="trn-out-reps">50</output></label>
+                        <input type="range" id="trn-reps" min="20" max="200" step="10" value="50"></div>
+                    <p class="muted" id="trn-status">—</p>
+                </aside>
+                <div class="display">
+                    <div id="trn-plot" class="plot-area"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ─── Tab 6: Pareto Front ─────────────────────────────────────────── -->
+        <section id="tab-pareto" class="tab-panel" role="tabpanel" hidden>
+            <div class="panel-row">
+                <aside class="controls">
+                    <h2>Pareto settings</h2>
+                    <p class="muted">Each point is one (hunger × satiation) combination. The Pareto frontier traces the best trade-off between hatch success and parent survival. Live-updates as you drag.</p>
+                    <div class="control"><label>Grid resolution<output id="pf-out-res">5 × 5</output></label>
+                        <input type="range" id="pf-res" min="3" max="9" step="2" value="5"></div>
+                    <div class="control"><label>Replicates / cell<output id="pf-out-reps">30</output></label>
+                        <input type="range" id="pf-reps" min="10" max="200" step="10" value="30"></div>
+                    <fieldset class="control-group">
+                        <legend>Held constant</legend>
+                        <div class="control"><label>Foraging mean<output id="pf-out-fmean">162</output></label>
+                            <input type="range" id="pf-fmean" min="100" max="220" step="2" value="162"></div>
+                        <div class="control"><label>Foraging SD<output id="pf-out-fsd">47</output></label>
+                            <input type="range" id="pf-fsd" min="0" max="120" step="1" value="47"></div>
+                        <div class="control"><label>Egg tolerance<output id="pf-out-egg">7</output></label>
+                            <input type="range" id="pf-egg" min="1" max="14" step="1" value="7"></div>
+                    </fieldset>
+                    <p class="muted" id="pf-status">—</p>
+                </aside>
+                <div class="display">
+                    <div id="pf-plot" class="plot-area"></div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script type="module" src="./js/app.js"></script>
+</body>
+</html>
