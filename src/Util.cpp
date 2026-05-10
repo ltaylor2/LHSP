@@ -81,6 +81,19 @@ std::vector<int> paramVector(const int p[3])
 	return ret;
 }
 
+std::vector<double> paramVector(double i) 
+{
+	std::vector<double> ret;
+    ret.push_back(i);
+	return ret;
+}
+
+std::vector<int> paramVector(int i) 
+{
+	std::vector<int> ret;
+    ret.push_back(i);
+	return ret;
+}
 
 void printBoutInfo(std::string fname, std::string model, std::string tag, std::vector<int> v) 
 {
@@ -108,6 +121,21 @@ std::string checkSeasonSuccess(Parent& pf, Parent& pm, Egg& egg)
 	return "ERROR";
 }
 
+// overloaded for one parent
+std::string checkSeasonSuccess(Parent& pf, Egg& egg) 
+{
+	if (!pf.isAlive()) {
+        return("dead parent");
+    } else if (egg.isAlive() && egg.isHatched()) {
+		return "hatched";
+	} else if (!egg.isAlive()) {
+		return "egg cold fail";
+	} else if (!egg.isHatched()) {
+		return "egg time fail";
+	}
+	return "ERROR";
+}
+
 void printDailyInfo(Parent& pf, Parent& pm, Egg& egg) {
 	int days = egg.getIncubationDays();
 	double maxDays = egg.getMaxHatchDays();
@@ -120,9 +148,9 @@ void printDailyInfo(Parent& pf, Parent& pm, Egg& egg) {
 	std::string maleState = pm.getStrState();
 
 	std::cout << "On day " << days << " of " << maxDays
-	   	  << " with egg neglect " << eggNeglect << ".///"
-	   	  << " Female is " << femaleState
-	   	  << " with " << femaleEnergy << " energy.///"
-	   	  << " Male is " << maleState
-	   	  << " with " << maleEnergy << " energy.///\n";
+	   	      << " with egg neglect " << eggNeglect << ".///"
+	   	      << " Female is " << femaleState
+	   	      << " with " << femaleEnergy << " energy.///"
+	   	      << " Male is " << maleState
+	   	      << " with " << maleEnergy << " energy.///\n";
 }

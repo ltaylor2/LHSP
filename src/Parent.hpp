@@ -39,6 +39,7 @@ public:
         
     // Setters
     void setState(State state_) { this->state = state_ ; }
+    void setPrevDayState(State state_) { this->previousDayState = state_; }
     void setEnergy(double energy_) { this->energy = energy_; }
     void setBaseEnergy(double baseEnergy_) { this->baseEnergy = baseEnergy_; }
     void setIncubatingMetabolism(double incubatingMetabolism_) { this->incubatingMetabolism = incubatingMetabolism_; }
@@ -72,23 +73,23 @@ private:
     in kJ of metabolic intake. Modeled as a normal distribution.
     Montevecchi et al. (1992) for Newfoundland parameters
     */
-    constexpr static double FORAGING_MEAN = 162;
-    constexpr static double FORAGING_SD = 47;
+    constexpr static double FORAGING_MEAN = 162.0;
+    constexpr static double FORAGING_SD = 47.0;
 
     /*
     Initial energy buffer at the beginning of the incubation season (kJ)
     Derived from the mean energy adults had at the beginning of observed
     incubation bouts in Ricklefs et al. (1986)
     */
-    constexpr static double BASE_ENERGY = 766;
+    constexpr static double BASE_ENERGY = 766.0;
 
     /*
     Metabolic rate requirements while incubating and foraging (kJ/day)
     From Ricklefs et al. (1986)
     and further discussion in Montevecchi et al. (1992)
     */
-    constexpr static double INCUBATING_METABOLISM = 52;
-    constexpr static double FORAGING_METABOLISM = 123;
+    constexpr static double INCUBATING_METABOLISM = 52.0;
+    constexpr static double FORAGING_METABOLISM = 123.0;
 
     /*
     The deterministc threshold below which incubation ceases

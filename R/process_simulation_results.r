@@ -9,13 +9,9 @@ library(pbapply)
 library(stringr)
 
 # Filename for full simulation output
-RESULTS_PREFIX <- "Output/sims_2026-05-03_12-56-21_ms1_100iter"
+RESULTS_SUFFIX <- "ms2-100iter"
 
-OF_SUFFIX <- RESULTS_PREFIX |>
-          str_split_i("_", 5)
-# Make a new output log file, which will print parameter set info
-#   as the long processing function runs
-write("", "Output/process_log.txt", append=FALSE)
+SIM_TYPES <- c("regular", "eggTolerance", "eggCost", "swapSexOrder", "oneParent")
 
 ############################################################
 ### calcBouts - calculate bout information for a schedule
@@ -58,8 +54,7 @@ calcBouts <- function(schedule) {
     }
 
     # Summarize all values
-    list(
-         Mean_Incubation_Bout_Both         = mean(c(incubation_bouts_f, incubation_bouts_m)),
+    list(Mean_Incubation_Bout_Both         = mean(c(incubation_bouts_f, incubation_bouts_m)),
          Mean_Incubation_Bout_Both_Trimmed = mean(c(incubation_bouts_f_trimmed, incubation_bouts_m_trimmed), na.rm = TRUE),
          Mean_Foraging_Bout_Both           = mean(c(foraging_bouts_f, foraging_bouts_m)),
          Mean_Foraging_Bout_Both_Trimmed   = mean(c(foraging_bouts_f_trimmed, foraging_bouts_m_trimmed), na.rm = TRUE),
@@ -78,10 +73,8 @@ calcBouts <- function(schedule) {
          N_Foraging_Bouts_M                = length(foraging_bouts_m),
          Mean_Foraging_Bout_M              = mean(foraging_bouts_m),
          Mean_Foraging_Bout_M_Trimmed      = mean(foraging_bouts_m_trimmed, na.rm = TRUE),
-         Var_Foraging_Bout_M               = var(foraging_bouts_m)
-    )
-} 
-
+         Var_Foraging_Bout_M               = var(foraging_bouts_m))
+}
 
 ############################################################
 ### processGroup - summarize one parameter combination
@@ -92,7 +85,7 @@ processGroup <- function(chunk) {
     keys <- chunk[1, .(Min_Energy_Thresh_F, Max_Energy_Thresh_F,
                        Min_Energy_Thresh_M, Max_Energy_Thresh_M,
                        Foraging_Condition_Mean, Foraging_Condition_SD,
-                       Egg_Tolerance)]
+                       Egg_Tolerance, Egg_Cost, Num_Parents)]
 
     n <- nrow(chunk)
 
@@ -137,60 +130,56 @@ processGroup <- function(chunk) {
         bout_dt   <- rbindlist(lapply(bout_list, as.list))
         SUCCESSFUL_bout_info <- as.list(bout_dt[, lapply(.SD, mean, na.rm = TRUE)])
     } else {
-        SUCCESSFUL_bout_info <- list(
-            Mean_Incubation_Bout_Both = NA, 
-            Mean_Incubation_Bout_Both_Trimmed = NA,
-            Mean_Foraging_Bout_Both = NA,   
-            Mean_Foraging_Bout_Both_Trimmed = NA,
-            N_Incubation_Bouts_F = NA,      
-            Mean_Incubation_Bout_F = NA,
-            Mean_Incubation_Bout_F_Trimmed = NA,
-            Var_Incubation_Bout_F = NA,
-            N_Foraging_Bouts_F = NA,
-            Mean_Foraging_Bout_F = NA,
-            Mean_Foraging_Bout_F_Trimmed = NA,
-            Var_Foraging_Bout_F = NA,
-            N_Incubation_Bouts_M = NA,
-            Mean_Incubation_Bout_M = NA,
-            Mean_Incubation_Bout_M_Trimmed = NA, 
-            Var_Incubation_Bout_M = NA,
-            N_Foraging_Bouts_M = NA,        
-            Mean_Foraging_Bout_M = NA,
-            Mean_Foraging_Bout_M_Trimmed = NA,
-            Var_Foraging_Bout_M = NA
-        )
+        SUCCESSFUL_bout_info <- list(Mean_Incubation_Bout_Both = NA, 
+                                     Mean_Incubation_Bout_Both_Trimmed = NA,
+                                     Mean_Foraging_Bout_Both = NA,   
+                                     Mean_Foraging_Bout_Both_Trimmed = NA,
+                                     N_Incubation_Bouts_F = NA,      
+                                     Mean_Incubation_Bout_F = NA,
+                                     Mean_Incubation_Bout_F_Trimmed = NA,
+                                     Var_Incubation_Bout_F = NA,
+                                     N_Foraging_Bouts_F = NA,
+                                     Mean_Foraging_Bout_F = NA,
+                                     Mean_Foraging_Bout_F_Trimmed = NA,
+                                     Var_Foraging_Bout_F = NA,
+                                     N_Incubation_Bouts_M = NA,
+                                     Mean_Incubation_Bout_M = NA,
+                                     Mean_Incubation_Bout_M_Trimmed = NA, 
+                                     Var_Incubation_Bout_M = NA,
+                                     N_Foraging_Bouts_M = NA,        
+                                     Mean_Foraging_Bout_M = NA,
+                                     Mean_Foraging_Bout_M_Trimmed = NA,
+                                     Var_Foraging_Bout_M = NA)
     }
 
     # Assemble output row
-    result <- data.table(
-        N_Total            = n,
-        N_Success          = n_successes,
-        N_Fail_Egg_Time    = n_fail_egg_time,
-        N_Fail_Egg_Cold    = n_fail_egg_cold,
-        N_Fail_Parent_Dead = n_fail_parent_dead,
-
-        Overall_Mean_Energy_F  = OVERALL_mean_energy_f,
-        Overall_Var_Energy_F   = OVERALL_var_energy_f,
-        Overall_Mean_Energy_M  = OVERALL_mean_energy_m,
-        Overall_Var_Energy_M   = OVERALL_var_energy_m,
-        Overall_Total_Neglect  = OVERALL_total_neglect,
-        Overall_Max_Neglect    = OVERALL_max_neglect,
-        Overall_Prop_Neglect   = OVERALL_prop_neglect,
-        Overall_Hatch_Date     = OVERALL_hatch_date,
-
-        Successful_Mean_Energy_F  = SUCCESSFUL_mean_energy_f,
-        Successful_Var_Energy_F   = SUCCESSFUL_var_energy_f,
-        Successful_Mean_Energy_M  = SUCCESSFUL_mean_energy_m,
-        Successful_Var_Energy_M   = SUCCESSFUL_var_energy_m,
-        Successful_Total_Neglect  = SUCCESSFUL_tot_neglect,
-        Successful_Max_Neglect    = SUCCESSFUL_max_neglect,
-        Successful_Prop_Neglect   = SUCCESSFUL_prop_neglect,
-        Successful_Hatch_Date     = SUCCESSFUL_hatch_date,
-        Successful_Attendance_F   = SUCCESSFUL_attendance_f,
-        Successful_Prop_F         = SUCCESSFUL_prop_f,
-        Successful_Attendance_M   = SUCCESSFUL_attendance_m,
-        Successful_Prop_M         = SUCCESSFUL_prop_m
-)
+    result <- data.table(N_Total            = n,
+                         N_Success          = n_successes,
+                         N_Fail_Egg_Time    = n_fail_egg_time,
+                         N_Fail_Egg_Cold    = n_fail_egg_cold,
+                         N_Fail_Parent_Dead = n_fail_parent_dead,
+                     
+                         Overall_Mean_Energy_F  = OVERALL_mean_energy_f,
+                         Overall_Var_Energy_F   = OVERALL_var_energy_f,
+                         Overall_Mean_Energy_M  = OVERALL_mean_energy_m,
+                         Overall_Var_Energy_M   = OVERALL_var_energy_m,
+                         Overall_Total_Neglect  = OVERALL_total_neglect,
+                         Overall_Max_Neglect    = OVERALL_max_neglect,
+                         Overall_Prop_Neglect   = OVERALL_prop_neglect,
+                         Overall_Hatch_Date     = OVERALL_hatch_date,
+                     
+                         Successful_Mean_Energy_F  = SUCCESSFUL_mean_energy_f,
+                         Successful_Var_Energy_F   = SUCCESSFUL_var_energy_f,
+                         Successful_Mean_Energy_M  = SUCCESSFUL_mean_energy_m,
+                         Successful_Var_Energy_M   = SUCCESSFUL_var_energy_m,
+                         Successful_Total_Neglect  = SUCCESSFUL_tot_neglect,
+                         Successful_Max_Neglect    = SUCCESSFUL_max_neglect,
+                         Successful_Prop_Neglect   = SUCCESSFUL_prop_neglect,
+                         Successful_Hatch_Date     = SUCCESSFUL_hatch_date,
+                         Successful_Attendance_F   = SUCCESSFUL_attendance_f,
+                         Successful_Prop_F         = SUCCESSFUL_prop_f,
+                         Successful_Attendance_M   = SUCCESSFUL_attendance_m,
+                         Successful_Prop_M         = SUCCESSFUL_prop_m)
 
     result[, Rate_Success          := N_Success / N_Total]
     result[, Rate_Fail_Egg_Time    := N_Fail_Egg_Time / N_Total]
@@ -203,77 +192,42 @@ processGroup <- function(chunk) {
 }
 
 ############################################################
-### Process the data and write output
+### Process data call
+############################################################
+process_data_file <- function(type, suffix) {
+    cat(paste("Reading", type, "data...\n"))
+
+    dat <- fread(paste0("Output/sims_", type, "_", suffix, ".csv"))
+
+    GROUP_KEYS <- c("Min_Energy_Thresh_F", "Max_Energy_Thresh_F",
+                    "Min_Energy_Thresh_M", "Max_Energy_Thresh_M",
+                    "Foraging_Condition_Mean", "Foraging_Condition_SD",
+                    "Egg_Tolerance", "Egg_Cost", "Num_Parents")
+
+    # Split into list of data.tables, one per parameter combination
+    groups <- split(dat, by = GROUP_KEYS, keep.by = TRUE)
+    
+    # Remove full data so we don't keep full and split data in active memory both
+    rm(dat)
+    gc()
+
+    # Process all groups in parallel
+    cl <- makeCluster(detectCores() - 1)
+    clusterExport(cl, c("calcBouts", "processGroup"))
+    clusterEvalQ(cl, { library(data.table); library(stringr) })
+    results_list <- pblapply(groups, processGroup, cl = cl)
+    stopCluster(cl)
+
+    results_summarized <- rbindlist(results_list, use.names = TRUE)
+
+    # Save output
+    cat(paste("Reading", type, "output...\n"))
+    fwrite(results_summarized, paste0("Output/processed_", type, ".csv"))
+    cat("Done\n")
+}
+
+############################################################
+### Run
 ############################################################
 
-cat("Reading regular data...\n")
-
-dat <- fread(paste0(RESULTS_PREFIX, ".csv"))
-
-# TODO integrate egg tolerance as a regular key
-dat[, "Egg_Tolerance"] <- 7
-
-GROUP_KEYS <- c("Min_Energy_Thresh_F", "Max_Energy_Thresh_F",
-                "Min_Energy_Thresh_M", "Max_Energy_Thresh_M",
-                "Foraging_Condition_Mean", "Foraging_Condition_SD",
-                "Egg_Tolerance")
-
-# Split into list of data.tables, one per parameter combination
-groups <- split(dat, by = GROUP_KEYS, keep.by = TRUE)
-
-rm(dat)
-gc()
-
-# Process all groups in parallel
-cl <- makeCluster(detectCores() - 1)
-clusterExport(cl, c("calcBouts", "processGroup"))
-clusterEvalQ(cl, { library(data.table); library(stringr) })
-results_list <- pblapply(groups, processGroup, cl = cl)
-stopCluster(cl)
-
-results_summarized <- rbindlist(results_list, use.names = TRUE)
-
-# Save output
-cat("Writing regular output...\n")
-fwrite(results_summarized, "Output/processed_results.csv")
-
-rm(groups)
-rm(results_list)
-rm(results_summarized)
-gc()
-
-# Now repeat for egg tolerance 
-cat("Reading egg tolerance data...\n")
-
-dat <- fread(paste0(RESULTS_PREFIX, "_eggTolerance.csv"))
-
-GROUP_KEYS <- c("Min_Energy_Thresh_F", "Max_Energy_Thresh_F",
-                "Min_Energy_Thresh_M", "Max_Energy_Thresh_M",
-                "Foraging_Condition_Mean", "Foraging_Condition_SD",
-                "Egg_Tolerance")
-
-# Split into list of data.tables, one per parameter combination
-groups <- split(dat, by = GROUP_KEYS, keep.by = TRUE)
-
-rm(dat)
-gc()
-
-# Process all groups in parallel
-cl <- makeCluster(detectCores() - 1)
-clusterExport(cl, c("calcBouts", "processGroup"))
-clusterEvalQ(cl, { library(data.table); library(stringr) })
-results_list <- pblapply(groups, processGroup, cl = cl)
-stopCluster(cl)
-
-results_summarized <- rbindlist(results_list, use.names = TRUE)
-
-# Save output
-cat("Writing regular output...\n")
-fwrite(results_summarized, "Output/processed_results_eggTolerance.csv")
-
-rm(groups)
-rm(results_list)
-rm(results_summarized)
-gc()
-
-cat("Done.\n")
+for (type in SIM_TYPES) { process_data_file(type, RESULTS_SUFFIX) }

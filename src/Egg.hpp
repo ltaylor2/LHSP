@@ -20,7 +20,8 @@ public:
 
     // Setters
     void setNeglectMax(int neglectMax_) { this->neglectMax = neglectMax_; }
-
+	void setEggCost(double eggCost_) { this->eggCost = eggCost_; }
+	
 	// Getters
 	bool isAlive() { return this->alive; }
 	bool isHatched() { return this->hatched; }

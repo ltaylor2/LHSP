@@ -21,13 +21,17 @@ int isolateHatchResults(std::vector<std::string>, std::string);
 
 // Converts a {min, max, by} vector to a list of parameters
 std::vector<double> paramVector(const double[3]);
-std::vector<int> paramVector(const int p[3]); // overloaded
+std::vector<int> paramVector(const int p[3]); // overloaded ints
+
+std::vector<double> paramVector(double); // overloaded single value
+std::vector<int> paramVector(int);       // overloaded single value
 
 // Prints bout info to a file
 void printBoutInfo(std::string, std::string, std::string, std::vector<int>);
 
 // Check season success based on different failure criteria
 std::string checkSeasonSuccess(Parent&, Parent&, Egg&);
+std::string checkSeasonSuccess(Parent&, Egg&); // overloaded 1 parent
 
 // Print a day's energetic and state information to the system
 void printDailyInfo(Parent&, Parent&, Egg&);
