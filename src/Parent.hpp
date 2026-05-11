@@ -47,7 +47,6 @@ public:
     void setMinEnergyThresh(double minEnergyThresh_) { this->minEnergyThresh = minEnergyThresh_; }
     void setMaxEnergyThresh(double maxEnergyThresh_) { this->maxEnergyThresh = maxEnergyThresh_; }
     void setForagingDistribution(double foragingMean_, double foragingSD_);
-    void setDidOverlap(bool didOverlap_) { this->didOverlap = didOverlap_; }
 
     // Getters
     Sex getSex() { return this->sex; }
