@@ -116,8 +116,8 @@ bool Parent::stopForaging()
 {
 	// Deterministic boolean maximum threshold
 	if (this->energy >= this->maxEnergyThresh && this->foragingDays > 1) {
-    		// Stop foraging
-    		return true;
+    	// Stop foraging
+    	return true;
 	}
 
   	// Don't stop foraging

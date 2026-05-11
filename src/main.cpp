@@ -55,9 +55,6 @@ int main()
 	std::mt19937 r = std::mt19937(seed);
 	randGen = &r;
 
-    // Output filename for this run
-    std::time_t now = std::time(nullptr);
-
 	// Generate a vector of parameter values from {min, max, by} arrays
 	std::vector<double> v_minEnergyThresh_full         = paramVector(P_MIN_ENERGY_THRESH);
 	std::vector<double> v_maxEnergyThresh_full         = paramVector(P_MAX_ENERGY_THRESH);
@@ -203,7 +200,6 @@ void runModel(int iterations,
 			<< "Mean_Energy_M" << ","
 			<< "Var_Energy_M" << ","
 			<< "Dead_M" <<  ","
-            << "Season_Length" << ","
             << "Season_History" << std::endl;
 
 	/*
@@ -314,7 +310,6 @@ void runModel(int iterations,
 			std::string hatchResult = "";
 			if (oneParent) {
 				hatchResult = checkSeasonSuccess(pf, egg);
-				pm.parentDay();
 			} else {
 				hatchResult = checkSeasonSuccess(pf, pm, egg);
 			}
@@ -345,8 +340,6 @@ void runModel(int iterations,
 			}
             bool dead_M = !pm.isAlive();                             // Is the male alive?
 
-            int seasonLength = egg.getIncubationDays();
-
 			int numParents = 2;
 			if (oneParent) {
 				numParents = 1;
@@ -374,7 +367,6 @@ void runModel(int iterations,
                     << meanEnergy_M << ","
                     << varEnergy_M << ","
                     << dead_M << ","
-                    << seasonLength << ","
                     << seasonHistory << std::endl;
         }
     } } } } } } } } // End parameter loops
@@ -386,7 +378,7 @@ void runModel(int iterations,
 
 std::string breedingSeason(Parent& pf, Parent& pm, Egg& egg, bool swapSexOrder)
 {
-    // Season history that records state at the end of each day
+    // Season history that records state at the start of each day
     std::string seasonHistory = ""; 
 
 	// The female pays the initial cost of the egg
@@ -469,7 +461,7 @@ std::string breedingSeason(Parent& pf, Parent& pm, Egg& egg, bool swapSexOrder)
 
 std::string breedingSeason_oneParent(Parent& pf, Egg& egg)
 {
-    // Season history that records state at the end of each day
+    // Season history that records state at the start of each day
     std::string seasonHistory = ""; 
 
 	// The female pays the initial cost of the egg
@@ -483,7 +475,7 @@ std::string breedingSeason_oneParent(Parent& pf, Egg& egg)
         if (femaleStartState == State::incubating) { seasonHistory += 'F'; }
         else { seasonHistory += 'N'; }
 
-		// Check if either is incubating
+		// Check if female is incubating
 		bool incubated = false;
 		if (femaleStartState == State::incubating) {
 			incubated = true;
@@ -500,7 +492,6 @@ std::string breedingSeason_oneParent(Parent& pf, Egg& egg)
         if (femaleState == State::dead) {
             break;
         }
-
 	}
 
     return seasonHistory;

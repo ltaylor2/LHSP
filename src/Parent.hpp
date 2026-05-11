@@ -121,11 +121,10 @@ private:
     double minEnergyThresh;         // hunger threshold (incubating->foraging)
     double maxEnergyThresh;         // satiation threshold (foraging->incubating)
 
-    double foragingMean;        // mean for distribution of foraging intake values
-    double foragingSD;          // standard deviation for distribution of foraging intake values
-    double foragingDays;        // number of days spent foraging
+    double foragingMean;            // mean for distribution of foraging intake values
+    double foragingSD;              // standard deviation for distribution of foraging intake values
+    int foragingDays;               // number of days spent foraging
 
     std::normal_distribution<double> foragingDistribution;      // Normal distribution to draw stochastic foraging energy intakes
-    bool didOverlap;                                            // did the last incubation bout end in an overlap?
     std::vector<double> energyRecord;                           // energy values across all days
 };
