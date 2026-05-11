@@ -4,11 +4,11 @@
 #SBATCH -n 15
 #SBATCH --mem 200G
 
-cd /home/l.taylor/Documents/LHSP/src
+cd /mnt/research/l.taylor/l.taylor/LHSP/src
 make clean
 make
 ./lhsp
 
-cd /home/l.taylor/Documents/LHSP
+cd /mnt/research/l.taylor/l.taylor/LHSP
 Rscript --slave R/process_simulation_results.r
 Rscript --slave R/analysis.r
