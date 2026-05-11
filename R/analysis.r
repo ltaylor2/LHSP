@@ -176,6 +176,7 @@ plot_tiles <- (plot_main_tile + labs(tag="(A)")) +
 
 ggsave(filename="Plots/FIGURE_2.png", plot=plot_tiles,
        width=6.5, height=4, unit="in")
+
 ###############################################################
 ### Tradeoffs
 ############################################################
@@ -212,7 +213,6 @@ plot_tradeoff_energy <- ggplot() +
                      xlab("Success rate") +
                      ylab("Female energy (kJ)") +
                      theme_lt
-
 
 # Hatch Date ~ Hatch Rate
 
@@ -597,7 +597,7 @@ dat_swappedSexOrder <- read_processed_dat("Output/processed_swapSexOrder.csv")
 
 dat_swappedSexOrder_long <- dat_swappedSexOrder |>
                          select(Strategy_Combination, Mean_Incubation_Bout_F_Trimmed, Mean_Incubation_Bout_M_Trimmed) |>
-                         pivot_longer(cols=contains("Bout"), names_to="Sex", values_to="Mean_Incubation_Bout_Swapped") |>
+                         pivot_longer(cols=contains("Bout"), names_to="Sex", values_to="Mean_Incubation_Bout") |>
                          mutate(Sex = str_split_i(Sex, "_", 4))
 
 dat_regular_comparison_long <- dat_regular |>
@@ -607,6 +607,8 @@ dat_regular_comparison_long <- dat_regular |>
                                    Egg_Tolerance == 7, 
                                    Egg_Cost == 69.7) |>
                             select(Strategy_Combination, Mean_Incubation_Bout_F_Trimmed, Mean_Incubation_Bout_M_Trimmed) |>
-                                              pivot_longer(cols=contains("Bout"), names_to="Sex", values_to="Mean_Incubation_Bout_Swapped") |>
+                                              pivot_longer(cols=contains("Bout"), names_to="Sex", values_to="Mean_Incubation_Bout") |>
                             mutate(Sex = str_split_i(Sex, "_", 4))
 
+ggplot(dat_swappedSexOrder_long) +
+geom_boxplot(aes(x=Sex, y=Mean_Incubation_Bout))
