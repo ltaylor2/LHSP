@@ -5,29 +5,34 @@
 # Required packages
 library(tidyverse)
 library(patchwork)
+library(gghalves)
 
 # Read in processed data
-dat <- read_csv("Output/processed_results.csv") |>
-    mutate(Strategy_F = paste(Min_Energy_Thresh_F, Max_Energy_Thresh_F, sep="-"),
-           Strategy_M = paste(Min_Energy_Thresh_M, Max_Energy_Thresh_M, sep="-"),
-           Strategy_Combination = paste(Strategy_F, Strategy_M, sep=" : "),
-           Is_Empirical_Strategy = (Min_Energy_Thresh_F >= 400 & Min_Energy_Thresh_F <= 700) &
-                                   (Max_Energy_Thresh_F >= 700 & Max_Energy_Thresh_F <= 900) &
-                                   (Min_Energy_Thresh_M >= 400 & Min_Energy_Thresh_M <= 700) &
-                                   (Max_Energy_Thresh_M >= 700 & Max_Energy_Thresh_M <= 900))
+read_processed_dat <- function(f) {
+  read_csv(f, show_col_types=FALSE) |>
+  mutate(Strategy_F = paste(Min_Energy_Thresh_F, Max_Energy_Thresh_F, sep="-"),
+         Strategy_M = paste(Min_Energy_Thresh_M, Max_Energy_Thresh_M, sep="-"),
+         Strategy_Combination = paste(Strategy_F, Strategy_M, sep=" : "),
+         Is_Empirical_Strategy = (Min_Energy_Thresh_F >= 400 & Min_Energy_Thresh_F <= 700) &
+                                 (Max_Energy_Thresh_F >= 700 & Max_Energy_Thresh_F <= 900) &
+                                 (Min_Energy_Thresh_M >= 400 & Min_Energy_Thresh_M <= 700) &
+                                 (Max_Energy_Thresh_M >= 700 & Max_Energy_Thresh_M <= 900))
+}
+
+dat_regular <- read_processed_dat("Output/processed_regular.csv")
 
 # Get numerical order for factoring strategies
-order_strategy_f <- dat |>
+order_strategy_f <- dat_regular |>
                  arrange(Min_Energy_Thresh_F, Max_Energy_Thresh_F) |>
                  pull(Strategy_F) |>
                  unique()
-order_strategy_m <- dat |>
+order_strategy_m <- dat_regular |>
                  arrange(Min_Energy_Thresh_M, Max_Energy_Thresh_M) |>
                  pull(Strategy_M) |>
                  unique()
-dat <- dat |>
-    mutate(Strategy_F = factor(Strategy_F, levels=order_strategy_f),
-           Strategy_M = factor(Strategy_M, levels=order_strategy_m))
+dat_regular <- dat_regular |>
+            mutate(Strategy_F = factor(Strategy_F, levels=order_strategy_f),
+                   Strategy_M = factor(Strategy_M, levels=order_strategy_m))
 
 # Custom plotting theme
 theme_lt <- theme_bw() +
@@ -47,10 +52,10 @@ OF <- "Output/results_log.txt"
 ############################################################
 
 # Empirical parameter set only
-emp <- dat |>
+emp <- dat_regular |>
     filter(Is_Empirical_Strategy, Foraging_Condition_Mean == 162, Foraging_Condition_SD == 47)
 
-summaryValues <- function(v, sfs=3) {
+summaryValues <- function(v, sfs=4) {
     return(paste0("Mean=", round(mean(v, na.rm=TRUE),sfs), 
                   " SD=", round(sd(v, na.rm=TRUE),sfs), 
                   " Min=", round(min(v, na.rm=TRUE),sfs), 
@@ -59,7 +64,7 @@ summaryValues <- function(v, sfs=3) {
 
 cat("Results log from", as.character(now()), "\n", file=OF, append=FALSE)
 cat("\nModel fidelity for empirical strategies in empirical environment\n", file=OF, append=TRUE)
-cat("Foraging conditions", unique(emp$Foraging_Condition_Mean), "\n", file=OF, append=TRUE)
+cat("Foraging conditions ", unique(emp$Foraging_Condition_Mean), "+-", unique(emp$Foraging_Condition_SD), "\n", file=OF, append=TRUE)
 cat("Departure thresholds", unique(c(emp$Min_Energy_Thresh_F, emp$Min_Energy_Thresh_M)), "\n", file=OF, append=TRUE)
 cat("Return thresholds", unique(c(emp$Max_Energy_Thresh_F, emp$Max_Energy_Thresh_M)), "\n", file=OF, append=TRUE)
 cat("Success rate", summaryValues(emp$Rate_Success), "\n", file=OF, append=TRUE)
@@ -83,7 +88,7 @@ cat("Mean success foraging bout (Both Trimmed)", summaryValues(emp$Mean_Foraging
 ############################################################
 
 # Data from empirical environment only
-emp_environment <- filter(dat, Foraging_Condition_Mean == 162, Foraging_Condition_SD == 47)
+emp_environment <- filter(dat_regular, Foraging_Condition_Mean == 162, Foraging_Condition_SD == 47)
 
 # Empirical strategy boxes to highlight those places in the tile
 #   We factor to align with axes in the tile plot
@@ -103,7 +108,7 @@ plot_main_tile <- ggplot(emp_environment) +
                geom_rect(data=emp_strategy_boxes,
                          aes(xmin=Strategy_F_Start, xmax=Strategy_F_End, 
                              ymin=Strategy_M_Start, ymax=Strategy_M_End),
-                         fill="transparent", color=EMPIRICAL_COLOR) +
+                         fill="transparent", color=alpha(EMPIRICAL_COLOR,0.5)) +
                scale_fill_continuous(low="white", high="gray10", name="Success rate",
                                      limits=c(0, 1)) +
                xlab("Female strategy") +
@@ -295,7 +300,7 @@ ggsave(filename="Plots/FIGURE_3.png", plot=plot_tradeoffs,
 
 # Exclude data from empirical environment, so we have smooth sample of 
 #   130 - 170 by 10 (including 160)
-not_emp_forgmean <- filter(dat, Foraging_Condition_Mean != 162, Foraging_Condition_SD == 47)
+not_emp_forgmean <- filter(dat_regular, Foraging_Condition_Mean != 162, Foraging_Condition_SD == 47)
 
 # Fit logistic curves to find fail point
 mlog_all <- glm(Rate_Success ~ Foraging_Condition_Mean, data=not_emp_forgmean, family="quasibinomial")
@@ -315,22 +320,22 @@ plot_decline_hatch_mean <- ggplot() +
                         geom_vline(xintercept = mlog_emp_failpoint, colour="#b404a2", linewidth=0.25) +
                         stat_smooth(data=filter(not_emp_forgmean, Is_Empirical_Strategy),
                                     aes(x=Foraging_Condition_Mean, y=Rate_Success), 
-                                    method = "glm", method.args = list(family="quasibinomial"), 
+                                    method = "glm", method.args = list(family="quasibinomial"), formula=y~x,
                                     se=FALSE, colour="#b404a2") +
                         stat_smooth(data=not_emp_forgmean,
                                     aes(x=Foraging_Condition_Mean, y=Rate_Success), 
-                                    method = "glm", method.args = list(family="quasibinomial"), 
+                                    method = "glm", method.args = list(family="quasibinomial"), formula=y~x, 
                                     se=FALSE, colour="black") +
                         xlab("Foraging mean (kJ/day)") +
                         ylab("Success rate") +
                         theme_lt
 
-not_emp_both_summaries <- filter(dat, 
+not_emp_both_summaries <- filter(dat_regular, 
                                  Foraging_Condition_SD != 47, 
                                  Foraging_Condition_Mean != 162) |>
                        group_by(Foraging_Condition_Mean, Foraging_Condition_SD) |>
                        summarize(Mean_Rate_Success = mean(Rate_Success),
-                                 Var_Rate_Success = var(Rate_Success))
+                                 Var_Rate_Success = var(Rate_Success), .groups="keep")
 
 plot_env_success <- ggplot(not_emp_both_summaries) +
                  geom_tile(aes(x=Foraging_Condition_Mean, 
@@ -390,7 +395,7 @@ ggsave(filename="Plots/FIGURE_4.png", plot=plot_declines,
 #   (successful hatch, slow development, cold shock, dead parent)
 # excluding the empirical environment, so we have a smooth sample
 #   of 130 - 170 by 10 (including 160)
-outcomes <- dat |> 
+outcomes <- dat_regular |> 
          filter(Foraging_Condition_Mean != 162, Foraging_Condition_SD == 47) |>
          select(Strategy_Combination, Foraging_Condition_Mean, contains("Rate_")) |>
          pivot_longer(cols=contains("Rate_"), names_to="Outcome", values_to="Rate") |>
@@ -398,7 +403,7 @@ outcomes <- dat |>
 
 plot_outcomes_smooth <- ggplot(outcomes) +
                      geom_smooth(aes(x=Foraging_Condition_Mean, y=Rate, colour=Outcome),
-                                 method="loess") +
+                                 method="loess", formula=y~x) +
                      annotate(geom="text", label="Successful", hjust=0, vjust=1, x=158, y=0.935, size=3, lineheight=1, colour="black") +
                      annotate(geom="text", label="(Fail)\nCold shock", hjust=0, vjust=1, x=132, y=0.89, size=3, lineheight=1, colour="#7570b3") + 
                      annotate(geom="text", label="(Fail)\nSlow dev.", hjust=0, vjust=1, x=154, y=0.22, size=3, lineheight=1, colour="#1b9e77") +
@@ -469,20 +474,13 @@ ggsave(filename="Plots/FIGURE_5.png", plot=plot_outcomes,
        width=6.5, height=3, unit="in")
 
 ###############################################################
-### Egg tolerance simulations
+### Egg tolerance
 ############################################################
 
-datEgg <- read_csv("Output/processed_results_eggTolerance.csv") |>
-       mutate(Strategy_F = paste(Min_Energy_Thresh_F, Max_Energy_Thresh_F, sep="-"),
-            Strategy_M = paste(Min_Energy_Thresh_M, Max_Energy_Thresh_M, sep="-"),
-            Strategy_Combination = paste(Strategy_F, Strategy_M, sep=" : "),
-            Is_Empirical_Strategy = (Min_Energy_Thresh_F >= 400 & Min_Energy_Thresh_F <= 700) &
-                                    (Max_Energy_Thresh_F >= 700 & Max_Energy_Thresh_F <= 900) &
-                                    (Min_Energy_Thresh_M >= 400 & Min_Energy_Thresh_M <= 700) &
-                                    (Max_Energy_Thresh_M >= 700 & Max_Energy_Thresh_M <= 900)) |>
-       filter(Is_Empirical_Strategy,
-              Foraging_Condition_Mean %in% c(150, 160, 170),
-              Foraging_Condition_SD == 47)
+dat_eggTolerance  <- read_processed_dat("Output/processed_eggTolerance.csv") |>
+                  filter(Is_Empirical_Strategy,
+                         Foraging_Condition_Mean %in% c(150, 160, 170),
+                         Foraging_Condition_SD == 47)
 
 egg_strip_labeller <- function(value) {
     ifelse(value == min(as.numeric(value)),
@@ -490,12 +488,13 @@ egg_strip_labeller <- function(value) {
            paste0(value, " (kJ/day)"))
 }
 
-plot_egg_tolerance <- ggplot(datEgg) +
+plot_egg_tolerance <- ggplot(dat_eggTolerance) +
                    geom_line(aes(x=Egg_Tolerance, y=Rate_Success, 
                                  group=Strategy_Combination),
                              colour=EMPIRICAL_COLOR, alpha=0.5) +
                    geom_smooth(aes(x=Egg_Tolerance, y=Rate_Success),
-                               method="loess", colour="#b404a2") +
+                               method="loess", formula=y~x,
+                               colour="#b404a2", se=FALSE) +
                    facet_wrap(facets=vars(Foraging_Condition_Mean), nrow=1, ncol=3,
                               labeller=labeller(Foraging_Condition_Mean=egg_strip_labeller)) +
                    scale_x_continuous(breaks=1:7) +
@@ -507,3 +506,107 @@ plot_egg_tolerance <- ggplot(datEgg) +
 
 ggsave(filename="Plots/FIGURE_6.png", plot=plot_egg_tolerance, 
        width=6.5, height=2.5, unit="in")
+
+###############################################################
+### One parent energy requirements
+############################################################
+
+dat_oneParent  <- read_processed_dat("Output/processed_oneParent.csv")
+
+# Fit logistic curves to find fail point
+mlog_oneParent <- glm(Rate_Success ~ Foraging_Condition_Mean, data=dat_oneParent, family="quasibinomial")
+mlog_oneParent_failpoint <- -coef(mlog_oneParent)[1] / coef(mlog_oneParent)[2]
+
+plot_success_oneParent <- ggplot(dat_oneParent) +
+                       geom_line(aes(x=Foraging_Condition_Mean, y=Rate_Success, group=Strategy_Combination),
+                                 colour=EMPIRICAL_COLOR, alpha=0.5, linewidth=0.5) +
+                       geom_vline(xintercept = mlog_oneParent_failpoint, colour="#b404a2", linewidth=0.25) +
+                       stat_smooth(aes(x=Foraging_Condition_Mean, y=Rate_Success), 
+                                   method = "glm", method.args = list(family="quasibinomial"), formula=y~x,
+                                   se=FALSE, colour="#b404a2", linewidth=0.8) +
+                       scale_x_continuous(breaks=seq(100, 400, by=100)) +
+                       xlab("Foraging mean (kJ/day)") +
+                       ylab("Success rate\n(one parent)") +
+                       theme_lt
+
+ggsave(filename="Plots/FIGURE_S_ONEPARENT.png", plot=plot_success_oneParent,
+       width=4, height=2, units="in")
+
+###############################################################
+### Sex bias 
+############################################################
+
+dat_eggCost <- read_processed_dat("Output/processed_eggCost.csv")
+
+plot_eggCost_hatch <- ggplot(dat_eggCost) +
+                   geom_line(aes(x=Egg_Cost, y=Rate_Success, 
+                                 group=Strategy_Combination),
+                             colour=EMPIRICAL_COLOR, alpha=0.5) +
+                   geom_smooth(aes(x=Egg_Cost, y=Rate_Success),
+                               method="loess", formula=y~x,
+                               colour="#b404a2", se=FALSE) +
+                   scale_x_continuous(breaks=seq(0, 500, by=100)) +
+                   xlab("Egg cost to female (kJ)") +
+                   ylab("Success rate") +
+                   theme_lt
+
+dat_eggCost_long <- dat_eggCost |>
+                select(Strategy_Combination, Egg_Cost, Mean_Incubation_Bout_F_Trimmed, Mean_Incubation_Bout_M_Trimmed) |>
+                pivot_longer(cols=contains("Bout"), names_to="Sex", values_to="Mean_Incubation_Bout") |>
+                mutate(Sex = str_split_i(Sex, "_", 4))
+
+eggCost_means <- dat_eggCost_long |>
+              group_by(Egg_Cost, Sex) |>
+              summarize(Mean_Incubation_Bout = mean(Mean_Incubation_Bout), .groups="drop_last")
+
+plot_eggCost_bias <- ggplot() +
+                  geom_half_violin(data=filter(dat_eggCost_long, Sex == "F"), 
+                                    aes(x=Egg_Cost, y=Mean_Incubation_Bout, group=Egg_Cost, fill=Sex),
+                                    colour="black", side="l") +
+                  geom_half_violin(data=filter(dat_eggCost_long, Sex == "M"), 
+                                    aes(x=Egg_Cost, y=Mean_Incubation_Bout, group=Egg_Cost, fill=Sex),
+                                    colour="black", side="r") +
+                  geom_point(data=filter(eggCost_means, Sex == "F"),
+                             aes(x=Egg_Cost, y=Mean_Incubation_Bout),
+                             colour="black", size=0.5, 
+                             position=position_nudge(x=-11)) +
+                  geom_point(data=filter(eggCost_means, Sex == "M"),
+                             aes(x=Egg_Cost, y=Mean_Incubation_Bout),
+                             colour="black", size=0.5,
+                             position=position_nudge(x=11)) +
+                  scale_x_continuous(breaks=seq(0, 500, by=100)) +
+                  scale_y_continuous(breaks=seq(1, 9, by=2)) +
+                  scale_fill_manual(values=c("F"="white", "M"="gray"),
+                                    labels=c("F"="Female", "M"="Male")) +
+                  xlab("Egg cost to female (kJ)") +
+                  ylab("Mean incubation bout (days)") +
+                  theme_lt +
+                  theme(legend.position="right", 
+                        legend.title=element_text(size=10),
+                        legend.text=element_text(size=10))
+
+plots_eggCost <- plot_eggCost_hatch / plot_eggCost_bias +
+              plot_annotation(tag_levels="A", tag_prefix="(", tag_suffix=")") + 
+              plot_layout(ncol=1, nrow=2, axes="collect")
+              
+ggsave(filename="Plots/FIGURE_S_EGGCOST.png", plot=plots_eggCost, 
+       width=6, height=5, unit="in")
+
+
+dat_swappedSexOrder <- read_processed_dat("Output/processed_swapSexOrder.csv")
+
+dat_swappedSexOrder_long <- dat_swappedSexOrder |>
+                         select(Strategy_Combination, Mean_Incubation_Bout_F_Trimmed, Mean_Incubation_Bout_M_Trimmed) |>
+                         pivot_longer(cols=contains("Bout"), names_to="Sex", values_to="Mean_Incubation_Bout_Swapped") |>
+                         mutate(Sex = str_split_i(Sex, "_", 4))
+
+dat_regular_comparison_long <- dat_regular |>
+                            filter(Is_Empirical_Strategy, 
+                                   Foraging_Condition_Mean == 162,
+                                   Foraging_Condition_SD == 47,
+                                   Egg_Tolerance == 7, 
+                                   Egg_Cost == 69.7) |>
+                            select(Strategy_Combination, Mean_Incubation_Bout_F_Trimmed, Mean_Incubation_Bout_M_Trimmed) |>
+                                              pivot_longer(cols=contains("Bout"), names_to="Sex", values_to="Mean_Incubation_Bout_Swapped") |>
+                            mutate(Sex = str_split_i(Sex, "_", 4))
+

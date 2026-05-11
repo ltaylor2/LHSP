@@ -395,10 +395,10 @@ std::string breedingSeason(Parent& pf, Parent& pm, Egg& egg, bool swapSexOrder)
 	if (swapSexOrder) {
 		// If requested, swap females to begin foraging, and males to begin incubating
 		pf.setState(State::foraging);
-		pf.setPrevDayState(State::incubating);
+		pf.setPrevDayState(State::foraging);
 		
 		pm.setState(State::incubating);
-		pm.setPrevDayState(State::foraging);
+		pm.setPrevDayState(State::incubating);
 	}
 
 	/*

@@ -35,23 +35,36 @@ calcBouts <- function(schedule) {
     foraging_bouts_m <- runs_m$lengths[runs_m$values=="0"]
 
     # Trim first and last bouts to reduce sensitivity to arbitrary start/end conditions
-    incubation_bouts_f_trimmed <- NA
-    foraging_bouts_f_trimmed <- NA
-    incubation_bouts_m_trimmed <- NA
-    foraging_bouts_m_trimmed <- NA
 
-    if (length(incubation_bouts_f) > 2) {
-        incubation_bouts_f_trimmed <- incubation_bouts_f[-c(1, length(incubation_bouts_f))]
-    }
-    if (length(foraging_bouts_f) > 2) {
-        foraging_bouts_f_trimmed <- foraging_bouts_f[-c(1, length(foraging_bouts_f))]
-    }
-    if (length(incubation_bouts_m) > 2) {
-        incubation_bouts_m_trimmed <- incubation_bouts_m[-c(1, length(incubation_bouts_m))]
-    }
-    if (length(foraging_bouts_m) > 2) {
-        foraging_bouts_m_trimmed <- foraging_bouts_m[-c(1, length(foraging_bouts_m))]
-    }
+    # Get the type of each first and last bout per parent
+    first_f <- schedule_f[1]
+    last_f  <- schedule_f[length(schedule_f)]
+    first_m <- schedule_m[1]
+    last_m  <- schedule_m[length(schedule_m)]
+
+    # New trimmed version, initially same as the old
+    incubation_bouts_f_trimmed <- incubation_bouts_f
+    foraging_bouts_f_trimmed   <- foraging_bouts_f
+    incubation_bouts_m_trimmed <- incubation_bouts_m
+    foraging_bouts_m_trimmed   <- foraging_bouts_m
+
+    # Trim the corresponding bouts for females
+    if (first_f == "1") incubation_bouts_f_trimmed <- incubation_bouts_f_trimmed[-1]
+    if (last_f  == "1" && length(incubation_bouts_f_trimmed) > 0) incubation_bouts_f_trimmed <- incubation_bouts_f_trimmed[-length(incubation_bouts_f_trimmed)]
+    if (first_f == "0") foraging_bouts_f_trimmed   <- foraging_bouts_f_trimmed[-1]
+    if (last_f  == "0" && length(foraging_bouts_f_trimmed) > 0) foraging_bouts_f_trimmed   <- foraging_bouts_f_trimmed[-length(foraging_bouts_f_trimmed)]
+
+    # Trim the corresponding bouts for males
+    if (first_m == "1") incubation_bouts_m_trimmed <- incubation_bouts_m_trimmed[-1]
+    if (last_m  == "1" && length(incubation_bouts_m_trimmed) > 0) incubation_bouts_m_trimmed <- incubation_bouts_m_trimmed[-length(incubation_bouts_m_trimmed)]
+    if (first_m == "0") foraging_bouts_m_trimmed   <- foraging_bouts_m_trimmed[-1]
+    if (last_m  == "0" && length(foraging_bouts_m_trimmed) > 0) foraging_bouts_m_trimmed <- foraging_bouts_m_trimmed[-length(foraging_bouts_m_trimmed)]
+
+    # If trimming removed everything, reset to NA
+    if (length(incubation_bouts_f_trimmed) == 0) incubation_bouts_f_trimmed <- NA
+    if (length(foraging_bouts_f_trimmed)   == 0) foraging_bouts_f_trimmed   <- NA
+    if (length(incubation_bouts_m_trimmed) == 0) incubation_bouts_m_trimmed <- NA
+    if (length(foraging_bouts_m_trimmed)   == 0) foraging_bouts_m_trimmed   <- NA
 
     # Summarize all values
     list(Mean_Incubation_Bout_Both         = mean(c(incubation_bouts_f, incubation_bouts_m)),
@@ -153,20 +166,20 @@ processGroup <- function(chunk) {
     }
 
     # Assemble output row
-    result <- data.table(N_Total            = n,
-                         N_Success          = n_successes,
-                         N_Fail_Egg_Time    = n_fail_egg_time,
-                         N_Fail_Egg_Cold    = n_fail_egg_cold,
-                         N_Fail_Parent_Dead = n_fail_parent_dead,
+    result <- data.table(N_Total                   = n,
+                         N_Success                 = n_successes,
+                         N_Fail_Egg_Time           = n_fail_egg_time,
+                         N_Fail_Egg_Cold           = n_fail_egg_cold,
+                         N_Fail_Parent_Dead        = n_fail_parent_dead,
                      
-                         Overall_Mean_Energy_F  = OVERALL_mean_energy_f,
-                         Overall_Var_Energy_F   = OVERALL_var_energy_f,
-                         Overall_Mean_Energy_M  = OVERALL_mean_energy_m,
-                         Overall_Var_Energy_M   = OVERALL_var_energy_m,
-                         Overall_Total_Neglect  = OVERALL_total_neglect,
-                         Overall_Max_Neglect    = OVERALL_max_neglect,
-                         Overall_Prop_Neglect   = OVERALL_prop_neglect,
-                         Overall_Hatch_Date     = OVERALL_hatch_date,
+                         Overall_Mean_Energy_F     = OVERALL_mean_energy_f,
+                         Overall_Var_Energy_F      = OVERALL_var_energy_f,
+                         Overall_Mean_Energy_M     = OVERALL_mean_energy_m,
+                         Overall_Var_Energy_M      = OVERALL_var_energy_m,
+                         Overall_Total_Neglect     = OVERALL_total_neglect,
+                         Overall_Max_Neglect       = OVERALL_max_neglect,
+                         Overall_Prop_Neglect      = OVERALL_prop_neglect,
+                         Overall_Hatch_Date        = OVERALL_hatch_date,
                      
                          Successful_Mean_Energy_F  = SUCCESSFUL_mean_energy_f,
                          Successful_Var_Energy_F   = SUCCESSFUL_var_energy_f,
@@ -221,7 +234,7 @@ process_data_file <- function(type, suffix) {
     results_summarized <- rbindlist(results_list, use.names = TRUE)
 
     # Save output
-    cat(paste("Reading", type, "output...\n"))
+    cat(paste("Writing", type, "output...\n"))
     fwrite(results_summarized, paste0("Output/processed_", type, ".csv"))
     cat("Done\n")
 }
