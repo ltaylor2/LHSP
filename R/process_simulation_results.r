@@ -9,7 +9,7 @@ library(pbapply)
 library(stringr)
 
 # Filename for full simulation output
-RESULTS_SUFFIX <- "ms2-100iter"
+RESULTS_SUFFIX <- "ms-1000iter"
 
 SIM_TYPES <- c("regular", "eggTolerance", "eggCost", "swapSexOrder", "oneParent")
 

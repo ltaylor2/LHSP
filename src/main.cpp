@@ -12,8 +12,8 @@
 #include "Egg.hpp"
 #include "Parent.hpp"
 
-static std::string OUTPUT_SUFFIX = "ms2-100iter";
-static int ITERATIONS = 100;
+static std::string OUTPUT_SUFFIX = "ms-1000iter";
+static int ITERATIONS = 1000;
 
 constexpr static double P_MIN_ENERGY_THRESH[] = {200, 1100, 100};
 constexpr static double P_MAX_ENERGY_THRESH[] = {400, 1200, 100};

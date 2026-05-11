@@ -610,5 +610,26 @@ dat_regular_comparison_long <- dat_regular |>
                                               pivot_longer(cols=contains("Bout"), names_to="Sex", values_to="Mean_Incubation_Bout") |>
                             mutate(Sex = str_split_i(Sex, "_", 4))
 
-ggplot(dat_swappedSexOrder_long) +
-geom_boxplot(aes(x=Sex, y=Mean_Incubation_Bout))
+plot_sexBias_regular <- ggplot(dat_swappedSexOrder_long) +
+                     geom_boxplot(aes(x=Sex, y=Mean_Incubation_Bout, fill=Sex)) +
+                     scale_fill_manual(values=c("F"="white", "M"="gray"),
+                                       labels=c("F"="Female", "M"="Male"),
+                                       guide="none") +
+                     xlab("Sex") +
+                     ylab("Mean incubation bout (days)") +
+                     ggtitle("Regular (females incubate first") +
+                     theme_lt
+
+plot_sexBias_swapped <- ggplot(dat_swappedSexOrder_long) +
+                     geom_boxplot(aes(x=Sex, y=Mean_Incubation_Bout, fill=Sex)) +
+                     scale_fill_manual(values=c("F"="white", "M"="gray"),
+                                       labels=c("F"="Female", "M"="Male"),
+                                       guide="none") +
+                     xlab("Sex") +
+                     ylab("Mean incubation bout (days)") +
+                     ggtitle("Swapped (males incubate first)") +
+                     theme_lt 
+
+plots_sexBias_swapped <- plot_sexBias_regular + plot_sexBias_swapped +
+                      plot_annotation(tag_levels="A", tag_prefix="(", tag_suffix=")") + 
+                      plot_layout(ncol=1, nrow=2, axes="collect")
