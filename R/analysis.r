@@ -592,7 +592,6 @@ plots_eggCost <- plot_eggCost_hatch / plot_eggCost_bias +
 ggsave(filename="Plots/FIGURE_S_EGGCOST.png", plot=plots_eggCost, 
        width=6, height=5, unit="in")
 
-
 dat_swappedSexOrder <- read_processed_dat("Output/processed_swapSexOrder.csv")
 
 dat_swappedSexOrder_long <- dat_swappedSexOrder |>
@@ -610,7 +609,7 @@ dat_regular_comparison_long <- dat_regular |>
                                               pivot_longer(cols=contains("Bout"), names_to="Sex", values_to="Mean_Incubation_Bout") |>
                             mutate(Sex = str_split_i(Sex, "_", 4))
 
-plot_sexBias_regular <- ggplot(dat_swappedSexOrder_long) +
+plot_sexBias_regular <- ggplot(dat_regular_comparison_long) +
                      geom_boxplot(aes(x=Sex, y=Mean_Incubation_Bout, fill=Sex)) +
                      scale_fill_manual(values=c("F"="white", "M"="gray"),
                                        labels=c("F"="Female", "M"="Male"),
@@ -632,4 +631,6 @@ plot_sexBias_swapped <- ggplot(dat_swappedSexOrder_long) +
 
 plots_sexBias_swapped <- plot_sexBias_regular + plot_sexBias_swapped +
                       plot_annotation(tag_levels="A", tag_prefix="(", tag_suffix=")") + 
-                      plot_layout(ncol=1, nrow=2, axes="collect")
+                      plot_layout(ncol=2, nrow=1, axes="collect")
+ggsave(filename="Plots/FIGURE_S_SEXBIAS.png", plot=plots_sexBias_swapped, 
+       width=6, height=3, unit="in")

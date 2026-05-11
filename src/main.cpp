@@ -411,11 +411,19 @@ std::string breedingSeason(Parent& pf, Parent& pm, Egg& egg, bool swapSexOrder)
 
 		// Check if either is incubating
 		bool incubated = false;
-		if (pf.getState() == State::incubating || pm.getState() == State::incubating) {
-			incubated = true;
-		}
+
+		State femaleStartState = pf.getState();
+        State maleStartState = pm.getState();
+		        
+        // Add the daily start state to the season history
+        if (femaleStartState == State::incubating) { seasonHistory += 'F'; }
+        else if (maleStartState == State::incubating) { seasonHistory += 'M'; }
+        else { seasonHistory += 'N'; }
 
 		// Egg behavior based on incubation
+		if (femaleStartState == State::incubating || maleStartState == State::incubating) {
+			incubated = true;
+		}
 		egg.eggDay(incubated);
 
 		// Parent behavior, including state change
@@ -454,11 +462,6 @@ std::string breedingSeason(Parent& pf, Parent& pm, Egg& egg, bool swapSexOrder)
 				}
 			}
 		}
-        
-        // Add the daily state to the season history
-        if (femaleState == State::incubating) { seasonHistory += 'F'; }
-        else if (maleState == State::incubating) { seasonHistory += 'M'; }
-        else { seasonHistory += 'N'; }
 	}
 
     return seasonHistory;
@@ -474,9 +477,15 @@ std::string breedingSeason_oneParent(Parent& pf, Egg& egg)
 
 	while (egg.isAlive() && !egg.isHatched() && (egg.getIncubationDays() <= egg.getMaxHatchDays())) {
 
+        State femaleStartState = pf.getState();
+
+		// Add the daily start state to the season history
+        if (femaleStartState == State::incubating) { seasonHistory += 'F'; }
+        else { seasonHistory += 'N'; }
+
 		// Check if either is incubating
 		bool incubated = false;
-		if (pf.getState() == State::incubating) {
+		if (femaleStartState == State::incubating) {
 			incubated = true;
 		}
 
@@ -486,15 +495,12 @@ std::string breedingSeason_oneParent(Parent& pf, Egg& egg)
 		// Parent behavior, including state change
 		pf.parentDay();
 
+		// Check for death
         State femaleState = pf.getState();
-
         if (femaleState == State::dead) {
             break;
         }
 
-        // Add the daily state to the season history
-        if (femaleState == State::incubating) { seasonHistory += 'F'; }
-        else { seasonHistory += 'N'; }
 	}
 
     return seasonHistory;
