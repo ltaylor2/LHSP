@@ -616,7 +616,7 @@ plot_sexBias_regular <- ggplot(dat_regular_comparison_long) +
                                        guide="none") +
                      xlab("Sex") +
                      ylab("Mean incubation bout (days)") +
-                     ggtitle("Regular (females incubate first") +
+                     ggtitle("Regular (females incubate first)") +
                      theme_lt
 
 plot_sexBias_swapped <- ggplot(dat_swappedSexOrder_long) +
@@ -633,4 +633,4 @@ plots_sexBias_swapped <- plot_sexBias_regular + plot_sexBias_swapped +
                       plot_annotation(tag_levels="A", tag_prefix="(", tag_suffix=")") + 
                       plot_layout(ncol=2, nrow=1, axes="collect")
 ggsave(filename="Plots/FIGURE_S_SEXBIAS.png", plot=plots_sexBias_swapped, 
-       width=6, height=3, unit="in")
+       width=5, height=3.5, unit="in")
